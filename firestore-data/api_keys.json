@@ -1,0 +1,8 @@
+{
+  "keys": {
+    "GEMINI_API_KEY": "REPLACE_ME",
+    "OPENROUTER_API_KEY": "REPLACE_ME",
+    "OCR_API_KEY": "REPLACE_ME",
+    "TAVUS_API_KEY": "REPLACE_ME"
+  }
+}
