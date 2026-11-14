@@ -1,0 +1,14 @@
+rules_version = '2';
+
+// Baseline Cloud Storage rules: signed-in users may read files and upload
+// images up to 10 MB. Tighten per folder before a public launch.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+  }
+}

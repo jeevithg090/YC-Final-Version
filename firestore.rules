@@ -1,0 +1,36 @@
+rules_version = '2';
+
+// Baseline rules for YOGO Campus.
+//
+// Every feature in the app requires a signed-in user, so all reads and
+// writes require Firebase Authentication. These rules are deliberately
+// coarse; tighten them per collection (e.g. owner-only updates on
+// `users/{uid}`, participant-only access to chats) before a public launch.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Third-party API keys used by the client. Readable by signed-in users,
+    // never writable from the client: seed it from the Firebase console.
+    match /api_keys/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // Profiles: only the owner can create or edit their profile. Other
+    // signed-in users may only change the Q&A counters (reputation/points),
+    // which the forum updates when someone votes on or answers a post.
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && (
+        request.auth.uid == userId ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reputation', 'points'])
+      );
+      allow delete: if false;
+    }
+
+    // Everything else: any signed-in user.
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
