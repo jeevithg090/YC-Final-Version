@@ -22,18 +22,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  doc, 
-  updateDoc, 
-  deleteDoc,
-  query,
-  orderBy,
-  Timestamp 
-} from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { collection, addDoc, getDocs, doc, updateDoc, query, orderBy, Timestamp } from 'firebase/firestore';
+import { auth, db } from '../services/firebase';
+import { computeBillSplit } from '../utils/billSplit';
 import OCRService from '../services/ocrService';
 import OpenRouterService from '../services/openRouterService';
 
@@ -92,7 +83,7 @@ const SmartBillSplitter: React.FC = () => {
   const [billSplits, setBillSplits] = useState<BillSplit[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [showCreateBill, setShowCreateBill] = useState<boolean>(false);
-  
+
   // Bill creation state
   const [billImage, setBillImage] = useState<string>('');
   const [billName, setBillName] = useState<string>('');
@@ -118,7 +109,7 @@ const SmartBillSplitter: React.FC = () => {
   // Auto-calculate total amount when items change (only if not manual mode)
   useEffect(() => {
     if (!isManualTotal) {
-      const itemsTotal = extractedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const itemsTotal = extractedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
       // Calculate total tax amount from individual components
       const totalTax = cgstAmount + sgstAmount + gstAmount;
       setTaxAmount(totalTax);
@@ -135,7 +126,7 @@ const SmartBillSplitter: React.FC = () => {
       setLoading(true);
       const q = query(collection(db, 'billSplits'), orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(q);
-      
+
       const splits: BillSplit[] = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
@@ -145,7 +136,7 @@ const SmartBillSplitter: React.FC = () => {
           createdAt: data.createdAt.toDate(),
         } as BillSplit);
       });
-      
+
       setBillSplits(splits);
     } catch (error) {
       console.error('Error loading bill splits:', error);
@@ -223,17 +214,15 @@ const SmartBillSplitter: React.FC = () => {
         ocrResult = await OCRService.extractTextFromImage(billImage);
       } else {
         console.log('OCR service not available, using mock data...');
-        Alert.alert(
-          'Demo Mode',
-          'OCR service is not configured. Using mock bill data for demonstration.',
-          [{ text: 'OK' }]
-        );
+        Alert.alert('Demo Mode', 'OCR service is not configured. Using mock bill data for demonstration.', [
+          { text: 'OK' },
+        ]);
         ocrResult = await OCRService.mockOCR(billImage);
       }
 
       console.log('OCR Result:', ocrResult);
       console.log('Extracted text:', ocrResult.text);
-      
+
       // Use OpenRouter AI to parse the OCR text
       let parsedResult;
       if (OpenRouterService.isAvailable()) {
@@ -243,7 +232,7 @@ const SmartBillSplitter: React.FC = () => {
         console.log('OpenRouter not available, using fallback parsing...');
         parsedResult = parseOCRText(ocrResult.text);
       }
-      
+
       // If no items were parsed, create some default items for manual editing
       if (parsedResult.items.length === 0) {
         parsedResult.items = [
@@ -263,7 +252,7 @@ const SmartBillSplitter: React.FC = () => {
           },
         ];
       }
-      
+
       setExtractedItems(parsedResult.items);
       setTotalAmount(parsedResult.totalAmount);
       setTaxAmount(parsedResult.taxAmount);
@@ -273,23 +262,23 @@ const SmartBillSplitter: React.FC = () => {
       setServiceChargeAmount(parsedResult.serviceChargeAmount);
       setIsManualTotal(false); // Reset to auto-calculation when OCR processes
       setCurrentStep('assign');
-      
+
       // Show success message with extracted info
       Alert.alert(
-        'OCR Success!', 
-        `Extracted ${parsedResult.items.length} items. Total: ₹${parsedResult.totalAmount.toFixed(2)}. You can edit the details before proceeding.`
+        'OCR Success!',
+        `Extracted ${parsedResult.items.length} items. Total: ₹${parsedResult.totalAmount.toFixed(2)}. You can edit the details before proceeding.`,
       );
-      
     } catch (error) {
       console.error('OCR Error:', error);
       const errorMessage = error instanceof Error ? OCRService.getErrorMessage(error) : 'Unknown error occurred';
-      
+
       // Handle specific OCR API errors
-      if (error instanceof Error && (
-        error.message === 'OCR_API_QUOTA_EXCEEDED' || 
-        error.message.includes('quota exceeded') || 
-        error.message.includes('limit')
-      )) {
+      if (
+        error instanceof Error &&
+        (error.message === 'OCR_API_QUOTA_EXCEEDED' ||
+          error.message.includes('quota exceeded') ||
+          error.message.includes('limit'))
+      ) {
         Alert.alert(
           'OCR API Quota Exceeded',
           'OCR.space API quota has been exceeded. You can:\n\n1. Wait for quota reset\n2. Use mock data for testing\n3. Enter bill details manually',
@@ -297,63 +286,55 @@ const SmartBillSplitter: React.FC = () => {
             {
               text: 'Setup Instructions',
               onPress: () => {
-                Alert.alert(
-                  'Setup Instructions',
-                  OCRService.getSetupInstructions(),
-                  [
-                    { text: 'Use Mock Data', onPress: () => useMockData() },
-                    { text: 'Manual Entry', onPress: () => useManualEntry() },
-                    { text: 'OK' }
-                  ]
-                );
+                Alert.alert('Setup Instructions', OCRService.getSetupInstructions(), [
+                  { text: 'Use Mock Data', onPress: () => loadMockData() },
+                  { text: 'Manual Entry', onPress: () => startManualEntry() },
+                  { text: 'OK' },
+                ]);
               },
             },
             {
               text: 'Use Mock Data',
-              onPress: () => useMockData(),
+              onPress: () => loadMockData(),
             },
             {
               text: 'Manual Entry',
-              onPress: () => useManualEntry(),
+              onPress: () => startManualEntry(),
             },
-          ]
+          ],
         );
         return;
       }
-      
+
       // Handle other errors
-      Alert.alert(
-        'OCR Processing Failed', 
-        `${errorMessage}\n\nYou can manually enter the bill details instead.`,
-        [
-          {
-            text: 'Use Mock Data',
-            onPress: () => useMockData(),
+      Alert.alert('OCR Processing Failed', `${errorMessage}\n\nYou can manually enter the bill details instead.`, [
+        {
+          text: 'Use Mock Data',
+          onPress: () => loadMockData(),
+        },
+        {
+          text: 'Manual Entry',
+          onPress: () => startManualEntry(),
+        },
+        {
+          text: 'Try Again',
+          onPress: () => {
+            // Reset to upload step
+            setCurrentStep('upload');
+            setBillImage('');
           },
-          {
-            text: 'Manual Entry',
-            onPress: () => useManualEntry(),
-          },
-          {
-            text: 'Try Again',
-            onPress: () => {
-              // Reset to upload step
-              setCurrentStep('upload');
-              setBillImage('');
-            },
-          },
-        ]
-      );
+        },
+      ]);
     } finally {
       setIsOCRProcessing(false);
     }
   };
 
   // Helper function to use mock data
-  const useMockData = async () => {
+  const loadMockData = async () => {
     try {
       const mockResult = await OCRService.mockOCR(billImage);
-      
+
       // Use OpenRouter AI to parse the mock OCR text if available
       let parsedResult;
       if (OpenRouterService.isAvailable()) {
@@ -363,7 +344,7 @@ const SmartBillSplitter: React.FC = () => {
         console.log('OpenRouter not available, using fallback parsing for mock data...');
         parsedResult = parseOCRText(mockResult.text);
       }
-      
+
       setExtractedItems(parsedResult.items);
       setTotalAmount(parsedResult.totalAmount);
       setTaxAmount(parsedResult.taxAmount);
@@ -373,19 +354,19 @@ const SmartBillSplitter: React.FC = () => {
       setServiceChargeAmount(parsedResult.serviceChargeAmount);
       setIsManualTotal(false); // Reset to auto-calculation when mock data loads
       setCurrentStep('assign');
-      
+
       Alert.alert(
         'Mock Data Loaded',
-        `Loaded ${parsedResult.items.length} sample items. Total: ₹${parsedResult.totalAmount.toFixed(2)}. You can edit these details.`
+        `Loaded ${parsedResult.items.length} sample items. Total: ₹${parsedResult.totalAmount.toFixed(2)}. You can edit these details.`,
       );
     } catch (mockError) {
       console.error('Mock OCR failed:', mockError);
-      useManualEntry();
+      startManualEntry();
     }
   };
 
   // Helper function to use manual entry
-  const useManualEntry = () => {
+  const startManualEntry = () => {
     setExtractedItems([
       {
         id: Date.now().toString() + '1',
@@ -402,7 +383,10 @@ const SmartBillSplitter: React.FC = () => {
   };
 
   const parseOCRText = (text: string): OCRResult => {
-    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    const lines = text
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
     const items: BillItem[] = [];
     let totalAmount = 0;
     let taxAmount = 0;
@@ -424,26 +408,22 @@ const SmartBillSplitter: React.FC = () => {
       // Pattern 3: "Item Name" on one line, price on next
       /^(.+?)$/,
     ];
-    
+
     const totalPatterns = [
       /(?:total|grand\s*total|net\s*total|amount\s*payable|amount)\s*:?\s*₹?\s*(\d+(?:\.\d{1,2})?)/i,
       /₹?\s*(\d+(?:\.\d{1,2})?)\s*(?:total|grand\s*total)/i,
     ];
-    
+
     // Specific tax patterns for CGST, SGST, and GST
-    const cgstPatterns = [
-      /(?:cgst)\s*[\(@]?[\d.%]*\s*[\)%]?\s*:?\s*₹?\s*(\d+(?:\.\d{1,2})?)/i,
-    ];
-    
-    const sgstPatterns = [
-      /(?:sgst)\s*[\(@]?[\d.%]*\s*[\)%]?\s*:?\s*₹?\s*(\d+(?:\.\d{1,2})?)/i,
-    ];
-    
+    const cgstPatterns = [/(?:cgst)\s*[\(@]?[\d.%]*\s*[\)%]?\s*:?\s*₹?\s*(\d+(?:\.\d{1,2})?)/i];
+
+    const sgstPatterns = [/(?:sgst)\s*[\(@]?[\d.%]*\s*[\)%]?\s*:?\s*₹?\s*(\d+(?:\.\d{1,2})?)/i];
+
     const gstPatterns = [
       /(?:gst|tax|vat|igst)\s*[\(@]?[\d.%]*\s*[\)%]?\s*:?\s*₹?\s*(\d+(?:\.\d{1,2})?)/i,
       /₹?\s*(\d+(?:\.\d{1,2})?)\s*(?:gst|tax|vat)/i,
     ];
-    
+
     const servicePatterns = [
       /(?:service\s*charge|delivery\s*charge|packing\s*charge)\s*:?\s*₹?\s*(\d+(?:\.\d{1,2})?)/i,
     ];
@@ -452,16 +432,17 @@ const SmartBillSplitter: React.FC = () => {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const nextLine = i + 1 < lines.length ? lines[i + 1] : '';
-      
+
       console.log(`Processing line ${i}: "${line}"`);
-      
+
       // Check for total amount
       let foundTotal = false;
       for (const pattern of totalPatterns) {
         const match = line.match(pattern);
         if (match) {
           const amount = parseFloat(match[1]);
-          if (amount > totalAmount) { // Take the highest total found
+          if (amount > totalAmount) {
+            // Take the highest total found
             totalAmount = amount;
             foundTotal = true;
             console.log(`Found total: ₹${amount}`);
@@ -525,28 +506,30 @@ const SmartBillSplitter: React.FC = () => {
 
       // Check for items
       // Skip lines that are clearly not food/drink items
-      if (line.toLowerCase().includes('receipt') ||
-          line.toLowerCase().includes('bill') ||
-          line.toLowerCase().includes('invoice') ||
-          line.toLowerCase().includes('date') ||
-          line.toLowerCase().includes('time') ||
-          line.toLowerCase().includes('cashier') ||
-          line.toLowerCase().includes('thank you') ||
-          line.toLowerCase().includes('welcome') ||
-          line.toLowerCase().includes('total') ||
-          line.toLowerCase().includes('subtotal') ||
-          line.toLowerCase().includes('tax') ||
-          line.toLowerCase().includes('gst') ||
-          line.toLowerCase().includes('cgst') ||
-          line.toLowerCase().includes('sgst') ||
-          line.toLowerCase().includes('igst') ||
-          line.toLowerCase().includes('vat') ||
-          line.toLowerCase().includes('service') ||
-          line.toLowerCase().includes('charge') ||
-          line.toLowerCase().includes('discount') ||
-          line.toLowerCase().includes('amount payable') ||
-          line.toLowerCase().includes('net amount') ||
-          line.length < 3) {
+      if (
+        line.toLowerCase().includes('receipt') ||
+        line.toLowerCase().includes('bill') ||
+        line.toLowerCase().includes('invoice') ||
+        line.toLowerCase().includes('date') ||
+        line.toLowerCase().includes('time') ||
+        line.toLowerCase().includes('cashier') ||
+        line.toLowerCase().includes('thank you') ||
+        line.toLowerCase().includes('welcome') ||
+        line.toLowerCase().includes('total') ||
+        line.toLowerCase().includes('subtotal') ||
+        line.toLowerCase().includes('tax') ||
+        line.toLowerCase().includes('gst') ||
+        line.toLowerCase().includes('cgst') ||
+        line.toLowerCase().includes('sgst') ||
+        line.toLowerCase().includes('igst') ||
+        line.toLowerCase().includes('vat') ||
+        line.toLowerCase().includes('service') ||
+        line.toLowerCase().includes('charge') ||
+        line.toLowerCase().includes('discount') ||
+        line.toLowerCase().includes('amount payable') ||
+        line.toLowerCase().includes('net amount') ||
+        line.length < 3
+      ) {
         continue;
       }
 
@@ -578,21 +561,21 @@ const SmartBillSplitter: React.FC = () => {
           }
 
           // Validate the item
-          if (itemName && itemPrice > 0 && itemPrice < 10000) { // Reasonable price limit
+          if (itemName && itemPrice > 0 && itemPrice < 10000) {
+            // Reasonable price limit
             // Additional validation: exclude tax-like items by name
-            const isValidFoodItem = !itemName.toLowerCase().match(
-              /\b(tax|gst|cgst|sgst|igst|vat|service|charge|discount|subtotal|total|amount|payable|net)\b/
-            );
-            
+            const isValidFoodItem = !itemName
+              .toLowerCase()
+              .match(/\b(tax|gst|cgst|sgst|igst|vat|service|charge|discount|subtotal|total|amount|payable|net)\b/);
+
             if (!isValidFoodItem) {
               console.log(`Skipping non-food item: ${itemName}`);
               break;
             }
-            
+
             // Check if it's not a duplicate or similar to existing items
-            const isDuplicate = items.some(item => 
-              item.name.toLowerCase() === itemName.toLowerCase() ||
-              Math.abs(item.price - itemPrice) < 0.01
+            const isDuplicate = items.some(
+              (item) => item.name.toLowerCase() === itemName.toLowerCase() || Math.abs(item.price - itemPrice) < 0.01,
             );
 
             if (!isDuplicate) {
@@ -616,19 +599,23 @@ const SmartBillSplitter: React.FC = () => {
 
     // If no total found, calculate from items + taxes + service charges
     if (totalAmount === 0) {
-      const itemsTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const itemsTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
       totalAmount = itemsTotal + taxAmount + serviceChargeAmount;
-      console.log(`Calculated total: ₹${totalAmount} (items: ₹${itemsTotal}, tax: ₹${taxAmount}, service: ₹${serviceChargeAmount})`);
+      console.log(
+        `Calculated total: ₹${totalAmount} (items: ₹${itemsTotal}, tax: ₹${taxAmount}, service: ₹${serviceChargeAmount})`,
+      );
     }
 
     // Validate results
-    const calculatedItemsTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const calculatedItemsTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     if (totalAmount > 0 && calculatedItemsTotal > totalAmount * 1.2) {
       // Items total is much higher than stated total, might be parsing errors
       console.warn('Items total seems too high compared to bill total, might have parsing errors');
     }
 
-    console.log(`Final result: ${items.length} items, total: ₹${totalAmount}, tax: ₹${taxAmount} (CGST: ₹${cgstAmount}, SGST: ₹${sgstAmount}, GST: ₹${gstAmount}), service: ₹${serviceChargeAmount}`);
+    console.log(
+      `Final result: ${items.length} items, total: ₹${totalAmount}, tax: ₹${taxAmount} (CGST: ₹${cgstAmount}, SGST: ₹${sgstAmount}, GST: ₹${gstAmount}), service: ₹${serviceChargeAmount}`,
+    );
 
     return {
       items,
@@ -658,55 +645,52 @@ const SmartBillSplitter: React.FC = () => {
   };
 
   const removePerson = (personId: string) => {
-    setPeople(people.filter(p => p.id !== personId));
+    setPeople(people.filter((p) => p.id !== personId));
     // Remove person from all selected items
-    setExtractedItems(extractedItems.map(item => ({
-      ...item,
-      selectedBy: item.selectedBy.filter(id => id !== personId)
-    })));
+    setExtractedItems(
+      extractedItems.map((item) => ({
+        ...item,
+        selectedBy: item.selectedBy.filter((id) => id !== personId),
+      })),
+    );
   };
 
   const toggleItemSelection = (itemId: string, personId: string) => {
-    setExtractedItems(extractedItems.map(item => {
-      if (item.id === itemId) {
-        const isSelected = item.selectedBy.includes(personId);
-        return {
-          ...item,
-          selectedBy: isSelected 
-            ? item.selectedBy.filter(id => id !== personId)
-            : [...item.selectedBy, personId]
-        };
-      }
-      return item;
-    }));
+    setExtractedItems(
+      extractedItems.map((item) => {
+        if (item.id === itemId) {
+          const isSelected = item.selectedBy.includes(personId);
+          return {
+            ...item,
+            selectedBy: isSelected ? item.selectedBy.filter((id) => id !== personId) : [...item.selectedBy, personId],
+          };
+        }
+        return item;
+      }),
+    );
   };
 
   const calculateSplit = () => {
-    const updatedPeople = people.map(person => {
-      // Calculate items total for this person
-      const itemsTotal = extractedItems
-        .filter(item => item.selectedBy.includes(person.id))
-        .reduce((sum, item) => {
-          const itemTotal = item.price * item.quantity;
-          const sharePerPerson = itemTotal / item.selectedBy.length;
-          return sum + sharePerPerson;
-        }, 0);
+    const { shares, unassignedTotal } = computeBillSplit(
+      extractedItems,
+      people.map((person) => person.id),
+      taxAmount,
+      serviceChargeAmount,
+    );
+    const updatedPeople = people.map((person, index) => ({
+      ...person,
+      totalAmount: shares[index].itemsTotal,
+      shareOfTax: shares[index].shareOfTax,
+      finalAmount: shares[index].finalAmount,
+      itemsSelected: shares[index].itemIds,
+    }));
 
-      // Calculate tax share (equally split among all people)
-      const taxShare = (taxAmount + serviceChargeAmount) / people.length;
-
-      const finalAmount = itemsTotal + taxShare;
-
-      return {
-        ...person,
-        totalAmount: itemsTotal,
-        shareOfTax: taxShare,
-        finalAmount: finalAmount,
-        itemsSelected: extractedItems
-          .filter(item => item.selectedBy.includes(person.id))
-          .map(item => item.id)
-      };
-    });
+    if (unassignedTotal > 0) {
+      Alert.alert(
+        'Unassigned items',
+        `Items worth ₹${unassignedTotal.toFixed(2)} are not assigned to anyone and are not included in the split.`,
+      );
+    }
 
     setPeople(updatedPeople);
     setCurrentStep('review');
@@ -724,27 +708,29 @@ const SmartBillSplitter: React.FC = () => {
   };
 
   const updateItem = (itemId: string, field: keyof BillItem, value: any) => {
-    setExtractedItems(extractedItems.map(item => {
-      if (item.id === itemId) {
-        const updatedItem = { ...item, [field]: value };
-        
-        // If rate or quantity is updated and both are available, recalculate price
-        if ((field === 'rate' || field === 'quantity') && updatedItem.rate) {
-          updatedItem.price = updatedItem.rate * updatedItem.quantity;
+    setExtractedItems(
+      extractedItems.map((item) => {
+        if (item.id === itemId) {
+          const updatedItem = { ...item, [field]: value };
+
+          // If rate or quantity is updated and both are available, recalculate price
+          if ((field === 'rate' || field === 'quantity') && updatedItem.rate) {
+            updatedItem.price = updatedItem.rate * updatedItem.quantity;
+          }
+          // If price is updated and quantity > 1, calculate rate
+          else if (field === 'price' && updatedItem.quantity > 1) {
+            updatedItem.rate = updatedItem.price / updatedItem.quantity;
+          }
+
+          return updatedItem;
         }
-        // If price is updated and quantity > 1, calculate rate
-        else if (field === 'price' && updatedItem.quantity > 1) {
-          updatedItem.rate = updatedItem.price / updatedItem.quantity;
-        }
-        
-        return updatedItem;
-      }
-      return item;
-    }));
+        return item;
+      }),
+    );
   };
 
   const removeItem = (itemId: string) => {
-    setExtractedItems(extractedItems.filter(item => item.id !== itemId));
+    setExtractedItems(extractedItems.filter((item) => item.id !== itemId));
   };
 
   const saveBillSplit = async () => {
@@ -755,7 +741,7 @@ const SmartBillSplitter: React.FC = () => {
 
     try {
       setLoading(true);
-      
+
       const billSplit: Omit<BillSplit, 'id'> = {
         billImageUri: billImage,
         billName: billName.trim(),
@@ -765,7 +751,7 @@ const SmartBillSplitter: React.FC = () => {
         items: extractedItems,
         people,
         createdAt: new Date(),
-        createdBy: 'Current User', // Replace with actual user
+        createdBy: auth.currentUser?.uid ?? 'anonymous',
         isSettled: false,
       };
 
@@ -832,9 +818,7 @@ const SmartBillSplitter: React.FC = () => {
           </View>
           <View style={styles.billInfo}>
             <Text style={styles.billTitle}>{item.billName}</Text>
-            <Text style={styles.billDate}>
-              {item.createdAt.toLocaleDateString()}
-            </Text>
+            <Text style={styles.billDate}>{item.createdAt.toLocaleDateString()}</Text>
             <Text style={styles.billAmount}>₹{item.totalAmount.toFixed(2)}</Text>
           </View>
           {item.isSettled && (
@@ -854,10 +838,7 @@ const SmartBillSplitter: React.FC = () => {
         </View>
 
         {!item.isSettled && (
-          <TouchableOpacity
-            style={styles.settleButton}
-            onPress={() => settleBillSplit(item.id)}
-          >
+          <TouchableOpacity style={styles.settleButton} onPress={() => settleBillSplit(item.id)}>
             <Text style={styles.settleButtonText}>Mark as Settled</Text>
           </TouchableOpacity>
         )}
@@ -875,10 +856,7 @@ const SmartBillSplitter: React.FC = () => {
       {billImage ? (
         <View style={styles.imagePreview}>
           <Image source={{ uri: billImage }} style={styles.previewImage} />
-          <TouchableOpacity
-            style={styles.changeImageButton}
-            onPress={() => setBillImage('')}
-          >
+          <TouchableOpacity style={styles.changeImageButton} onPress={() => setBillImage('')}>
             <Ionicons name="close-circle" size={24} color="#F44336" />
           </TouchableOpacity>
         </View>
@@ -917,31 +895,20 @@ const SmartBillSplitter: React.FC = () => {
   const renderExtractStep = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>Extract Bill Details</Text>
-      <Text style={styles.stepDescription}>
-        We'll automatically extract items and prices from your bill
-      </Text>
+      <Text style={styles.stepDescription}>We'll automatically extract items and prices from your bill</Text>
 
-      <TouchableOpacity
-        style={styles.extractButton}
-        onPress={processImageWithOCR}
-        disabled={isOCRProcessing}
-      >
+      <TouchableOpacity style={styles.extractButton} onPress={processImageWithOCR} disabled={isOCRProcessing}>
         <LinearGradient colors={['#FF6B6B', '#FF8E53']} style={styles.extractButtonGradient}>
           {isOCRProcessing ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <Ionicons name="scan" size={24} color="#FFFFFF" />
           )}
-          <Text style={styles.extractButtonText}>
-            {isOCRProcessing ? 'Processing...' : 'Extract Bill Details'}
-          </Text>
+          <Text style={styles.extractButtonText}>{isOCRProcessing ? 'Processing...' : 'Extract Bill Details'}</Text>
         </LinearGradient>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.manualButton}
-        onPress={() => setCurrentStep('assign')}
-      >
+      <TouchableOpacity style={styles.manualButton} onPress={() => setCurrentStep('assign')}>
         <Text style={styles.manualButtonText}>Enter Items Manually</Text>
       </TouchableOpacity>
     </View>
@@ -950,18 +917,13 @@ const SmartBillSplitter: React.FC = () => {
   const renderAssignStep = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>Assign Items & Add People</Text>
-      <Text style={styles.stepDescription}>
-        Add people and select who ate what items
-      </Text>
+      <Text style={styles.stepDescription}>Add people and select who ate what items</Text>
 
       {/* People Section */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>People</Text>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setShowAddPerson(true)}
-          >
+          <TouchableOpacity style={styles.addButton} onPress={() => setShowAddPerson(true)}>
             <Ionicons name="add" size={20} color="#4E54C8" />
             <Text style={styles.addButtonText}>Add Person</Text>
           </TouchableOpacity>
@@ -1057,16 +1019,15 @@ const SmartBillSplitter: React.FC = () => {
                   {people.map((person) => (
                     <TouchableOpacity
                       key={person.id}
-                      style={[
-                        styles.personButton,
-                        item.selectedBy.includes(person.id) && styles.selectedPersonButton
-                      ]}
+                      style={[styles.personButton, item.selectedBy.includes(person.id) && styles.selectedPersonButton]}
                       onPress={() => toggleItemSelection(item.id, person.id)}
                     >
-                      <Text style={[
-                        styles.personButtonText,
-                        item.selectedBy.includes(person.id) && styles.selectedPersonButtonText
-                      ]}>
+                      <Text
+                        style={[
+                          styles.personButtonText,
+                          item.selectedBy.includes(person.id) && styles.selectedPersonButtonText,
+                        ]}
+                      >
                         {person.name}
                       </Text>
                     </TouchableOpacity>
@@ -1081,11 +1042,11 @@ const SmartBillSplitter: React.FC = () => {
       {/* Tax and Service Charge */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Additional Charges</Text>
-        
+
         {/* Tax Breakdown Section */}
         <View style={styles.taxBreakdownContainer}>
           <Text style={styles.taxBreakdownTitle}>Tax Breakdown</Text>
-          
+
           <View style={styles.chargeRow}>
             <Text style={styles.chargeLabel}>CGST:</Text>
             <View style={styles.chargeInputContainer}>
@@ -1099,7 +1060,7 @@ const SmartBillSplitter: React.FC = () => {
               />
             </View>
           </View>
-          
+
           <View style={styles.chargeRow}>
             <Text style={styles.chargeLabel}>SGST:</Text>
             <View style={styles.chargeInputContainer}>
@@ -1113,7 +1074,7 @@ const SmartBillSplitter: React.FC = () => {
               />
             </View>
           </View>
-          
+
           <View style={styles.chargeRow}>
             <Text style={styles.chargeLabel}>GST/Other Tax:</Text>
             <View style={styles.chargeInputContainer}>
@@ -1127,13 +1088,13 @@ const SmartBillSplitter: React.FC = () => {
               />
             </View>
           </View>
-          
+
           <View style={[styles.chargeRow, styles.totalTaxRow]}>
             <Text style={styles.totalTaxLabel}>Total Tax:</Text>
             <Text style={styles.totalTaxValue}>₹{taxAmount.toFixed(2)}</Text>
           </View>
         </View>
-        
+
         <View style={styles.chargeRow}>
           <Text style={styles.chargeLabel}>Service Charge:</Text>
           <View style={styles.chargeInputContainer}>
@@ -1147,21 +1108,16 @@ const SmartBillSplitter: React.FC = () => {
             />
           </View>
         </View>
-        
+
         {/* Total Amount Section */}
         <View style={styles.totalAmountSection}>
           <View style={styles.totalAmountHeader}>
             <Text style={styles.totalAmountTitle}>Bill Total</Text>
-            <TouchableOpacity 
-              style={styles.editToggleButton}
-              onPress={() => setIsManualTotal(!isManualTotal)}
-            >
-              <Text style={styles.editToggleText}>
-                {isManualTotal ? 'Auto' : 'Edit'}
-              </Text>
+            <TouchableOpacity style={styles.editToggleButton} onPress={() => setIsManualTotal(!isManualTotal)}>
+              <Text style={styles.editToggleText}>{isManualTotal ? 'Auto' : 'Edit'}</Text>
             </TouchableOpacity>
           </View>
-          
+
           {isManualTotal ? (
             <View style={styles.editableTotalRow}>
               <Text style={styles.editableTotalLabel}>Total Amount:</Text>
@@ -1198,21 +1154,19 @@ const SmartBillSplitter: React.FC = () => {
   const renderReviewStep = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>Review & Save</Text>
-      <Text style={styles.stepDescription}>
-        Review the calculated split and save the bill
-      </Text>
+      <Text style={styles.stepDescription}>Review the calculated split and save the bill</Text>
 
       <View style={styles.summaryCard}>
         <LinearGradient colors={['#F8F9FA', '#FFFFFF']} style={styles.summaryGradient}>
           <Text style={styles.summaryTitle}>Bill Summary</Text>
-          
+
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Items Total:</Text>
             <Text style={styles.summaryValue}>
-              ₹{extractedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}
+              ₹{extractedItems.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}
             </Text>
           </View>
-          
+
           {/* Tax Breakdown */}
           {(cgstAmount > 0 || sgstAmount > 0 || gstAmount > 0) && (
             <>
@@ -1222,40 +1176,40 @@ const SmartBillSplitter: React.FC = () => {
                   <Text style={styles.summaryValue}>₹{cgstAmount.toFixed(2)}</Text>
                 </View>
               )}
-              
+
               {sgstAmount > 0 && (
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>SGST:</Text>
                   <Text style={styles.summaryValue}>₹{sgstAmount.toFixed(2)}</Text>
                 </View>
               )}
-              
+
               {gstAmount > 0 && (
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>GST/Other Tax:</Text>
                   <Text style={styles.summaryValue}>₹{gstAmount.toFixed(2)}</Text>
                 </View>
               )}
-              
+
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Total Tax:</Text>
                 <Text style={styles.summaryValue}>₹{taxAmount.toFixed(2)}</Text>
               </View>
             </>
           )}
-          
+
           {taxAmount === 0 && (
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Tax/GST:</Text>
               <Text style={styles.summaryValue}>₹{taxAmount.toFixed(2)}</Text>
             </View>
           )}
-          
+
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Service Charge:</Text>
             <Text style={styles.summaryValue}>₹{serviceChargeAmount.toFixed(2)}</Text>
           </View>
-          
+
           <View style={[styles.summaryRow, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total Amount:</Text>
             <Text style={styles.totalValue}>₹{totalAmount.toFixed(2)}</Text>
@@ -1266,16 +1220,23 @@ const SmartBillSplitter: React.FC = () => {
       <View style={styles.splitResults}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <Text style={styles.splitTitle}>Individual Split</Text>
-          <TouchableOpacity style={styles.whatsappButtonRow} onPress={() => { /* Placeholder for group remind action */ }}>
+          <TouchableOpacity
+            style={styles.whatsappButtonRow}
+            onPress={() => {
+              /* Placeholder for group remind action */
+            }}
+          >
             <Ionicons name="logo-whatsapp" size={20} color="#25D366" style={{ marginRight: 4 }} />
             <Text style={styles.whatsappButtonTextRow}>Remind via WhatsApp</Text>
           </TouchableOpacity>
         </View>
         {people.map((person) => {
           // Get the items for this person
-          const personItems = extractedItems.filter(item => person.itemsSelected.includes(item.id));
+          const personItems = extractedItems.filter((item) => person.itemsSelected.includes(item.id));
           // Build the message
-          const itemList = personItems.map(item => `• ${item.name} (₹${(item.price * item.quantity).toFixed(2)})`).join('\n');
+          const itemList = personItems
+            .map((item) => `• ${item.name} (₹${(item.price * item.quantity).toFixed(2)})`)
+            .join('\n');
           const message =
             `Hey ${person.name}! 👋\n` +
             `You owe me for our recent bill split: *${billName}*\n` +
@@ -1289,10 +1250,7 @@ const SmartBillSplitter: React.FC = () => {
               <LinearGradient colors={['#E8F5E8', '#F0FFF0']} style={styles.personSplitGradient}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Text style={styles.personSplitName}>{person.name}</Text>
-                  <TouchableOpacity
-                    onPress={() => Linking.openURL(whatsappUrl)}
-                    style={styles.whatsappButtonRow}
-                  >
+                  <TouchableOpacity onPress={() => Linking.openURL(whatsappUrl)} style={styles.whatsappButtonRow}>
                     <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
                   </TouchableOpacity>
                 </View>
@@ -1316,18 +1274,16 @@ const SmartBillSplitter: React.FC = () => {
   );
 
   const renderCreateBillModal = () => (
-    <Modal
-      visible={showCreateBill}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
+    <Modal visible={showCreateBill} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.modalContainer}>
         <LinearGradient colors={['#F8FAFF', '#FFFFFF']} style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => {
-              setShowCreateBill(false);
-              resetForm();
-            }}>
+            <TouchableOpacity
+              onPress={() => {
+                setShowCreateBill(false);
+                resetForm();
+              }}
+            >
               <Ionicons name="close" size={24} color="#666" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Create Bill Split</Text>
@@ -1385,21 +1341,15 @@ const SmartBillSplitter: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-      
+
       <LinearGradient colors={['#F8FAFF', '#FFFFFF', '#F0F8FF']} style={styles.gradient}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#1C1C1E" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Smart Bill Splitter</Text>
-          <TouchableOpacity
-            style={styles.addBillButton}
-            onPress={() => setShowCreateBill(true)}
-          >
+          <TouchableOpacity style={styles.addBillButton} onPress={() => setShowCreateBill(true)}>
             <Ionicons name="camera" size={24} color="#4E54C8" />
           </TouchableOpacity>
         </View>
@@ -1421,9 +1371,7 @@ const SmartBillSplitter: React.FC = () => {
               <View style={styles.emptyState}>
                 <Ionicons name="camera-outline" size={64} color="#C7C7CC" />
                 <Text style={styles.emptyStateText}>No bills yet</Text>
-                <Text style={styles.emptyStateSubtext}>
-                  Upload your first bill to start smart splitting
-                </Text>
+                <Text style={styles.emptyStateSubtext}>Upload your first bill to start smart splitting</Text>
               </View>
             }
           />

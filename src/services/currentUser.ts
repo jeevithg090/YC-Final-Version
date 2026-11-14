@@ -1,4 +1,7 @@
 import { auth } from './firebase';
+import { resolveDisplayName } from '../utils/displayName';
+
+export { resolveDisplayName };
 
 export interface CurrentUserIdentity {
   /** Firebase Auth UID, or `null` when nobody is signed in. */
@@ -7,21 +10,6 @@ export interface CurrentUserIdentity {
   name: string;
   email: string | null;
   phoneNumber: string | null;
-}
-
-/**
- * Derives a display name from a Firebase user's profile fields.
- * Exported separately so it can be unit-tested without Firebase.
- */
-export function resolveDisplayName(
-  displayName: string | null | undefined,
-  email: string | null | undefined,
-): string {
-  const trimmed = displayName?.trim();
-  if (trimmed) return trimmed;
-  const localPart = email?.split('@')[0]?.trim();
-  if (localPart) return localPart;
-  return 'Student';
 }
 
 /** Snapshot of the currently signed-in user, safe to call when signed out. */
