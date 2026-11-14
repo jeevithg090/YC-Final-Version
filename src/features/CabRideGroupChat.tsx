@@ -24,6 +24,7 @@ import { increment } from 'firebase/firestore';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getCurrentUserIdentity } from '../services/currentUser';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -59,13 +60,9 @@ const CabRideGroupChat: React.FC = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
-  const currentUserId = 'current-user-id'; // Replace with actual user ID from auth
-  const currentUserName = 'Current User'; // Replace with actual user name from auth
-  const user = auth.currentUser;
-  const currentUser = {
-    id: user?.uid || 'user123',
-    name: user?.displayName || user?.email?.split('@')[0] || 'John Doe'
-  };
+  const identity = getCurrentUserIdentity();
+  const currentUserId = identity.id ?? 'anonymous';
+  const currentUserName = identity.name;
 
   const quickMessageOptions: QuickMessageOption[] = [
     {

@@ -13,7 +13,8 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { db, auth, collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, arrayUnion } from '../services/firebase';
+import { db, auth } from '../services/firebase';
+import { getCurrentUserIdentity } from '../services/currentUser';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,6 +24,8 @@ type NavigationProp = NativeStackNavigationProp<any>;
 // TypeScript interfaces
 interface PublishedRide {
   id: string;
+  /** ID of the linked `cab_rides` document (set by the publish flow). */
+  cabRideId?: string;
   pickupLocation: string;
   dropLocation: string;
   travelType: 'departure' | 'arrival';
@@ -278,7 +281,7 @@ const FindACabShare: React.FC = () => {
       
       // Also create a user ride record for "Your Rides" feature
       await addDoc(collection(db, 'user_rides'), {
-        userId: 'current_user_id', // Replace with actual user ID
+        userId: getCurrentUserIdentity().id,
         rideId: rideId,
         role: 'passenger',
         joinedAt: serverTimestamp(),
@@ -310,21 +313,8 @@ const FindACabShare: React.FC = () => {
               text: 'View Rides',
               onPress: () => {
                 // Navigate to ride selection screen with matching rides
-                navigation.navigate('CabRideDetails', { 
-                  rideId: matchingRides[0].id,
-                  isJoining: true,
-                  passengerData: {
-                    id: 'current_user_id', // Replace with actual user ID
-                    name: 'Current User', // Replace with actual user name
-                    phoneNumber: '+91 9876543210', // Replace with actual user phone
-                    joinedAt: serverTimestamp(),
-                    luggage: {
-                      carryOnBags: formData.carryOnBags,
-                      checkinBags: formData.checkinBags,
-                      laptopBags: formData.laptopBags
-                    }
-                  },
-                  matchingRides: matchingRides
+                navigation.navigate('CabRideDetails', {
+                  rideId: matchingRides[0].cabRideId ?? matchingRides[0].id,
                 });
               }
             },
@@ -336,7 +326,7 @@ const FindACabShare: React.FC = () => {
                   ...formData,
                   createdAt: serverTimestamp(),
                   status: 'active',
-                  userId: 'current_user_id',
+                  userId: getCurrentUserIdentity().id,
                 });
                 
                 Alert.alert(
@@ -354,7 +344,7 @@ const FindACabShare: React.FC = () => {
           ...formData,
           createdAt: serverTimestamp(),
           status: 'active',
-          userId: 'current_user_id',
+          userId: getCurrentUserIdentity().id,
         });
         
         Alert.alert(
