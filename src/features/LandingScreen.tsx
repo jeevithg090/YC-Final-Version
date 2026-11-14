@@ -36,12 +36,17 @@ const LandingScreen: React.FC = () => {
         >
           <SafeAreaView style={styles.safeArea}>
             <View style={styles.topSection}>
-              <TouchableOpacity 
-                style={styles.skipButton}
-                onPress={() => navigation.navigate('Dashboard')}
-              >
-                <Ionicons name="arrow-forward-circle" size={40} color="#ffffff" />
-              </TouchableOpacity>
+              {/* Development shortcut: skips sign-in, so it is hidden in production builds */}
+              {__DEV__ && (
+                <TouchableOpacity
+                  style={styles.skipButton}
+                  onPress={() => navigation.navigate('Dashboard')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Skip to dashboard (development only)"
+                >
+                  <Ionicons name="arrow-forward-circle" size={40} color="#ffffff" />
+                </TouchableOpacity>
+              )}
               <Image 
                 source={require('../../assets/images/favicon.png')} 
                 style={styles.logo} 
@@ -58,6 +63,7 @@ const LandingScreen: React.FC = () => {
               <TouchableOpacity
                 style={styles.button}
                 onPress={() => navigation.navigate('Pathway')}
+                accessibilityRole="button"
               >
                 <LinearGradient
                   colors={['#4e54c8', '#8f94fb']}
@@ -69,27 +75,32 @@ const LandingScreen: React.FC = () => {
                 </LinearGradient>
               </TouchableOpacity>
 
-              {/* Direct Dashboard Navigation Button */}
-              <TouchableOpacity
-                style={styles.dashboardButton}
-                onPress={() => navigation.navigate('Dashboard')}
-              >
-                <View style={styles.dashboardButtonContent}>
-                  <Text style={styles.dashboardButtonText}>Skip to Dashboard</Text>
-                  <Ionicons name="arrow-forward" size={20} color="#4e54c8" />
-                </View>
-              </TouchableOpacity>
+              {/* Development shortcuts: hidden in production builds */}
+              {__DEV__ && (
+                <>
+                  {/* Direct Dashboard Navigation Button */}
+                  <TouchableOpacity
+                    style={styles.dashboardButton}
+                    onPress={() => navigation.navigate('Dashboard')}
+                  >
+                    <View style={styles.dashboardButtonContent}>
+                      <Text style={styles.dashboardButtonText}>Skip to Dashboard</Text>
+                      <Ionicons name="arrow-forward" size={20} color="#4e54c8" />
+                    </View>
+                  </TouchableOpacity>
 
-              {/* Button to AnimatedEntry Splash */}
-              <TouchableOpacity
-                style={[styles.dashboardButton, { backgroundColor: '#4e54c8', marginTop: 10 }]}
-                onPress={() => navigation.navigate('AnimatedEntry')}
-              >
-                <View style={styles.dashboardButtonContent}>
-                  <Text style={[styles.dashboardButtonText, { color: '#fff' }]}>Show Animated Splash</Text>
-                  <Ionicons name="star" size={20} color="#fff" />
-                </View>
-              </TouchableOpacity>
+                  {/* Button to AnimatedEntry Splash */}
+                  <TouchableOpacity
+                    style={[styles.dashboardButton, { backgroundColor: '#4e54c8', marginTop: 10 }]}
+                    onPress={() => navigation.navigate('AnimatedEntry')}
+                  >
+                    <View style={styles.dashboardButtonContent}>
+                      <Text style={[styles.dashboardButtonText, { color: '#fff' }]}>Show Animated Splash</Text>
+                      <Ionicons name="star" size={20} color="#fff" />
+                    </View>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </SafeAreaView>
         </LinearGradient>
