@@ -8,7 +8,6 @@
     "scheme": "yogo",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "entryPoint": "./App.tsx",
     "ios": {
       "bundleIdentifier": "com.jeevithg.YOGO",
       "supportsTablet": true
@@ -23,8 +22,12 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "output": "single",
+      "favicon": "./assets/images/favicon.png",
+      "name": "YOGO Campus",
+      "shortName": "YOGO",
+      "description": "All-in-one campus companion app for students: mess menus, ride sharing, marketplace, bill splitting, timetables and more.",
+      "themeColor": "#4E54C8"
     },
     "plugins": [
       [
@@ -45,9 +48,6 @@
         }
       ]
     ],
-    "experiments": {
-      "typedRoutes": true
-    },
     "extra": {
       "eas": {
         "projectId": "947c91e1-d066-4c95-b146-2af872ad41ee"
