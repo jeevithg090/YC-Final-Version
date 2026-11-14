@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -11,16 +11,14 @@ import {
   Modal,
   TextInput,
   FlatList,
-  Image,
-  Animated,
   RefreshControl,
   StatusBar,
   SafeAreaView,
   KeyboardAvoidingView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
-import { collection, addDoc, onSnapshot, query, orderBy, where, updateDoc, doc, getDoc, getDocs, increment } from 'firebase/firestore';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { collection, addDoc, onSnapshot, query, where, updateDoc, doc, getDoc, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -32,11 +30,14 @@ type MyGroupSportsNavigationProp = NativeStackNavigationProp<{
   MyGroupSports: { groupId: string };
 }>;
 
-type MyGroupSportsRouteProp = RouteProp<{
-  MyGroupSports: { groupId: string };
-}, 'MyGroupSports'>;
+type MyGroupSportsRouteProp = RouteProp<
+  {
+    MyGroupSports: { groupId: string };
+  },
+  'MyGroupSports'
+>;
 
-// Firebase Console Action: 
+// Firebase Console Action:
 // 1. Create Firestore collections: 'match_results', 'group_chats', 'match_stats'
 // 2. Create composite indexes:
 //    - Collection: 'group_chats' | Fields: groupId (Ascending), timestamp (Descending)
@@ -133,7 +134,7 @@ const MyGroupSports: React.FC = () => {
   const [matchResults, setMatchResults] = useState<MatchResult[]>([]);
   const [scoreboardData, setScoreboardData] = useState<ScoreboardData | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Match result form states
   const [matchFormData, setMatchFormData] = useState<any>({});
 
@@ -176,25 +177,26 @@ const MyGroupSports: React.FC = () => {
     // Firebase Console Action: Create composite index for 'group_chats' collection:
     // Fields: groupId (Ascending), timestamp (Descending)
     // Or use the provided URL: https://console.firebase.google.com/v1/r/project/yogo-campus/firestore/indexes
-    
-    const chatQuery = query(
-      collection(db, 'group_chats'),
-      where('groupId', '==', groupId)
+
+    const chatQuery = query(collection(db, 'group_chats'), where('groupId', '==', groupId));
+
+    const unsubscribe = onSnapshot(
+      chatQuery,
+      (snapshot) => {
+        const messages = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as ChatMessage[];
+
+        // Sort messages by timestamp in JavaScript instead of Firestore
+        const sortedMessages = messages.sort((a, b) => b.timestamp - a.timestamp);
+        setChatMessages(sortedMessages.reverse());
+      },
+      (error) => {
+        console.error('Error loading chat messages:', error);
+        Alert.alert('Error', 'Failed to load chat messages. Please check your internet connection.');
+      },
     );
-    
-    const unsubscribe = onSnapshot(chatQuery, (snapshot) => {
-      const messages = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as ChatMessage[];
-      
-      // Sort messages by timestamp in JavaScript instead of Firestore
-      const sortedMessages = messages.sort((a, b) => b.timestamp - a.timestamp);
-      setChatMessages(sortedMessages.reverse());
-    }, (error) => {
-      console.error('Error loading chat messages:', error);
-      Alert.alert('Error', 'Failed to load chat messages. Please check your internet connection.');
-    });
 
     return unsubscribe;
   };
@@ -203,25 +205,26 @@ const MyGroupSports: React.FC = () => {
     // Firebase Console Action: Create composite index for 'match_results' collection:
     // Fields: groupId (Ascending), createdAt (Descending)
     // Or use the provided URL: https://console.firebase.google.com/v1/r/project/yogo-campus/firestore/indexes
-    
-    const resultsQuery = query(
-      collection(db, 'match_results'),
-      where('groupId', '==', groupId)
+
+    const resultsQuery = query(collection(db, 'match_results'), where('groupId', '==', groupId));
+
+    const unsubscribe = onSnapshot(
+      resultsQuery,
+      (snapshot) => {
+        const results = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as MatchResult[];
+
+        // Sort results by createdAt in JavaScript instead of Firestore
+        const sortedResults = results.sort((a, b) => b.createdAt - a.createdAt);
+        setMatchResults(sortedResults);
+      },
+      (error) => {
+        console.error('Error loading match results:', error);
+        Alert.alert('Error', 'Failed to load match results. Please check your internet connection.');
+      },
     );
-    
-    const unsubscribe = onSnapshot(resultsQuery, (snapshot) => {
-      const results = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as MatchResult[];
-      
-      // Sort results by createdAt in JavaScript instead of Firestore
-      const sortedResults = results.sort((a, b) => b.createdAt - a.createdAt);
-      setMatchResults(sortedResults);
-    }, (error) => {
-      console.error('Error loading match results:', error);
-      Alert.alert('Error', 'Failed to load match results. Please check your internet connection.');
-    });
 
     return unsubscribe;
   };
@@ -236,7 +239,7 @@ const MyGroupSports: React.FC = () => {
         userName: 'Current User', // Replace with actual user name
         message: newMessage.trim(),
         timestamp: Date.now(),
-        type: 'text'
+        type: 'text',
       });
       setNewMessage('');
     } catch (error) {
@@ -255,20 +258,20 @@ const MyGroupSports: React.FC = () => {
         matchData: resultData,
         createdBy: 'currentUser', // Replace with actual user ID
         createdAt: Date.now(),
-        verified: false
+        verified: false,
       };
 
       await addDoc(collection(db, 'match_results'), matchResult);
-      
+
       // Generate scoreboard data
       const scoreboard = generateScoreboardData(group.sport, resultData);
       setScoreboardData(scoreboard);
       setShowMatchResultModal(false);
       setShowScorecard(true);
-      
+
       // Update player stats in leaderboard
       await updateLeaderboardStats(group.sport, resultData);
-      
+
       Alert.alert('Success', 'Match result submitted successfully!');
     } catch (error) {
       console.error('Error submitting match result:', error);
@@ -282,16 +285,16 @@ const MyGroupSports: React.FC = () => {
       const leaderboardRef = collection(db, 'sports_leaderboard');
       const q = query(leaderboardRef, where('sport', '==', sport));
       const querySnapshot = await getDocs(q);
-      
+
       let leaderboardId = '';
       let leaderboardData: any = null;
-      
+
       if (querySnapshot.empty) {
         // Create new leaderboard if it doesn't exist
         const newLeaderboardRef = await addDoc(leaderboardRef, {
           sport: sport,
           players: [],
-          lastUpdated: Date.now()
+          lastUpdated: Date.now(),
         });
         leaderboardId = newLeaderboardRef.id;
       } else {
@@ -300,15 +303,15 @@ const MyGroupSports: React.FC = () => {
         leaderboardId = leaderboardDoc.id;
         leaderboardData = leaderboardDoc.data();
       }
-      
+
       // Calculate individual scores based on sport and match data
       const playerScores = calculateIndividualScores(sport, matchData, group!.players);
-      
+
       // Update stats for all players in the group
       for (const player of group!.players) {
         // Check if player is already in leaderboard
         let playerData = leaderboardData?.players?.find((p: any) => p.id === player.id);
-        
+
         if (!playerData) {
           // Add new player to leaderboard
           playerData = {
@@ -324,17 +327,17 @@ const MyGroupSports: React.FC = () => {
             badges: [],
             totalMatches: 0,
             averageScore: 0,
-            totalScore: 0
+            totalScore: 0,
           };
         }
-        
-        const playerScore = playerScores.find(p => p.playerId === player.id);
+
+        const playerScore = playerScores.find((p) => p.playerId === player.id);
         if (playerScore) {
           // Update basic stats
           playerData.totalMatches += 1;
           playerData.totalScore += playerScore.score;
           playerData.averageScore = Math.round(playerData.totalScore / playerData.totalMatches);
-          
+
           // Update win/loss/draw stats
           if (playerScore.result === 'win') {
             playerData.wins += 1;
@@ -348,23 +351,23 @@ const MyGroupSports: React.FC = () => {
             playerData.draws += 1;
             playerData.points += playerScore.points;
           }
-          
+
           // Update best streak
           if (playerData.streak > playerData.bestStreak) {
             playerData.bestStreak = playerData.streak;
           }
-          
+
           // Check for badges
           checkAndAwardBadges(playerData);
         }
-        
+
         // Update player in leaderboard
         const leaderboardRef = doc(db, 'sports_leaderboard', leaderboardId);
         await updateDoc(leaderboardRef, {
-          players: leaderboardData?.players ? 
-            [...leaderboardData.players.filter((p: any) => p.id !== player.id), playerData] : 
-            [playerData],
-          lastUpdated: Date.now()
+          players: leaderboardData?.players
+            ? [...leaderboardData.players.filter((p: any) => p.id !== player.id), playerData]
+            : [playerData],
+          lastUpdated: Date.now(),
         });
       }
     } catch (error) {
@@ -373,13 +376,13 @@ const MyGroupSports: React.FC = () => {
   };
 
   const calculateIndividualScores = (sport: string, matchData: any, players: Player[]) => {
-    const playerScores: Array<{
+    const playerScores: {
       playerId: string;
       score: number;
       points: number;
       result: 'win' | 'loss' | 'draw';
       performance: any;
-    }> = [];
+    }[] = [];
 
     switch (sport) {
       case 'basketball':
@@ -405,19 +408,19 @@ const MyGroupSports: React.FC = () => {
     const team1Won = parseInt(matchData.team1Score) > parseInt(matchData.team2Score);
     const team2Won = parseInt(matchData.team2Score) > parseInt(matchData.team1Score);
     const isDraw = parseInt(matchData.team1Score) === parseInt(matchData.team2Score);
-    
+
     // Split players into teams (simplified - in real app you'd have team assignments)
     const team1Players = players.slice(0, Math.ceil(players.length / 2));
     const team2Players = players.slice(Math.ceil(players.length / 2));
-    
+
     const playerScores = [];
-    
+
     // Team 1 players
     for (const player of team1Players) {
       let baseScore = 50; // Base participation score
       let points = 0;
       let result: 'win' | 'loss' | 'draw' = 'draw';
-      
+
       if (team1Won) {
         baseScore += 100; // Win bonus
         points = 15;
@@ -431,17 +434,17 @@ const MyGroupSports: React.FC = () => {
         points = 10;
         result = 'draw';
       }
-      
+
       // MVP bonus
       if (matchData.mvp === player.name) {
         baseScore += 50;
         points += 10;
       }
-      
+
       // Performance bonuses
       if (matchData.totalAssists) baseScore += parseInt(matchData.totalAssists) * 2;
       if (matchData.totalRebounds) baseScore += parseInt(matchData.totalRebounds) * 1.5;
-      
+
       playerScores.push({
         playerId: player.id,
         score: Math.round(baseScore),
@@ -450,17 +453,17 @@ const MyGroupSports: React.FC = () => {
         performance: {
           assists: matchData.totalAssists || 0,
           rebounds: matchData.totalRebounds || 0,
-          mvp: matchData.mvp === player.name
-        }
+          mvp: matchData.mvp === player.name,
+        },
       });
     }
-    
+
     // Team 2 players
     for (const player of team2Players) {
       let baseScore = 50;
       let points = 0;
       let result: 'win' | 'loss' | 'draw' = 'draw';
-      
+
       if (team2Won) {
         baseScore += 100;
         points = 15;
@@ -474,12 +477,12 @@ const MyGroupSports: React.FC = () => {
         points = 10;
         result = 'draw';
       }
-      
+
       if (matchData.mvp === player.name) {
         baseScore += 50;
         points += 10;
       }
-      
+
       playerScores.push({
         playerId: player.id,
         score: Math.round(baseScore),
@@ -488,25 +491,25 @@ const MyGroupSports: React.FC = () => {
         performance: {
           assists: matchData.totalAssists || 0,
           rebounds: matchData.totalRebounds || 0,
-          mvp: matchData.mvp === player.name
-        }
+          mvp: matchData.mvp === player.name,
+        },
       });
     }
-    
+
     return playerScores;
   };
 
   const calculateBadmintonScores = (matchData: any, players: Player[]) => {
     const winner = matchData.winner;
     const isDraw = !winner || winner === 'Draw';
-    
+
     const playerScores = [];
-    
+
     for (const player of players) {
       let baseScore = 30;
       let points = 0;
       let result: 'win' | 'loss' | 'draw' = 'draw';
-      
+
       if (winner === player.name) {
         baseScore += 120;
         points = 20;
@@ -520,10 +523,10 @@ const MyGroupSports: React.FC = () => {
         points = 12;
         result = 'draw';
       }
-      
+
       // Performance bonuses
       if (matchData.rallies) baseScore += parseInt(matchData.rallies) * 0.5;
-      
+
       playerScores.push({
         playerId: player.id,
         score: Math.round(baseScore),
@@ -531,27 +534,27 @@ const MyGroupSports: React.FC = () => {
         result,
         performance: {
           rallies: matchData.rallies || 0,
-          winner: winner === player.name
-        }
+          winner: winner === player.name,
+        },
       });
     }
-    
+
     return playerScores;
   };
 
   const calculateSwimmingScores = (matchData: any, players: Player[]) => {
     const playerScores = [];
-    
+
     for (const player of players) {
       let baseScore = 40;
       let points = 10;
-      
+
       // Distance bonus
       if (matchData.distance) {
         const distance = parseInt(matchData.distance.replace(/\D/g, ''));
         baseScore += distance * 0.1;
       }
-      
+
       // Time bonus (faster = more points)
       if (matchData.timeTaken) {
         const timeInMinutes = parseFloat(matchData.timeTaken);
@@ -559,10 +562,10 @@ const MyGroupSports: React.FC = () => {
         else if (timeInMinutes < 20) baseScore += 30;
         else if (timeInMinutes < 30) baseScore += 20;
       }
-      
+
       // Laps bonus
       if (matchData.laps) baseScore += parseInt(matchData.laps) * 2;
-      
+
       playerScores.push({
         playerId: player.id,
         score: Math.round(baseScore),
@@ -571,25 +574,25 @@ const MyGroupSports: React.FC = () => {
         performance: {
           distance: matchData.distance || 0,
           time: matchData.timeTaken || 0,
-          laps: matchData.laps || 0
-        }
+          laps: matchData.laps || 0,
+        },
       });
     }
-    
+
     return playerScores;
   };
 
   const calculateTennisScores = (matchData: any, players: Player[]) => {
     const winner = matchData.winner;
     const isDraw = !winner || winner === 'Draw';
-    
+
     const playerScores = [];
-    
+
     for (const player of players) {
       let baseScore = 35;
       let points = 0;
       let result: 'win' | 'loss' | 'draw' = 'draw';
-      
+
       if (winner === player.name) {
         baseScore += 110;
         points = 18;
@@ -603,11 +606,11 @@ const MyGroupSports: React.FC = () => {
         points = 12;
         result = 'draw';
       }
-      
+
       // Performance bonuses
       if (matchData.aces) baseScore += parseInt(matchData.aces) * 3;
       if (matchData.doubleFaults) baseScore -= parseInt(matchData.doubleFaults) * 2;
-      
+
       playerScores.push({
         playerId: player.id,
         score: Math.round(baseScore),
@@ -616,11 +619,11 @@ const MyGroupSports: React.FC = () => {
         performance: {
           aces: matchData.aces || 0,
           doubleFaults: matchData.doubleFaults || 0,
-          winner: winner === player.name
-        }
+          winner: winner === player.name,
+        },
       });
     }
-    
+
     return playerScores;
   };
 
@@ -628,18 +631,18 @@ const MyGroupSports: React.FC = () => {
     const team1Won = parseInt(matchData.team1Score) > parseInt(matchData.team2Score);
     const team2Won = parseInt(matchData.team2Score) > parseInt(matchData.team1Score);
     const isDraw = parseInt(matchData.team1Score) === parseInt(matchData.team2Score);
-    
+
     const team1Players = players.slice(0, Math.ceil(players.length / 2));
     const team2Players = players.slice(Math.ceil(players.length / 2));
-    
+
     const playerScores = [];
-    
+
     // Team 1 players
     for (const player of team1Players) {
       let baseScore = 45;
       let points = 0;
       let result: 'win' | 'loss' | 'draw' = 'draw';
-      
+
       if (team1Won) {
         baseScore += 95;
         points = 16;
@@ -653,19 +656,19 @@ const MyGroupSports: React.FC = () => {
         points = 11;
         result = 'draw';
       }
-      
+
       // MVP bonus
       if (matchData.mvp === player.name) {
         baseScore += 45;
         points += 8;
       }
-      
+
       // Goal scorer bonus
       if (matchData.goalScorers && matchData.goalScorers.includes(player.name)) {
         baseScore += 30;
         points += 5;
       }
-      
+
       playerScores.push({
         playerId: player.id,
         score: Math.round(baseScore),
@@ -673,17 +676,17 @@ const MyGroupSports: React.FC = () => {
         result,
         performance: {
           goals: matchData.goalScorers?.includes(player.name) ? 1 : 0,
-          mvp: matchData.mvp === player.name
-        }
+          mvp: matchData.mvp === player.name,
+        },
       });
     }
-    
+
     // Team 2 players
     for (const player of team2Players) {
       let baseScore = 45;
       let points = 0;
       let result: 'win' | 'loss' | 'draw' = 'draw';
-      
+
       if (team2Won) {
         baseScore += 95;
         points = 16;
@@ -697,17 +700,17 @@ const MyGroupSports: React.FC = () => {
         points = 11;
         result = 'draw';
       }
-      
+
       if (matchData.mvp === player.name) {
         baseScore += 45;
         points += 8;
       }
-      
+
       if (matchData.goalScorers && matchData.goalScorers.includes(player.name)) {
         baseScore += 30;
         points += 5;
       }
-      
+
       playerScores.push({
         playerId: player.id,
         score: Math.round(baseScore),
@@ -715,11 +718,11 @@ const MyGroupSports: React.FC = () => {
         result,
         performance: {
           goals: matchData.goalScorers?.includes(player.name) ? 1 : 0,
-          mvp: matchData.mvp === player.name
-        }
+          mvp: matchData.mvp === player.name,
+        },
       });
     }
-    
+
     return playerScores;
   };
 
@@ -727,18 +730,18 @@ const MyGroupSports: React.FC = () => {
     const team1Won = parseInt(matchData.team1Score) > parseInt(matchData.team2Score);
     const team2Won = parseInt(matchData.team2Score) > parseInt(matchData.team1Score);
     const isDraw = parseInt(matchData.team1Score) === parseInt(matchData.team2Score);
-    
+
     const team1Players = players.slice(0, Math.ceil(players.length / 2));
     const team2Players = players.slice(Math.ceil(players.length / 2));
-    
+
     const playerScores = [];
-    
+
     // Team 1 players
     for (const player of team1Players) {
       let baseScore = 40;
       let points = 0;
       let result: 'win' | 'loss' | 'draw' = 'draw';
-      
+
       if (team1Won) {
         baseScore += 90;
         points = 15;
@@ -752,17 +755,17 @@ const MyGroupSports: React.FC = () => {
         points = 10;
         result = 'draw';
       }
-      
+
       if (matchData.mvp === player.name) {
         baseScore += 40;
         points += 7;
       }
-      
+
       if (matchData.goalScorers && matchData.goalScorers.includes(player.name)) {
         baseScore += 25;
         points += 4;
       }
-      
+
       playerScores.push({
         playerId: player.id,
         score: Math.round(baseScore),
@@ -770,17 +773,17 @@ const MyGroupSports: React.FC = () => {
         result,
         performance: {
           goals: matchData.goalScorers?.includes(player.name) ? 1 : 0,
-          mvp: matchData.mvp === player.name
-        }
+          mvp: matchData.mvp === player.name,
+        },
       });
     }
-    
+
     // Team 2 players
     for (const player of team2Players) {
       let baseScore = 40;
       let points = 0;
       let result: 'win' | 'loss' | 'draw' = 'draw';
-      
+
       if (team2Won) {
         baseScore += 90;
         points = 15;
@@ -794,17 +797,17 @@ const MyGroupSports: React.FC = () => {
         points = 10;
         result = 'draw';
       }
-      
+
       if (matchData.mvp === player.name) {
         baseScore += 40;
         points += 7;
       }
-      
+
       if (matchData.goalScorers && matchData.goalScorers.includes(player.name)) {
         baseScore += 25;
         points += 4;
       }
-      
+
       playerScores.push({
         playerId: player.id,
         score: Math.round(baseScore),
@@ -812,29 +815,29 @@ const MyGroupSports: React.FC = () => {
         result,
         performance: {
           goals: matchData.goalScorers?.includes(player.name) ? 1 : 0,
-          mvp: matchData.mvp === player.name
-        }
+          mvp: matchData.mvp === player.name,
+        },
       });
     }
-    
+
     return playerScores;
   };
 
   const calculateCricketScores = (matchData: any, players: Player[]) => {
     const winningTeam = matchData.winningTeam;
     const isDraw = !winningTeam || winningTeam === 'Draw';
-    
+
     const team1Players = players.slice(0, Math.ceil(players.length / 2));
     const team2Players = players.slice(Math.ceil(players.length / 2));
-    
+
     const playerScores = [];
-    
+
     // Team 1 players
     for (const player of team1Players) {
       let baseScore = 35;
       let points = 0;
       let result: 'win' | 'loss' | 'draw' = 'draw';
-      
+
       if (winningTeam === 'Team A') {
         baseScore += 85;
         points = 14;
@@ -848,29 +851,29 @@ const MyGroupSports: React.FC = () => {
         points = 9;
         result = 'draw';
       }
-      
+
       if (matchData.manOfTheMatch === player.name) {
         baseScore += 50;
         points += 10;
       }
-      
+
       playerScores.push({
         playerId: player.id,
         score: Math.round(baseScore),
         points,
         result,
         performance: {
-          manOfTheMatch: matchData.manOfTheMatch === player.name
-        }
+          manOfTheMatch: matchData.manOfTheMatch === player.name,
+        },
       });
     }
-    
+
     // Team 2 players
     for (const player of team2Players) {
       let baseScore = 35;
       let points = 0;
       let result: 'win' | 'loss' | 'draw' = 'draw';
-      
+
       if (winningTeam === 'Team B') {
         baseScore += 85;
         points = 14;
@@ -884,29 +887,29 @@ const MyGroupSports: React.FC = () => {
         points = 9;
         result = 'draw';
       }
-      
+
       if (matchData.manOfTheMatch === player.name) {
         baseScore += 50;
         points += 10;
       }
-      
+
       playerScores.push({
         playerId: player.id,
         score: Math.round(baseScore),
         points,
         result,
         performance: {
-          manOfTheMatch: matchData.manOfTheMatch === player.name
-        }
+          manOfTheMatch: matchData.manOfTheMatch === player.name,
+        },
       });
     }
-    
+
     return playerScores;
   };
 
   const checkAndAwardBadges = (playerData: any) => {
     const newBadges = [];
-    
+
     // Win streak badges
     if (playerData.streak >= 3 && !playerData.badges.includes('3-Win Streak')) {
       newBadges.push('3-Win Streak');
@@ -917,7 +920,7 @@ const MyGroupSports: React.FC = () => {
     if (playerData.streak >= 10 && !playerData.badges.includes('10-Win Streak')) {
       newBadges.push('10-Win Streak');
     }
-    
+
     // Win count badges
     if (playerData.wins >= 10 && !playerData.badges.includes('10-Win Club')) {
       newBadges.push('10-Win Club');
@@ -928,7 +931,7 @@ const MyGroupSports: React.FC = () => {
     if (playerData.wins >= 50 && !playerData.badges.includes('50-Win Club')) {
       newBadges.push('50-Win Club');
     }
-    
+
     // Points badges
     if (playerData.points >= 100 && !playerData.badges.includes('Century Club')) {
       newBadges.push('Century Club');
@@ -939,7 +942,7 @@ const MyGroupSports: React.FC = () => {
     if (playerData.points >= 1000 && !playerData.badges.includes('1000 Points')) {
       newBadges.push('1000 Points');
     }
-    
+
     // Match count badges
     if (playerData.totalMatches >= 10 && !playerData.badges.includes('Rookie')) {
       newBadges.push('Rookie');
@@ -950,7 +953,7 @@ const MyGroupSports: React.FC = () => {
     if (playerData.totalMatches >= 50 && !playerData.badges.includes('Legend')) {
       newBadges.push('Legend');
     }
-    
+
     // Add new badges to player data
     if (newBadges.length > 0) {
       playerData.badges = [...playerData.badges, ...newBadges];
@@ -960,7 +963,7 @@ const MyGroupSports: React.FC = () => {
   const generateScoreboardData = (sport: string, matchData: any): ScoreboardData => {
     const highlights: string[] = [];
     let winner = 'Draw';
-    
+
     switch (sport) {
       case 'basketball':
         if (matchData.team1Score > matchData.team2Score) {
@@ -971,23 +974,23 @@ const MyGroupSports: React.FC = () => {
         if (matchData.mvp) highlights.push(`MVP: ${matchData.mvp}`);
         if (matchData.totalAssists) highlights.push(`Total Assists: ${matchData.totalAssists}`);
         break;
-      
+
       case 'badminton':
         winner = matchData.winner || 'Unknown';
         if (matchData.rallies) highlights.push(`Total Rallies: ${matchData.rallies}`);
         break;
-      
+
       case 'swimming':
         if (matchData.bestTime) highlights.push(`Best Time: ${matchData.bestTime}`);
         if (matchData.distance) highlights.push(`Distance: ${matchData.distance}`);
         break;
-      
+
       case 'tennis':
         winner = matchData.winner || 'Unknown';
         if (matchData.aces) highlights.push(`Aces: ${matchData.aces}`);
         if (matchData.doubleFaults) highlights.push(`Double Faults: ${matchData.doubleFaults}`);
         break;
-      
+
       case 'football':
         if (matchData.team1Score > matchData.team2Score) {
           winner = matchData.team1Name || 'Team 1';
@@ -996,7 +999,7 @@ const MyGroupSports: React.FC = () => {
         }
         if (matchData.goalScorers) highlights.push(`Goals: ${matchData.goalScorers}`);
         break;
-      
+
       case 'hockey':
         if (matchData.team1Score > matchData.team2Score) {
           winner = matchData.team1Name || 'Team 1';
@@ -1005,7 +1008,7 @@ const MyGroupSports: React.FC = () => {
         }
         if (matchData.saves) highlights.push(`Saves: ${matchData.saves}`);
         break;
-      
+
       case 'cricket':
         winner = matchData.winningTeam || 'Unknown';
         if (matchData.manOfTheMatch) highlights.push(`Man of the Match: ${matchData.manOfTheMatch}`);
@@ -1020,9 +1023,9 @@ const MyGroupSports: React.FC = () => {
         winner,
         duration: matchData.duration || group?.duration || 'N/A',
         location: matchData.location || group?.location || 'N/A',
-        players: group?.players?.map(p => p.name) || [],
-        highlights
-      }
+        players: group?.players?.map((p) => p.name) || [],
+        highlights,
+      },
     };
   };
 
@@ -1052,20 +1055,20 @@ const MyGroupSports: React.FC = () => {
   const renderBasketballForm = () => (
     <ScrollView style={styles.formContainer}>
       <Text style={styles.formTitle}>Basketball Match Result</Text>
-      
+
       <View style={styles.formSection}>
         <Text style={styles.sectionTitle}>Team Names</Text>
         <TextInput
           style={styles.input}
           placeholder="Team 1 Name"
           value={matchFormData.team1Name || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, team1Name: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, team1Name: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Team 2 Name"
           value={matchFormData.team2Name || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, team2Name: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, team2Name: text })}
         />
       </View>
 
@@ -1076,14 +1079,14 @@ const MyGroupSports: React.FC = () => {
           placeholder="Team 1 Score"
           keyboardType="numeric"
           value={matchFormData.team1Score || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, team1Score: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, team1Score: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Team 2 Score"
           keyboardType="numeric"
           value={matchFormData.team2Score || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, team2Score: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, team2Score: text })}
         />
       </View>
 
@@ -1093,28 +1096,28 @@ const MyGroupSports: React.FC = () => {
           style={styles.input}
           placeholder="MVP Player"
           value={matchFormData.mvp || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, mvp: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, mvp: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Total Assists"
           keyboardType="numeric"
           value={matchFormData.totalAssists || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, totalAssists: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, totalAssists: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Total Rebounds"
           keyboardType="numeric"
           value={matchFormData.totalRebounds || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, totalRebounds: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, totalRebounds: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Game Duration (minutes)"
           keyboardType="numeric"
           value={matchFormData.duration || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, duration: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, duration: text })}
         />
       </View>
     </ScrollView>
@@ -1123,7 +1126,7 @@ const MyGroupSports: React.FC = () => {
   const renderBadmintonForm = () => (
     <ScrollView style={styles.formContainer}>
       <Text style={styles.formTitle}>Badminton Match Result</Text>
-      
+
       <View style={styles.formSection}>
         <Text style={styles.sectionTitle}>Match Type</Text>
         <View style={styles.radioGroup}>
@@ -1131,7 +1134,7 @@ const MyGroupSports: React.FC = () => {
             <TouchableOpacity
               key={type}
               style={[styles.radioOption, matchFormData.matchType === type && styles.radioSelected]}
-              onPress={() => setMatchFormData({...matchFormData, matchType: type})}
+              onPress={() => setMatchFormData({ ...matchFormData, matchType: type })}
             >
               <Text style={[styles.radioText, matchFormData.matchType === type && styles.radioTextSelected]}>
                 {type}
@@ -1147,13 +1150,13 @@ const MyGroupSports: React.FC = () => {
           style={styles.input}
           placeholder="Final Score (e.g., 21-18, 15-21, 21-19)"
           value={matchFormData.finalScore || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, finalScore: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, finalScore: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Winner"
           value={matchFormData.winner || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, winner: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, winner: text })}
         />
       </View>
 
@@ -1164,14 +1167,14 @@ const MyGroupSports: React.FC = () => {
           placeholder="Duration (minutes)"
           keyboardType="numeric"
           value={matchFormData.duration || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, duration: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, duration: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Number of Rallies"
           keyboardType="numeric"
           value={matchFormData.rallies || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, rallies: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, rallies: text })}
         />
       </View>
     </ScrollView>
@@ -1180,7 +1183,7 @@ const MyGroupSports: React.FC = () => {
   const renderSwimmingForm = () => (
     <ScrollView style={styles.formContainer}>
       <Text style={styles.formTitle}>Swimming Session Result</Text>
-      
+
       <View style={styles.formSection}>
         <Text style={styles.sectionTitle}>Session Type</Text>
         <View style={styles.radioGroup}>
@@ -1188,7 +1191,7 @@ const MyGroupSports: React.FC = () => {
             <TouchableOpacity
               key={type}
               style={[styles.radioOption, matchFormData.sessionType === type && styles.radioSelected]}
-              onPress={() => setMatchFormData({...matchFormData, sessionType: type})}
+              onPress={() => setMatchFormData({ ...matchFormData, sessionType: type })}
             >
               <Text style={[styles.radioText, matchFormData.sessionType === type && styles.radioTextSelected]}>
                 {type}
@@ -1204,20 +1207,20 @@ const MyGroupSports: React.FC = () => {
           style={styles.input}
           placeholder="Distance Covered (e.g., 500m, 1km)"
           value={matchFormData.distance || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, distance: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, distance: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Time Taken"
           value={matchFormData.timeTaken || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, timeTaken: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, timeTaken: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Number of Laps"
           keyboardType="numeric"
           value={matchFormData.laps || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, laps: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, laps: text })}
         />
       </View>
 
@@ -1227,13 +1230,13 @@ const MyGroupSports: React.FC = () => {
           style={styles.input}
           placeholder="Stroke Type"
           value={matchFormData.strokeType || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, strokeType: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, strokeType: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Best Time"
           value={matchFormData.bestTime || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, bestTime: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, bestTime: text })}
         />
       </View>
     </ScrollView>
@@ -1242,7 +1245,7 @@ const MyGroupSports: React.FC = () => {
   const renderTennisForm = () => (
     <ScrollView style={styles.formContainer}>
       <Text style={styles.formTitle}>Tennis Match Result</Text>
-      
+
       <View style={styles.formSection}>
         <Text style={styles.sectionTitle}>Match Type</Text>
         <View style={styles.radioGroup}>
@@ -1250,7 +1253,7 @@ const MyGroupSports: React.FC = () => {
             <TouchableOpacity
               key={type}
               style={[styles.radioOption, matchFormData.matchType === type && styles.radioSelected]}
-              onPress={() => setMatchFormData({...matchFormData, matchType: type})}
+              onPress={() => setMatchFormData({ ...matchFormData, matchType: type })}
             >
               <Text style={[styles.radioText, matchFormData.matchType === type && styles.radioTextSelected]}>
                 {type}
@@ -1266,13 +1269,13 @@ const MyGroupSports: React.FC = () => {
           style={styles.input}
           placeholder="Final Score (e.g., 6-4, 4-6, 7-5)"
           value={matchFormData.finalScore || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, finalScore: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, finalScore: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Winner"
           value={matchFormData.winner || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, winner: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, winner: text })}
         />
       </View>
 
@@ -1283,21 +1286,21 @@ const MyGroupSports: React.FC = () => {
           placeholder="Aces"
           keyboardType="numeric"
           value={matchFormData.aces || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, aces: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, aces: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Double Faults"
           keyboardType="numeric"
           value={matchFormData.doubleFaults || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, doubleFaults: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, doubleFaults: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Duration (minutes)"
           keyboardType="numeric"
           value={matchFormData.duration || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, duration: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, duration: text })}
         />
       </View>
     </ScrollView>
@@ -1306,34 +1309,34 @@ const MyGroupSports: React.FC = () => {
   const renderFootballForm = () => (
     <ScrollView style={styles.formContainer}>
       <Text style={styles.formTitle}>Football Match Result</Text>
-      
+
       <View style={styles.formSection}>
         <Text style={styles.sectionTitle}>Teams & Score</Text>
         <TextInput
           style={styles.input}
           placeholder="Team 1 Name"
           value={matchFormData.team1Name || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, team1Name: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, team1Name: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Team 1 Score"
           keyboardType="numeric"
           value={matchFormData.team1Score || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, team1Score: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, team1Score: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Team 2 Name"
           value={matchFormData.team2Name || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, team2Name: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, team2Name: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Team 2 Score"
           keyboardType="numeric"
           value={matchFormData.team2Score || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, team2Score: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, team2Score: text })}
         />
       </View>
 
@@ -1343,20 +1346,20 @@ const MyGroupSports: React.FC = () => {
           style={styles.input}
           placeholder="Goal Scorers (comma separated)"
           value={matchFormData.goalScorers || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, goalScorers: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, goalScorers: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="MVP Player"
           value={matchFormData.mvp || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, mvp: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, mvp: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Duration (minutes)"
           keyboardType="numeric"
           value={matchFormData.duration || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, duration: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, duration: text })}
         />
       </View>
     </ScrollView>
@@ -1365,34 +1368,34 @@ const MyGroupSports: React.FC = () => {
   const renderHockeyForm = () => (
     <ScrollView style={styles.formContainer}>
       <Text style={styles.formTitle}>Hockey Match Result</Text>
-      
+
       <View style={styles.formSection}>
         <Text style={styles.sectionTitle}>Teams & Score</Text>
         <TextInput
           style={styles.input}
           placeholder="Team 1 Name"
           value={matchFormData.team1Name || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, team1Name: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, team1Name: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Team 1 Score"
           keyboardType="numeric"
           value={matchFormData.team1Score || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, team1Score: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, team1Score: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Team 2 Name"
           value={matchFormData.team2Name || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, team2Name: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, team2Name: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Team 2 Score"
           keyboardType="numeric"
           value={matchFormData.team2Score || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, team2Score: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, team2Score: text })}
         />
       </View>
 
@@ -1402,20 +1405,20 @@ const MyGroupSports: React.FC = () => {
           style={styles.input}
           placeholder="Goal Scorers"
           value={matchFormData.goalScorers || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, goalScorers: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, goalScorers: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Saves"
           keyboardType="numeric"
           value={matchFormData.saves || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, saves: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, saves: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="MVP Player"
           value={matchFormData.mvp || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, mvp: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, mvp: text })}
         />
       </View>
     </ScrollView>
@@ -1424,7 +1427,7 @@ const MyGroupSports: React.FC = () => {
   const renderCricketForm = () => (
     <ScrollView style={styles.formContainer}>
       <Text style={styles.formTitle}>Cricket Match Result</Text>
-      
+
       <View style={styles.formSection}>
         <Text style={styles.sectionTitle}>Match Format</Text>
         <View style={styles.radioGroup}>
@@ -1432,7 +1435,7 @@ const MyGroupSports: React.FC = () => {
             <TouchableOpacity
               key={format}
               style={[styles.radioOption, matchFormData.matchFormat === format && styles.radioSelected]}
-              onPress={() => setMatchFormData({...matchFormData, matchFormat: format})}
+              onPress={() => setMatchFormData({ ...matchFormData, matchFormat: format })}
             >
               <Text style={[styles.radioText, matchFormData.matchFormat === format && styles.radioTextSelected]}>
                 {format}
@@ -1449,25 +1452,25 @@ const MyGroupSports: React.FC = () => {
           placeholder="Overs Per Side"
           keyboardType="numeric"
           value={matchFormData.oversPerSide || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, oversPerSide: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, oversPerSide: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Team A Score (e.g., 120/8)"
           value={matchFormData.teamAScore || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, teamAScore: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, teamAScore: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Team B Score (e.g., 121/6)"
           value={matchFormData.teamBScore || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, teamBScore: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, teamBScore: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Winning Team"
           value={matchFormData.winningTeam || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, winningTeam: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, winningTeam: text })}
         />
       </View>
 
@@ -1477,21 +1480,21 @@ const MyGroupSports: React.FC = () => {
           style={styles.input}
           placeholder="Man of the Match"
           value={matchFormData.manOfTheMatch || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, manOfTheMatch: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, manOfTheMatch: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Total Sixes"
           keyboardType="numeric"
           value={matchFormData.totalSixes || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, totalSixes: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, totalSixes: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Total Fours"
           keyboardType="numeric"
           value={matchFormData.totalFours || ''}
-          onChangeText={(text) => setMatchFormData({...matchFormData, totalFours: text})}
+          onChangeText={(text) => setMatchFormData({ ...matchFormData, totalFours: text })}
         />
       </View>
     </ScrollView>
@@ -1500,8 +1503,8 @@ const MyGroupSports: React.FC = () => {
   const renderScorecard = () => {
     if (!scoreboardData) return null;
 
-    const sport = SPORTS.find(s => s.id === scoreboardData.sport);
-    
+    const sport = SPORTS.find((s) => s.id === scoreboardData.sport);
+
     return (
       <Modal visible={showScorecard} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modalContainer}>
@@ -1557,16 +1560,16 @@ const MyGroupSports: React.FC = () => {
               <View style={styles.individualScoresSection}>
                 <Text style={styles.sectionTitle}>Individual Scores</Text>
                 <Text style={styles.sectionSubtitle}>Points earned in this match</Text>
-                
+
                 {group?.players.map((player, index) => {
                   const playerScore = calculateIndividualScores(
-                    scoreboardData.sport, 
-                    scoreboardData.matchData, 
-                    group.players
-                  ).find(p => p.playerId === player.id);
-                  
+                    scoreboardData.sport,
+                    scoreboardData.matchData,
+                    group.players,
+                  ).find((p) => p.playerId === player.id);
+
                   if (!playerScore) return null;
-                  
+
                   return (
                     <View key={player.id} style={styles.playerScoreCard}>
                       <View style={styles.playerScoreHeader}>
@@ -1581,16 +1584,24 @@ const MyGroupSports: React.FC = () => {
                         </View>
                         <View style={styles.playerScoreStats}>
                           <Text style={styles.playerScorePoints}>+{playerScore.points} pts</Text>
-                          <Text style={[
-                            styles.playerScoreResult,
-                            { color: playerScore.result === 'win' ? '#4CAF50' : 
-                                     playerScore.result === 'loss' ? '#F44336' : '#FF9800' }
-                          ]}>
+                          <Text
+                            style={[
+                              styles.playerScoreResult,
+                              {
+                                color:
+                                  playerScore.result === 'win'
+                                    ? '#4CAF50'
+                                    : playerScore.result === 'loss'
+                                      ? '#F44336'
+                                      : '#FF9800',
+                              },
+                            ]}
+                          >
                             {playerScore.result.toUpperCase()}
                           </Text>
                         </View>
                       </View>
-                      
+
                       <View style={styles.playerScoreDetails}>
                         <Text style={styles.playerScoreTotal}>Total Score: {playerScore.score}</Text>
                         {playerScore.performance && Object.keys(playerScore.performance).length > 0 && (
@@ -1633,12 +1644,12 @@ const MyGroupSports: React.FC = () => {
     );
   }
 
-  const sport = SPORTS.find(s => s.id === group.sport);
+  const sport = SPORTS.find((s) => s.id === group.sport);
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={sport?.color[0]} />
-      
+
       {/* Header */}
       <LinearGradient colors={sport?.color || ['#667eea', '#764ba2']} style={styles.header}>
         <View style={styles.headerTop}>
@@ -1650,7 +1661,7 @@ const MyGroupSports: React.FC = () => {
             <Ionicons name="share-outline" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.headerContent}>
           <View style={styles.sportInfo}>
             <FontAwesome5 name={sport?.icon} size={24} color="#FFFFFF" />
@@ -1660,7 +1671,9 @@ const MyGroupSports: React.FC = () => {
           <View style={styles.groupStats}>
             <View style={styles.statItem}>
               <Ionicons name="people" size={16} color="#FFFFFF" />
-              <Text style={styles.statText}>{group.currentPlayers}/{group.maxPlayers}</Text>
+              <Text style={styles.statText}>
+                {group.currentPlayers}/{group.maxPlayers}
+              </Text>
             </View>
             <View style={styles.statItem}>
               <Ionicons name="time" size={16} color="#FFFFFF" />
@@ -1690,7 +1703,7 @@ const MyGroupSports: React.FC = () => {
       </View>
 
       {/* Content */}
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
@@ -1718,10 +1731,7 @@ const MyGroupSports: React.FC = () => {
             </View>
 
             <View style={styles.actionButtons}>
-              <TouchableOpacity 
-                style={styles.primaryButton}
-                onPress={() => setShowMatchResultModal(true)}
-              >
+              <TouchableOpacity style={styles.primaryButton} onPress={() => setShowMatchResultModal(true)}>
                 <Ionicons name="trophy" size={20} color="#FFFFFF" />
                 <Text style={styles.buttonText}>Submit Match Result</Text>
               </TouchableOpacity>
@@ -1735,20 +1745,15 @@ const MyGroupSports: React.FC = () => {
               data={chatMessages}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
-                <View style={[
-                  styles.messageContainer,
-                  item.userId === 'currentUser' && styles.ownMessage
-                ]}>
+                <View style={[styles.messageContainer, item.userId === 'currentUser' && styles.ownMessage]}>
                   <Text style={styles.messageSender}>{item.userName}</Text>
                   <Text style={styles.messageText}>{item.message}</Text>
-                  <Text style={styles.messageTime}>
-                    {new Date(item.timestamp).toLocaleTimeString()}
-                  </Text>
+                  <Text style={styles.messageTime}>{new Date(item.timestamp).toLocaleTimeString()}</Text>
                 </View>
               )}
               style={styles.messagesList}
             />
-            
+
             <View style={styles.messageInput}>
               <TextInput
                 style={styles.textInput}
@@ -1776,23 +1781,17 @@ const MyGroupSports: React.FC = () => {
               matchResults.map((result, index) => (
                 <View key={index} style={styles.resultCard}>
                   <View style={styles.resultHeader}>
-                    <Text style={styles.resultDate}>
-                      {new Date(result.createdAt).toLocaleDateString()}
-                    </Text>
+                    <Text style={styles.resultDate}>{new Date(result.createdAt).toLocaleDateString()}</Text>
                     <View style={[styles.verifiedBadge, result.verified && styles.verifiedBadgeActive]}>
-                      <Ionicons 
-                        name={result.verified ? "checkmark-circle" : "time"} 
-                        size={16} 
-                        color={result.verified ? "#4CAF50" : "#FF9800"} 
+                      <Ionicons
+                        name={result.verified ? 'checkmark-circle' : 'time'}
+                        size={16}
+                        color={result.verified ? '#4CAF50' : '#FF9800'}
                       />
-                      <Text style={styles.verifiedText}>
-                        {result.verified ? "Verified" : "Pending"}
-                      </Text>
+                      <Text style={styles.verifiedText}>{result.verified ? 'Verified' : 'Pending'}</Text>
                     </View>
                   </View>
-                  <Text style={styles.resultSummary}>
-                    Match completed - View details for full scorecard
-                  </Text>
+                  <Text style={styles.resultSummary}>Match completed - View details for full scorecard</Text>
                 </View>
               ))
             )}
@@ -1801,11 +1800,7 @@ const MyGroupSports: React.FC = () => {
       </ScrollView>
 
       {/* Match Result Modal */}
-      <Modal
-        visible={showMatchResultModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
+      <Modal visible={showMatchResultModal} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowMatchResultModal(false)}>
@@ -1816,11 +1811,8 @@ const MyGroupSports: React.FC = () => {
               <Text style={styles.submitText}>Submit</Text>
             </TouchableOpacity>
           </View>
-          
-          <KeyboardAvoidingView 
-            style={styles.modalContent}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          >
+
+          <KeyboardAvoidingView style={styles.modalContent} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             {renderMatchResultForm()}
           </KeyboardAvoidingView>
         </SafeAreaView>

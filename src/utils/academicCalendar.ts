@@ -58,11 +58,7 @@ export function getMonthIndex(monthName: string): number {
  * July-December is treated as belonging to the following calendar year.
  * Returns `null` when the date or month cannot be parsed.
  */
-export function calculateDaysRemaining(
-  dateString: string,
-  monthName: string,
-  today: Date = new Date(),
-): number | null {
+export function calculateDaysRemaining(dateString: string, monthName: string, today: Date = new Date()): number | null {
   const dayMatch = dateString.match(/(\d+)/);
   const eventMonthIdx = getMonthIndex(monthName);
   if (!dayMatch || eventMonthIdx === -1) return null;

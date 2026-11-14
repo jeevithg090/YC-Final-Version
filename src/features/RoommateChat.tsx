@@ -13,20 +13,11 @@ import {
   Alert,
   Dimensions,
   SafeAreaView,
-  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { db, auth } from '../services/firebase';
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  addDoc,
-  doc,
-  serverTimestamp,
-} from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc } from 'firebase/firestore';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/router';
@@ -64,17 +55,21 @@ const RoommateChat: React.FC = () => {
     setLoadingMessages(true);
     const messagesRef = collection(db, 'roommate_chats', chatId, 'messages');
     const q = query(messagesRef, orderBy('createdAt', 'asc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs: Message[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
-      setMessages(msgs);
-      setLoadingMessages(false);
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }, (error) => {
-      console.error('Error loading messages:', error);
-      setLoadingMessages(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const msgs: Message[] = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Message);
+        setMessages(msgs);
+        setLoadingMessages(false);
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      },
+      (error) => {
+        console.error('Error loading messages:', error);
+        setLoadingMessages(false);
+      },
+    );
     return () => unsubscribe();
   }, [chatId]);
 
@@ -127,7 +122,9 @@ const RoommateChat: React.FC = () => {
         )}
         <View style={[styles.messageBubble, isOwn ? styles.ownMessageBubble : styles.themMessageBubble]}>
           {!isOwn && <Text style={styles.messageUserName}>{item.senderName}</Text>}
-          <Text style={[styles.messageText, isOwn ? styles.ownMessageText : styles.themMessageText]}>{item.content}</Text>
+          <Text style={[styles.messageText, isOwn ? styles.ownMessageText : styles.themMessageText]}>
+            {item.content}
+          </Text>
           <Text style={styles.messageTime}>{formatTimeAgo(item.createdAt)}</Text>
         </View>
       </View>
@@ -153,7 +150,12 @@ const RoommateChat: React.FC = () => {
       {listing?.details?.photos?.[0] ? (
         <Image source={{ uri: listing.details.photos[0] }} style={styles.productImage} />
       ) : (
-        <Ionicons name="bed-outline" size={56} color="#C7C7CC" style={{ backgroundColor: '#F2F2F7', borderRadius: 8 }} />
+        <Ionicons
+          name="bed-outline"
+          size={56}
+          color="#C7C7CC"
+          style={{ backgroundColor: '#F2F2F7', borderRadius: 8 }}
+        />
       )}
       <View style={{ flex: 1, marginLeft: 12 }}>
         <Text style={styles.productTitle}>{listing?.lookingFor || 'Roommate Listing'}</Text>
@@ -166,12 +168,7 @@ const RoommateChat: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <LinearGradient
-        colors={["#4E54C8", "#8B5CF6"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.header}
-      >
+      <LinearGradient colors={['#4E54C8', '#8B5CF6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={26} color="#fff" />
         </TouchableOpacity>
@@ -188,7 +185,7 @@ const RoommateChat: React.FC = () => {
             ref={flatListRef}
             data={messages}
             renderItem={renderMessage}
-            keyExtractor={item => item.id}
+            keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.chatContainer}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
@@ -215,7 +212,7 @@ const RoommateChat: React.FC = () => {
               onPress={handleSendMessage}
               disabled={!newMessage.trim() || sending}
             >
-              <Ionicons name="send" size={22} color={newMessage.trim() ? "#4E54C8" : "#C7C7CC"} />
+              <Ionicons name="send" size={22} color={newMessage.trim() ? '#4E54C8' : '#C7C7CC'} />
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -393,4 +390,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default RoommateChat; 
+export default RoommateChat;

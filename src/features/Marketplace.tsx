@@ -5,12 +5,11 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  ScrollView,
   Animated,
   Dimensions,
   FlatList,
   StatusBar,
-  Alert
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,8 +17,7 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -59,7 +57,7 @@ const Marketplace: React.FC = () => {
   const scrollY = useRef(new Animated.Value(0)).current;
   const windowWidth = Dimensions.get('window').width;
   const windowHeight = Dimensions.get('window').height;
-  
+
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(20)).current;
@@ -79,7 +77,7 @@ const Marketplace: React.FC = () => {
       }),
     ]).start();
   }, []);
-  
+
   // Sample categories
   const categories: Category[] = [
     { id: 'all', name: 'All', icon: 'grid' },
@@ -89,33 +87,33 @@ const Marketplace: React.FC = () => {
     { id: 'clothing', name: 'Clothing', icon: 'shirt' },
     { id: 'services', name: 'Services', icon: 'construct' },
   ];
-  
+
   // Feature highlights to be displayed
   const featureHighlights: FeatureHighlight[] = [
     {
       id: '1',
       title: '📦 List Items',
       description: 'Sell books, gadgets, furniture, or more in minutes.',
-      icon: 'cube'
+      icon: 'cube',
     },
     {
       id: '2',
       title: '🛒 Browse & Filter',
       description: 'Easily find what you need by category, price, or department.',
-      icon: 'filter'
+      icon: 'filter',
     },
     {
       id: '3',
       title: '💬 Chat with Sellers',
       description: 'In-app messaging to coordinate pickups.',
-      icon: 'chatbubbles'
+      icon: 'chatbubbles',
     },
     {
       id: '7',
       title: '🔔 Save for Later',
       description: 'Bookmark cool finds!',
-      icon: 'bookmark'
-    }
+      icon: 'bookmark',
+    },
   ];
 
   // Sample products data (would be fetched from Firebase in a real app)
@@ -131,7 +129,7 @@ const Marketplace: React.FC = () => {
       condition: 'Good',
       listed: '2 days ago',
       department: 'Computer Science',
-      rating: 4.8
+      rating: 4.8,
     },
     {
       id: '2',
@@ -144,7 +142,7 @@ const Marketplace: React.FC = () => {
       condition: 'Like New',
       listed: '5 days ago',
       department: 'Engineering',
-      rating: 4.5
+      rating: 4.5,
     },
     {
       id: '3',
@@ -157,7 +155,7 @@ const Marketplace: React.FC = () => {
       condition: 'Good',
       listed: '1 week ago',
       department: 'Design',
-      rating: 4.2
+      rating: 4.2,
     },
     {
       id: '4',
@@ -170,14 +168,13 @@ const Marketplace: React.FC = () => {
       condition: 'Like New',
       listed: '3 days ago',
       department: 'Media Studies',
-      rating: 4.9
-    }
+      rating: 4.9,
+    },
   ];
 
   // Filter products based on selected category
-  const filteredProducts = selectedCategory === 'all' 
-    ? products 
-    : products.filter(product => product.category === selectedCategory);
+  const filteredProducts =
+    selectedCategory === 'all' ? products : products.filter((product) => product.category === selectedCategory);
 
   // Header blur intensity increases as you scroll
   const headerOpacity = scrollY.interpolate({
@@ -211,13 +208,13 @@ const Marketplace: React.FC = () => {
   // Render each feature highlight card
   const renderFeatureHighlight = ({ item }: { item: FeatureHighlight }) => {
     return (
-      <Animated.View 
+      <Animated.View
         style={[
           styles.featureCard,
-          { 
+          {
             opacity: fadeAnim,
-            transform: [{ translateY: translateY }]
-          }
+            transform: [{ translateY: translateY }],
+          },
         ]}
       >
         <View style={styles.featureIconContainer}>
@@ -236,25 +233,11 @@ const Marketplace: React.FC = () => {
     const isSelected = selectedCategory === item.id;
     return (
       <TouchableOpacity
-        style={[
-          styles.categoryButton,
-          isSelected && styles.selectedCategoryButton
-        ]}
+        style={[styles.categoryButton, isSelected && styles.selectedCategoryButton]}
         onPress={() => setSelectedCategory(item.id)}
       >
-        <Ionicons 
-          name={item.icon as any} 
-          size={20} 
-          color={isSelected ? '#fff' : '#4E54C8'} 
-        />
-        <Text 
-          style={[
-            styles.categoryText,
-            isSelected && styles.selectedCategoryText
-          ]}
-        >
-          {item.name}
-        </Text>
+        <Ionicons name={item.icon as any} size={20} color={isSelected ? '#fff' : '#4E54C8'} />
+        <Text style={[styles.categoryText, isSelected && styles.selectedCategoryText]}>{item.name}</Text>
       </TouchableOpacity>
     );
   };
@@ -262,58 +245,52 @@ const Marketplace: React.FC = () => {
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: insets.bottom, backgroundColor: '#fff' }}>
       <StatusBar barStyle="dark-content" />
-      
+
       {/* Animated Header with Blur Effect */}
       <Animated.View style={[styles.headerContainer, { opacity: headerOpacity }]}>
         <BlurView intensity={70} style={StyleSheet.absoluteFill} tint="light" />
       </Animated.View>
-      
+
       {/* Static Header Content */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        
+
         <View style={styles.logoContainer}>
-          <Image 
-            source={require('../../assets/images/YOGOCampus.jpg')} 
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <Image source={require('../../assets/images/YOGOCampus.jpg')} style={styles.logo} resizeMode="contain" />
           <Text style={styles.appTitle}>YOGO Campus</Text>
         </View>
-        
-        <TouchableOpacity style={styles.profileButton} onPress={() => {
-          Alert.alert(
-            "Your Posts",
-            "Here are your marketplace posts",
-            [
-              { text: "Delete Post", onPress: () => console.log("Delete pressed") },
-              { text: "OK", style: "cancel" }
-            ]
-          );
-        }}>
+
+        <TouchableOpacity
+          style={styles.profileButton}
+          onPress={() => {
+            Alert.alert('Your Posts', 'Here are your marketplace posts', [
+              { text: 'Delete Post', onPress: () => console.log('Delete pressed') },
+              { text: 'OK', style: 'cancel' },
+            ]);
+          }}
+        >
           <Ionicons name="person-circle" size={28} color="#4E54C8" />
         </TouchableOpacity>
       </View>
-      
+
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollViewContent}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
         scrollEventThrottle={16}
       >
         {/* Hero Section with Animation */}
-        <Animated.View style={[
-          styles.heroSection,
-          { 
-            opacity: fadeAnim,
-            transform: [{ translateY: translateY }]
-          }
-        ]}>
+        <Animated.View
+          style={[
+            styles.heroSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: translateY }],
+            },
+          ]}
+        >
           <LinearGradient
             colors={['rgba(78, 84, 200, 0.8)', 'rgba(143, 148, 251, 0.8)']}
             style={styles.heroGradient}
@@ -322,13 +299,11 @@ const Marketplace: React.FC = () => {
           >
             <View style={styles.heroContent}>
               <Text style={styles.heroTitle}>Campus Marketplace</Text>
-              <Text style={styles.heroSubtitle}>
-                Buy, sell, and trade items with your campus community
-              </Text>
+              <Text style={styles.heroSubtitle}>Buy, sell, and trade items with your campus community</Text>
             </View>
           </LinearGradient>
         </Animated.View>
-        
+
         {/* Categories Horizontal Scroll */}
         <View style={styles.categoriesContainer}>
           <FlatList
@@ -340,7 +315,7 @@ const Marketplace: React.FC = () => {
             contentContainerStyle={styles.categoriesList}
           />
         </View>
-        
+
         {/* Feature Highlights Section */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>🔑 Features at a Glance</Text>
@@ -351,26 +326,28 @@ const Marketplace: React.FC = () => {
             scrollEnabled={false}
           />
         </View>
-        
+
         {/* Action Buttons with Animation */}
-        <Animated.View style={[
-          styles.actionButtonsContainer,
-          { 
-            opacity: fadeAnim,
-            transform: [{ translateY: translateY }]
-          }
-        ]}>
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.buyButton]} 
+        <Animated.View
+          style={[
+            styles.actionButtonsContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: translateY }],
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={[styles.actionButton, styles.buyButton]}
             onPress={handleBuyPress}
             activeOpacity={0.8}
           >
             <Ionicons name="cart" size={24} color="#fff" />
             <Text style={styles.actionButtonText}>Buy</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.sellButton]} 
+
+          <TouchableOpacity
+            style={[styles.actionButton, styles.sellButton]}
             onPress={handleSellPress}
             activeOpacity={0.8}
           >
@@ -378,7 +355,7 @@ const Marketplace: React.FC = () => {
             <Text style={styles.actionButtonText}>Sell</Text>
           </TouchableOpacity>
         </Animated.View>
-        
+
         {/* Extra space at bottom for better UX */}
         <View style={{ height: 100 }} />
       </Animated.ScrollView>

@@ -9,7 +9,7 @@ import {
   Platform,
   StatusBar,
   Dimensions,
-  Image
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -22,36 +22,26 @@ type PathwayNavigationProp = StackNavigationProp<RootStackParamList>;
 const Pathway: React.FC = () => {
   const navigation = useNavigation<PathwayNavigationProp>();
   const insets = useSafeAreaInsets();
-  
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <ImageBackground 
-        source={require('../../assets/images/campus-life.png')} 
+      <ImageBackground
+        source={require('../../assets/images/campus-life.png')}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
-        <LinearGradient
-          colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.8)']}
-          style={styles.gradient}
-        >
+        <LinearGradient colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.8)']} style={styles.gradient}>
           <SafeAreaView style={[styles.safeArea, { paddingBottom: insets.bottom }]}>
             <View style={styles.content}>
               <View style={styles.logoContainer}>
-                <Image 
-                  source={require('../../assets/images/favicon.png')} 
-                  style={styles.logo} 
-                  resizeMode="contain"
-                />
+                <Image source={require('../../assets/images/favicon.png')} style={styles.logo} resizeMode="contain" />
                 <Text style={styles.title}>YOGO Campus</Text>
                 <Text style={styles.subtitle}>Your journey begins here</Text>
               </View>
-              
+
               <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  style={styles.button}
-                  onPress={() => navigation.navigate('Login')}
-                >
+                <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Login')}>
                   <LinearGradient
                     colors={['#4e54c8', '#8f94fb']}
                     start={{ x: 0, y: 0 }}
@@ -61,7 +51,7 @@ const Pathway: React.FC = () => {
                     <Text style={styles.buttonText}>Login</Text>
                   </LinearGradient>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={[styles.button, styles.marginTop]}
                   onPress={() => navigation.navigate('SignUp')}
@@ -75,11 +65,9 @@ const Pathway: React.FC = () => {
                     <Text style={styles.buttonText}>Sign Up</Text>
                   </LinearGradient>
                 </TouchableOpacity>
-                
+
                 <View style={styles.additionalInfo}>
-                  <Text style={styles.infoText}>
-                    Join thousands of students already using YOGO Campus
-                  </Text>
+                  <Text style={styles.infoText}>Join thousands of students already using YOGO Campus</Text>
                   <TouchableOpacity onPress={() => navigation.navigate('Dashboard')}>
                     <Text style={styles.skipText}>Skip for now</Text>
                   </TouchableOpacity>

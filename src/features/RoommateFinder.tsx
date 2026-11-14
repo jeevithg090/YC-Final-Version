@@ -21,17 +21,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { db as firestore, auth, db } from '../services/firebase';
-import { 
-  collection, 
-  onSnapshot, 
-  addDoc, 
+import {
+  collection,
+  onSnapshot,
+  addDoc,
   query,
   orderBy,
   where,
   getDocs,
-  updateDoc,
   doc,
-  serverTimestamp
+  serverTimestamp,
 } from 'firebase/firestore';
 
 const { width } = Dimensions.get('window');
@@ -183,7 +182,7 @@ const RoommateFinder: React.FC = () => {
         console.error('Firestore error:', error);
         Alert.alert('Error', 'Failed to load listings. Please check your connection.');
         setLoading(false);
-      }
+      },
     );
 
     // Load saved and contacted listings from local storage or Firestore
@@ -199,45 +198,51 @@ const RoommateFinder: React.FC = () => {
 
     // Filter by listing type (roommate vs broker)
     if (listingType === 'roommate') {
-      filtered = filtered.filter(listing => listing.type === 'Individual');
+      filtered = filtered.filter((listing) => listing.type === 'Individual');
     } else if (listingType === 'broker') {
-      filtered = filtered.filter(listing => listing.type === 'Broker');
+      filtered = filtered.filter((listing) => listing.type === 'Broker');
     }
 
     // Debug logging
     console.log(`Filtering for ${listingType}: Found ${filtered.length} listings out of ${listings.length} total`);
-    console.log('Sample filtered listings:', filtered.slice(0, 3).map(l => ({ id: l.id, type: l.type, alias: l.alias })));
+    console.log(
+      'Sample filtered listings:',
+      filtered.slice(0, 3).map((l) => ({ id: l.id, type: l.type, alias: l.alias })),
+    );
 
     // Search filter
     if (searchQuery) {
-      filtered = filtered.filter(listing =>
-        listing.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        listing.area.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        listing.lookingFor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (listing.name && listing.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (listing.alias && listing.alias.toLowerCase().includes(searchQuery.toLowerCase()))
+      filtered = filtered.filter(
+        (listing) =>
+          listing.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          listing.area.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          listing.lookingFor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (listing.name && listing.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (listing.alias && listing.alias.toLowerCase().includes(searchQuery.toLowerCase())),
       );
     }
 
     // Apply filters
     if (filters.gender !== 'All') {
-      filtered = filtered.filter(listing => listing.preferences.gender === filters.gender || listing.preferences.gender === 'Any');
+      filtered = filtered.filter(
+        (listing) => listing.preferences.gender === filters.gender || listing.preferences.gender === 'Any',
+      );
     }
 
     if (filters.maxRent < 20000) {
-      filtered = filtered.filter(listing => listing.rentPerMonth <= filters.maxRent);
+      filtered = filtered.filter((listing) => listing.rentPerMonth <= filters.maxRent);
     }
 
     if (filters.sharingType !== 'All') {
-      filtered = filtered.filter(listing => listing.details.roomType === filters.sharingType);
+      filtered = filtered.filter((listing) => listing.details.roomType === filters.sharingType);
     }
 
     if (filters.landmark !== 'All') {
-      filtered = filtered.filter(listing => listing.area.toLowerCase().includes(filters.landmark.toLowerCase()));
+      filtered = filtered.filter((listing) => listing.area.toLowerCase().includes(filters.landmark.toLowerCase()));
     }
 
     if (filters.furnished !== 'All') {
-      filtered = filtered.filter(listing => listing.furnished === filters.furnished);
+      filtered = filtered.filter((listing) => listing.furnished === filters.furnished);
     }
 
     setFilteredListings(filtered);
@@ -248,7 +253,7 @@ const RoommateFinder: React.FC = () => {
     // For now, using empty arrays
     setSavedListings([]);
     setMessagedListings([]);
-    
+
     // Check if user has posted listings before
     try {
       // Check if user is logged in
@@ -257,12 +262,12 @@ const RoommateFinder: React.FC = () => {
         setHasUserPosted(false);
         return;
       }
-      
+
       const listingsRef = collection(firestore, 'roommate_listings');
       const currentUserId = auth.currentUser.uid;
       const q = query(listingsRef, where('userId', '==', currentUserId));
       const querySnapshot = await getDocs(q);
-      
+
       setHasUserPosted(!querySnapshot.empty);
     } catch (error) {
       console.error('Error checking user posts:', error);
@@ -273,9 +278,9 @@ const RoommateFinder: React.FC = () => {
 
   const handleSaveListing = (listingId: string) => {
     if (savedListings.includes(listingId)) {
-      setSavedListings(prev => prev.filter(id => id !== listingId));
+      setSavedListings((prev) => prev.filter((id) => id !== listingId));
     } else {
-      setSavedListings(prev => [...prev, listingId]);
+      setSavedListings((prev) => [...prev, listingId]);
     }
     // In a real app, save to AsyncStorage or Firestore
   };
@@ -306,7 +311,9 @@ const RoommateFinder: React.FC = () => {
     const chatDoc = await (await import('firebase/firestore')).getDoc(chatRef);
     if (!chatDoc.exists()) {
       // Create chat document if it doesn't exist
-      await (await import('firebase/firestore')).setDoc(chatRef, {
+      await (
+        await import('firebase/firestore')
+      ).setDoc(chatRef, {
         listingId: listing.id,
         userAId: currentUserId,
         userAName: currentUserName,
@@ -331,10 +338,12 @@ const RoommateFinder: React.FC = () => {
 
   const handlePostListing = async () => {
     // Validate required fields
-    if (!formData.lookingFor?.trim() || 
-        !formData.location?.trim() || 
-        !formData.rentPerMonth?.trim() || 
-        !formData.description?.trim()) {
+    if (
+      !formData.lookingFor?.trim() ||
+      !formData.location?.trim() ||
+      !formData.rentPerMonth?.trim() ||
+      !formData.description?.trim()
+    ) {
       Alert.alert('Error', 'Please fill in all required fields marked with *');
       return;
     }
@@ -366,7 +375,7 @@ const RoommateFinder: React.FC = () => {
         return;
       }
       const listingsRef = collection(firestore, 'roommate_listings');
-      
+
       // Clean contact data - only include non-empty, trimmed fields
       const cleanContact: { phone?: string; whatsapp?: string; email?: string } = {};
       if (hasValidPhone) {
@@ -395,14 +404,20 @@ const RoommateFinder: React.FC = () => {
       }
 
       // Ensure photos array doesn't contain any null/undefined values
-      const cleanPhotos = (formData.details.photos || []).filter(photo => photo && typeof photo === 'string' && photo.trim());
-      
+      const cleanPhotos = (formData.details.photos || []).filter(
+        (photo) => photo && typeof photo === 'string' && photo.trim(),
+      );
+
       // Ensure amenities array doesn't contain any null/undefined values
-      const cleanAmenities = (formData.details.amenities || []).filter(amenity => amenity && typeof amenity === 'string' && amenity.trim());
-      
+      const cleanAmenities = (formData.details.amenities || []).filter(
+        (amenity) => amenity && typeof amenity === 'string' && amenity.trim(),
+      );
+
       // Ensure habits array doesn't contain any null/undefined values
-      const cleanHabits = (formData.preferences.habits || []).filter(habit => habit && typeof habit === 'string' && habit.trim());
-      
+      const cleanHabits = (formData.preferences.habits || []).filter(
+        (habit) => habit && typeof habit === 'string' && habit.trim(),
+      );
+
       const newListing: Omit<RoommateListing, 'id'> = {
         userId: user.uid, // Use actual user ID
         type: formData.type, // Always include the type field
@@ -452,7 +467,7 @@ const RoommateFinder: React.FC = () => {
 
       console.log('Submitting listing:', JSON.stringify(newListing, null, 2));
       await addDoc(listingsRef, newListing);
-      
+
       // Set the user has posted flag to true
       setHasUserPosted(true);
       Alert.alert('Success', 'Your roommate listing has been posted successfully!');
@@ -460,7 +475,7 @@ const RoommateFinder: React.FC = () => {
       setShowPostForm(false);
     } catch (error) {
       console.error('Error posting listing:', error);
-      
+
       // More specific error handling
       if (error instanceof Error) {
         console.error('Error message:', error.message);
@@ -538,20 +553,20 @@ const RoommateFinder: React.FC = () => {
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setUploadingImages(true);
-        
+
         try {
-          const newPhotos = result.assets.map(asset => asset.uri).filter(uri => uri);
-          
+          const newPhotos = result.assets.map((asset) => asset.uri).filter((uri) => uri);
+
           if (newPhotos.length > 0) {
             // Add to existing photos
-            setFormData(prev => ({
+            setFormData((prev) => ({
               ...prev,
               details: {
                 ...prev.details,
-                photos: [...prev.details.photos, ...newPhotos]
-              }
+                photos: [...prev.details.photos, ...newPhotos],
+              },
             }));
-            
+
             Alert.alert('Success', `${newPhotos.length} photo(s) added successfully!`);
           } else {
             Alert.alert('Error', 'No valid photos were selected.');
@@ -593,19 +608,19 @@ const RoommateFinder: React.FC = () => {
 
       if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].uri) {
         setUploadingImages(true);
-        
+
         try {
           const newPhoto = result.assets[0].uri;
-          
+
           // Add to existing photos
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
             details: {
               ...prev.details,
-              photos: [...prev.details.photos, newPhoto]
-            }
+              photos: [...prev.details.photos, newPhoto],
+            },
           }));
-          
+
           Alert.alert('Success', 'Photo added successfully!');
         } catch (processError) {
           console.error('Error processing photo:', processError);
@@ -624,140 +639,128 @@ const RoommateFinder: React.FC = () => {
   };
 
   const removePhoto = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       details: {
         ...prev.details,
-        photos: prev.details.photos.filter((_, i) => i !== index)
-      }
+        photos: prev.details.photos.filter((_, i) => i !== index),
+      },
     }));
   };
 
   const showImagePickerOptions = () => {
     console.log('Showing image picker options');
-    Alert.alert(
-      'Add Photos',
-      'Choose how you want to add photos',
-      [
-        { text: 'Camera', onPress: () => {
+    Alert.alert('Add Photos', 'Choose how you want to add photos', [
+      {
+        text: 'Camera',
+        onPress: () => {
           console.log('Camera option selected');
           takePhoto();
-        }},
-        { text: 'Photo Library', onPress: () => {
+        },
+      },
+      {
+        text: 'Photo Library',
+        onPress: () => {
           console.log('Photo library option selected');
           pickImages();
-        }},
-        { text: 'Cancel', style: 'cancel' }
-      ]
-    );
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   // Render listing card
   const renderListingCard = ({ item: listing }: { item: RoommateListing }) => {
     // Modern color themes based on listing type that match app's design
-    const gradientColors = listing.type === 'Broker' 
-      ? ['#F8F9FF', '#F0F2FF'] as const // Light blue/purple for brokers
-      : ['#F1F5FF', '#F8F9FF'] as const; // Subtle blue for individuals
-      
+    const gradientColors =
+      listing.type === 'Broker'
+        ? (['#F8F9FF', '#F0F2FF'] as const) // Light blue/purple for brokers
+        : (['#F1F5FF', '#F8F9FF'] as const); // Subtle blue for individuals
+
     const accentColor = listing.type === 'Broker' ? '#FF9500' : '#4E54C8';
-    
+
     return (
-    <TouchableOpacity
-      style={[styles.listingCard, { borderColor: accentColor + '20' }]}
-      onPress={() => {
-        setSelectedListing(listing);
-        setShowDetailModal(true);
-      }}
-    >
-      <LinearGradient
-        colors={gradientColors}
-        style={styles.cardGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <TouchableOpacity
+        style={[styles.listingCard, { borderColor: accentColor + '20' }]}
+        onPress={() => {
+          setSelectedListing(listing);
+          setShowDetailModal(true);
+        }}
       >
-        {/* Header with save button */}
-        <View style={styles.cardHeader}>
-          <View style={styles.statusContainer}>
-            {listing.verified && (
-              <View style={[styles.statusBadge, { backgroundColor: 'rgba(62, 207, 142, 0.15)' }]}>
-                <Ionicons name="checkmark-circle" size={12} color="#38B000" style={{marginRight: 4}} />
-                <Text style={[styles.statusText, {color: '#38B000'}]}>Verified</Text>
+        <LinearGradient colors={gradientColors} style={styles.cardGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          {/* Header with save button */}
+          <View style={styles.cardHeader}>
+            <View style={styles.statusContainer}>
+              {listing.verified && (
+                <View style={[styles.statusBadge, { backgroundColor: 'rgba(62, 207, 142, 0.15)' }]}>
+                  <Ionicons name="checkmark-circle" size={12} color="#38B000" style={{ marginRight: 4 }} />
+                  <Text style={[styles.statusText, { color: '#38B000' }]}>Verified</Text>
+                </View>
+              )}
+              <Text style={styles.postedTime}>2 days ago</Text>
+            </View>
+            <TouchableOpacity style={styles.saveButton} onPress={() => handleSaveListing(listing.id)}>
+              <Ionicons
+                name={savedListings.includes(listing.id) ? 'heart' : 'heart-outline'}
+                size={24}
+                color={savedListings.includes(listing.id) ? '#FF6B6B' : '#999'}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Main info */}
+          <View style={styles.cardBody}>
+            <Text style={styles.listingTitle}>{listing.name || listing.alias || 'Anonymous User'}</Text>
+            <Text style={styles.lookingFor}>{listing.lookingFor}</Text>
+
+            <View style={styles.locationContainer}>
+              <Ionicons name="location-outline" size={16} color="#666" />
+              <Text style={styles.locationText}>{listing.location}</Text>
+              {listing.area && <Text style={styles.areaText}>• Near {listing.area}</Text>}
+            </View>
+
+            <View style={styles.detailsRow}>
+              <View style={styles.detailItem}>
+                <Ionicons name="home-outline" size={16} color="#4E54C8" />
+                <Text style={styles.detailText}>{listing.accommodationType}</Text>
               </View>
-            )}
-            <Text style={styles.postedTime}>2 days ago</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={() => handleSaveListing(listing.id)}
-          >
-            <Ionicons
-              name={savedListings.includes(listing.id) ? "heart" : "heart-outline"}
-              size={24}
-              color={savedListings.includes(listing.id) ? "#FF6B6B" : "#999"}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Main info */}
-        <View style={styles.cardBody}>
-          <Text style={styles.listingTitle}>
-            {listing.name || listing.alias || 'Anonymous User'}
-          </Text>
-          <Text style={styles.lookingFor}>{listing.lookingFor}</Text>
-          
-          <View style={styles.locationContainer}>
-            <Ionicons name="location-outline" size={16} color="#666" />
-            <Text style={styles.locationText}>{listing.location}</Text>
-            {listing.area && (
-              <Text style={styles.areaText}>• Near {listing.area}</Text>
-            )}
-          </View>
-
-          <View style={styles.detailsRow}>
-            <View style={styles.detailItem}>
-              <Ionicons name="home-outline" size={16} color="#4E54C8" />
-              <Text style={styles.detailText}>{listing.accommodationType}</Text>
+              <View style={styles.detailItem}>
+                <Ionicons name="bed-outline" size={16} color="#4E54C8" />
+                <Text style={styles.detailText}>{listing.details.roomType || 'Room'}</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <MaterialIcons name="chair" size={16} color="#4E54C8" />
+                <Text style={styles.detailText}>{listing.furnished}</Text>
+              </View>
             </View>
-            <View style={styles.detailItem}>
-              <Ionicons name="bed-outline" size={16} color="#4E54C8" />
-              <Text style={styles.detailText}>{listing.details.roomType || 'Room'}</Text>
-            </View>
-            <View style={styles.detailItem}>
-              <MaterialIcons name="chair" size={16} color="#4E54C8" />
-              <Text style={styles.detailText}>{listing.furnished}</Text>
+
+            <View style={styles.priceRow}>
+              <Text style={styles.rentPrice}>₹{listing.rentPerMonth.toLocaleString()}/month</Text>
+              <Text style={styles.availabilityDate}>Available: {listing.availabilityDate}</Text>
             </View>
           </View>
 
-          <View style={styles.priceRow}>
-            <Text style={styles.rentPrice}>₹{listing.rentPerMonth.toLocaleString()}/month</Text>
-            <Text style={styles.availabilityDate}>Available: {listing.availabilityDate}</Text>
-          </View>
-        </View>
+          {/* Action buttons */}
+          <View style={styles.cardActions}>
+            <TouchableOpacity
+              style={styles.viewDetailsButton}
+              onPress={() => {
+                setSelectedListing(listing);
+                setShowDetailModal(true);
+              }}
+            >
+              <Text style={styles.viewDetailsText}>View Details</Text>
+              <Ionicons name="arrow-forward" size={16} color="#4E54C8" />
+            </TouchableOpacity>
 
-        {/* Action buttons */}
-        <View style={styles.cardActions}>
-          <TouchableOpacity
-            style={styles.viewDetailsButton}
-            onPress={() => {
-              setSelectedListing(listing);
-              setShowDetailModal(true);
-            }}
-          >
-            <Text style={styles.viewDetailsText}>View Details</Text>
-            <Ionicons name="arrow-forward" size={16} color="#4E54C8" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.contactButton}
-            onPress={() => handleMessageListing(listing)}
-          >
-            <Ionicons name="chatbubble-outline" size={16} color="#FFFFFF" />
-            <Text style={styles.contactButtonText}>Message</Text>
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
-  );
+            <TouchableOpacity style={styles.contactButton} onPress={() => handleMessageListing(listing)}>
+              <Ionicons name="chatbubble-outline" size={16} color="#FFFFFF" />
+              <Text style={styles.contactButtonText}>Message</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+    );
   };
 
   // Render listing in list view
@@ -770,20 +773,15 @@ const RoommateFinder: React.FC = () => {
       }}
     >
       <View style={styles.listItemLeft}>
-        <Text style={styles.listItemTitle}>
-          {listing.name || listing.alias || 'Anonymous'}
-        </Text>
+        <Text style={styles.listItemTitle}>{listing.name || listing.alias || 'Anonymous'}</Text>
         <Text style={styles.listItemSubtitle}>{listing.lookingFor}</Text>
         <Text style={styles.listItemLocation}>📍 {listing.location}</Text>
       </View>
-      
+
       <View style={styles.listItemRight}>
         <Text style={styles.listItemPrice}>₹{listing.rentPerMonth.toLocaleString()}</Text>
         <Text style={styles.listItemType}>{listing.accommodationType}</Text>
-        <TouchableOpacity
-          style={styles.listContactButton}
-          onPress={() => handleMessageListing(listing)}
-        >
+        <TouchableOpacity style={styles.listContactButton} onPress={() => handleMessageListing(listing)}>
           <Ionicons name="chatbubble-ellipses" size={18} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
@@ -804,16 +802,18 @@ const RoommateFinder: React.FC = () => {
             <Text style={styles.filterCancel}>Cancel</Text>
           </TouchableOpacity>
           <Text style={styles.filterTitle}>Filters</Text>
-          <TouchableOpacity onPress={() => {
-            setFilters({
-              gender: 'All',
-              maxRent: 20000,
-              sharingType: 'All',
-              landmark: 'All',
-              furnished: 'All',
-              distance: 'All',
-            });
-          }}>
+          <TouchableOpacity
+            onPress={() => {
+              setFilters({
+                gender: 'All',
+                maxRent: 20000,
+                sharingType: 'All',
+                landmark: 'All',
+                furnished: 'All',
+                distance: 'All',
+              });
+            }}
+          >
             <Text style={styles.filterReset}>Reset</Text>
           </TouchableOpacity>
         </View>
@@ -826,16 +826,10 @@ const RoommateFinder: React.FC = () => {
               {['All', 'Male', 'Female'].map((option) => (
                 <TouchableOpacity
                   key={option}
-                  style={[
-                    styles.filterOption,
-                    filters.gender === option && styles.filterOptionActive
-                  ]}
+                  style={[styles.filterOption, filters.gender === option && styles.filterOptionActive]}
                   onPress={() => setFilters({ ...filters, gender: option as any })}
                 >
-                  <Text style={[
-                    styles.filterOptionText,
-                    filters.gender === option && styles.filterOptionTextActive
-                  ]}>
+                  <Text style={[styles.filterOptionText, filters.gender === option && styles.filterOptionTextActive]}>
                     {option}
                   </Text>
                 </TouchableOpacity>
@@ -845,9 +839,7 @@ const RoommateFinder: React.FC = () => {
 
           {/* Max Rent */}
           <View style={styles.filterSection}>
-            <Text style={styles.filterSectionTitle}>
-              Max Rent: ₹{filters.maxRent.toLocaleString()}/month
-            </Text>
+            <Text style={styles.filterSectionTitle}>Max Rent: ₹{filters.maxRent.toLocaleString()}/month</Text>
             <View style={styles.rentSliderContainer}>
               <Text style={styles.rentSliderLabel}>₹5,000</Text>
               <View style={styles.rentSlider}>
@@ -870,16 +862,12 @@ const RoommateFinder: React.FC = () => {
               {['All', '1BHK', '2BHK', 'Single Room', 'Shared Room'].map((option) => (
                 <TouchableOpacity
                   key={option}
-                  style={[
-                    styles.filterOption,
-                    filters.sharingType === option && styles.filterOptionActive
-                  ]}
+                  style={[styles.filterOption, filters.sharingType === option && styles.filterOptionActive]}
                   onPress={() => setFilters({ ...filters, sharingType: option as any })}
                 >
-                  <Text style={[
-                    styles.filterOptionText,
-                    filters.sharingType === option && styles.filterOptionTextActive
-                  ]}>
+                  <Text
+                    style={[styles.filterOptionText, filters.sharingType === option && styles.filterOptionTextActive]}
+                  >
                     {option}
                   </Text>
                 </TouchableOpacity>
@@ -894,16 +882,10 @@ const RoommateFinder: React.FC = () => {
               {['All', 'MIT', 'TC', 'End Point', 'Other'].map((option) => (
                 <TouchableOpacity
                   key={option}
-                  style={[
-                    styles.filterOption,
-                    filters.landmark === option && styles.filterOptionActive
-                  ]}
+                  style={[styles.filterOption, filters.landmark === option && styles.filterOptionActive]}
                   onPress={() => setFilters({ ...filters, landmark: option as any })}
                 >
-                  <Text style={[
-                    styles.filterOptionText,
-                    filters.landmark === option && styles.filterOptionTextActive
-                  ]}>
+                  <Text style={[styles.filterOptionText, filters.landmark === option && styles.filterOptionTextActive]}>
                     {option}
                   </Text>
                 </TouchableOpacity>
@@ -918,16 +900,12 @@ const RoommateFinder: React.FC = () => {
               {['All', 'Furnished', 'Semi-Furnished', 'Unfurnished'].map((option) => (
                 <TouchableOpacity
                   key={option}
-                  style={[
-                    styles.filterOption,
-                    filters.furnished === option && styles.filterOptionActive
-                  ]}
+                  style={[styles.filterOption, filters.furnished === option && styles.filterOptionActive]}
                   onPress={() => setFilters({ ...filters, furnished: option as any })}
                 >
-                  <Text style={[
-                    styles.filterOptionText,
-                    filters.furnished === option && styles.filterOptionTextActive
-                  ]}>
+                  <Text
+                    style={[styles.filterOptionText, filters.furnished === option && styles.filterOptionTextActive]}
+                  >
                     {option}
                   </Text>
                 </TouchableOpacity>
@@ -937,13 +915,8 @@ const RoommateFinder: React.FC = () => {
         </ScrollView>
 
         <View style={styles.filterFooter}>
-          <TouchableOpacity
-            style={styles.applyFiltersButton}
-            onPress={() => setShowFilters(false)}
-          >
-            <Text style={styles.applyFiltersText}>
-              Apply Filters ({filteredListings.length} results)
-            </Text>
+          <TouchableOpacity style={styles.applyFiltersButton} onPress={() => setShowFilters(false)}>
+            <Text style={styles.applyFiltersText}>Apply Filters ({filteredListings.length} results)</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -961,10 +934,7 @@ const RoommateFinder: React.FC = () => {
       <SafeAreaView style={styles.detailModal}>
         {/* Header */}
         <View style={styles.detailHeader}>
-          <TouchableOpacity
-            style={styles.detailBackButton}
-            onPress={() => setShowDetailModal(false)}
-          >
+          <TouchableOpacity style={styles.detailBackButton} onPress={() => setShowDetailModal(false)}>
             <Ionicons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
           <Text style={styles.detailHeaderTitle}>Listing Details</Text>
@@ -973,9 +943,9 @@ const RoommateFinder: React.FC = () => {
             onPress={() => selectedListing && handleSaveListing(selectedListing.id)}
           >
             <Ionicons
-              name={selectedListing && savedListings.includes(selectedListing.id) ? "heart" : "heart-outline"}
+              name={selectedListing && savedListings.includes(selectedListing.id) ? 'heart' : 'heart-outline'}
               size={24}
-              color={selectedListing && savedListings.includes(selectedListing.id) ? "#FF6B6B" : "#999"}
+              color={selectedListing && savedListings.includes(selectedListing.id) ? '#FF6B6B' : '#999'}
             />
           </TouchableOpacity>
         </View>
@@ -1001,20 +971,19 @@ const RoommateFinder: React.FC = () => {
                   )}
                   <View style={styles.verificationBadge}>
                     <Ionicons
-                      name={selectedListing.verified ? "checkmark-circle" : "alert-circle"}
+                      name={selectedListing.verified ? 'checkmark-circle' : 'alert-circle'}
                       size={16}
-                      color={selectedListing.verified ? "#38B000" : "#FF6B35"}
+                      color={selectedListing.verified ? '#38B000' : '#FF6B35'}
                     />
-                    <Text style={[
-                      styles.verificationText,
-                      { color: selectedListing.verified ? "#38B000" : "#FF6B35" }
-                    ]}>
+                    <Text
+                      style={[styles.verificationText, { color: selectedListing.verified ? '#38B000' : '#FF6B35' }]}
+                    >
                       {selectedListing.verified ? 'Verified' : 'Unverified'}
                     </Text>
                   </View>
                 </View>
               </View>
-              
+
               {selectedListing.userProfile?.bio && (
                 <Text style={styles.bioText}>{selectedListing.userProfile.bio}</Text>
               )}
@@ -1029,26 +998,26 @@ const RoommateFinder: React.FC = () => {
             {/* Accommodation Details */}
             <View style={styles.detailSection}>
               <Text style={styles.sectionTitle}>Accommodation Details</Text>
-              
+
               <View style={styles.detailGrid}>
                 <View style={styles.detailGridItem}>
                   <Ionicons name="home" size={20} color="#4E54C8" />
                   <Text style={styles.detailGridLabel}>Type</Text>
                   <Text style={styles.detailGridValue}>{selectedListing.accommodationType}</Text>
                 </View>
-                
+
                 <View style={styles.detailGridItem}>
                   <Ionicons name="bed" size={20} color="#4E54C8" />
                   <Text style={styles.detailGridLabel}>Room</Text>
                   <Text style={styles.detailGridValue}>{selectedListing.details.roomType || 'N/A'}</Text>
                 </View>
-                
+
                 <View style={styles.detailGridItem}>
                   <MaterialIcons name="chair" size={20} color="#4E54C8" />
                   <Text style={styles.detailGridLabel}>Furnished</Text>
                   <Text style={styles.detailGridValue}>{selectedListing.furnished}</Text>
                 </View>
-                
+
                 <View style={styles.detailGridItem}>
                   <Ionicons name="calendar" size={20} color="#4E54C8" />
                   <Text style={styles.detailGridLabel}>Available</Text>
@@ -1058,12 +1027,8 @@ const RoommateFinder: React.FC = () => {
 
               <View style={styles.addressSection}>
                 <Text style={styles.addressTitle}>Address</Text>
-                <Text style={styles.addressText}>
-                  {selectedListing.details.address || selectedListing.location}
-                </Text>
-                {selectedListing.area && (
-                  <Text style={styles.nearbyText}>Near {selectedListing.area}</Text>
-                )}
+                <Text style={styles.addressText}>{selectedListing.details.address || selectedListing.location}</Text>
+                {selectedListing.area && <Text style={styles.nearbyText}>Near {selectedListing.area}</Text>}
               </View>
             </View>
 
@@ -1082,7 +1047,7 @@ const RoommateFinder: React.FC = () => {
                   </View>
                 )}
               </View>
-              
+
               {selectedListing.details.utilities && (
                 <View style={styles.utilitiesSection}>
                   <Text style={styles.utilitiesTitle}>Utilities Info</Text>
@@ -1106,7 +1071,7 @@ const RoommateFinder: React.FC = () => {
                   </View>
                 )}
               </View>
-              
+
               {selectedListing.preferences.habits.length > 0 && (
                 <View style={styles.habitsSection}>
                   <Text style={styles.habitsTitle}>Habits & Lifestyle</Text>
@@ -1145,18 +1110,22 @@ const RoommateFinder: React.FC = () => {
                 <Ionicons name="chatbubble-ellipses" size={22} color="#FFFFFF" />
                 <Text style={styles.primaryContactText}>Message Now</Text>
               </TouchableOpacity>
-              
+
               <View style={styles.secondaryMessageButtons}>
                 {selectedListing.contact.whatsapp && (
                   <TouchableOpacity
                     style={styles.secondaryMessageButton}
-                    onPress={() => Linking.openURL(`whatsapp://send?phone=${selectedListing.contact.whatsapp}&text=Hi, I'm interested in your roommate listing.`)}
+                    onPress={() =>
+                      Linking.openURL(
+                        `whatsapp://send?phone=${selectedListing.contact.whatsapp}&text=Hi, I'm interested in your roommate listing.`,
+                      )
+                    }
                   >
                     <Ionicons name="logo-whatsapp" size={22} color="#25D366" />
                     <Text style={styles.secondaryContactText}>WhatsApp</Text>
                   </TouchableOpacity>
                 )}
-                
+
                 {selectedListing.contact.email && (
                   <TouchableOpacity
                     style={styles.secondaryMessageButton}
@@ -1184,10 +1153,7 @@ const RoommateFinder: React.FC = () => {
       <SafeAreaView style={styles.detailModal}>
         {/* Header */}
         <View style={styles.detailHeader}>
-          <TouchableOpacity
-            style={styles.detailBackButton}
-            onPress={() => setShowPostForm(false)}
-          >
+          <TouchableOpacity style={styles.detailBackButton} onPress={() => setShowPostForm(false)}>
             <Ionicons name="close" size={24} color="#333" />
           </TouchableOpacity>
           <Text style={styles.detailHeaderTitle}>
@@ -1210,7 +1176,7 @@ const RoommateFinder: React.FC = () => {
             <Text style={styles.formSectionTitle}>
               {formData.type === 'Individual' ? 'Personal Information' : 'Business Information'}
             </Text>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>
                 {formData.type === 'Individual' ? 'Name (Optional)' : 'Contact Person Name'}
@@ -1218,8 +1184,8 @@ const RoommateFinder: React.FC = () => {
               <TextInput
                 style={styles.textInput}
                 value={formData.name}
-                onChangeText={(text) => setFormData({...formData, name: text})}
-                placeholder={formData.type === 'Individual' ? "Your full name" : "Agent/Manager name"}
+                onChangeText={(text) => setFormData({ ...formData, name: text })}
+                placeholder={formData.type === 'Individual' ? 'Your full name' : 'Agent/Manager name'}
                 placeholderTextColor="#999"
               />
             </View>
@@ -1231,25 +1197,28 @@ const RoommateFinder: React.FC = () => {
               <TextInput
                 style={styles.textInput}
                 value={formData.alias}
-                onChangeText={(text) => setFormData({...formData, alias: text})}
-                placeholder={formData.type === 'Individual' 
-                  ? "How others will see you (e.g., John D., Anonymous)"
-                  : "Name of your agency or business"
+                onChangeText={(text) => setFormData({ ...formData, alias: text })}
+                placeholder={
+                  formData.type === 'Individual'
+                    ? 'How others will see you (e.g., John D., Anonymous)'
+                    : 'Name of your agency or business'
                 }
                 placeholderTextColor="#999"
               />
             </View>
-            
+
             {formData.type === 'Broker' && (
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Experience/Credentials</Text>
                 <TextInput
                   style={styles.textInput}
                   value={formData.userProfile.bio}
-                  onChangeText={(text) => setFormData({
-                    ...formData, 
-                    userProfile: {...formData.userProfile, bio: text}
-                  })}
+                  onChangeText={(text) =>
+                    setFormData({
+                      ...formData,
+                      userProfile: { ...formData.userProfile, bio: text },
+                    })
+                  }
                   placeholder="Years of experience, specialty areas, credentials"
                   placeholderTextColor="#999"
                 />
@@ -1262,28 +1231,22 @@ const RoommateFinder: React.FC = () => {
                 {['Individual', 'Broker'].map((type) => (
                   <TouchableOpacity
                     key={type}
-                    style={[
-                      styles.radioOption,
-                      formData.type === type && styles.radioOptionActive
-                    ]}
+                    style={[styles.radioOption, formData.type === type && styles.radioOptionActive]}
                     onPress={() => {
                       // Reset contact information when switching user type
-                      const updatedContact = {...formData.contact};
+                      const updatedContact = { ...formData.contact };
                       if (type === 'Individual') {
                         // For individual, we might want to clear the phone
                         updatedContact.phone = '';
                       }
                       setFormData({
-                        ...formData, 
-                        type: type as any, 
-                        contact: updatedContact
+                        ...formData,
+                        type: type as any,
+                        contact: updatedContact,
                       });
                     }}
                   >
-                    <View style={[
-                      styles.radioCircle,
-                      formData.type === type && styles.radioCircleActive
-                    ]}>
+                    <View style={[styles.radioCircle, formData.type === type && styles.radioCircleActive]}>
                       {formData.type === type && <View style={styles.radioInner} />}
                     </View>
                     <Text style={styles.radioLabel}>{type}</Text>
@@ -1296,9 +1259,9 @@ const RoommateFinder: React.FC = () => {
           {/* What You're Looking For/Property Details */}
           <View style={styles.formSection}>
             <Text style={styles.formSectionTitle}>
-              {formData.type === 'Individual' ? 'What You\'re Looking For' : 'Property Details'}
+              {formData.type === 'Individual' ? "What You're Looking For" : 'Property Details'}
             </Text>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>
                 {formData.type === 'Individual' ? 'Looking For *' : 'Property Type *'}
@@ -1306,10 +1269,11 @@ const RoommateFinder: React.FC = () => {
               <TextInput
                 style={styles.textInput}
                 value={formData.lookingFor}
-                onChangeText={(text) => setFormData({...formData, lookingFor: text})}
-                placeholder={formData.type === 'Individual' 
-                  ? "e.g., Female roommate, 1-2 people, Any gender"
-                  : "e.g., 1BHK, 2BHK, Single Room, PG for girls/boys"
+                onChangeText={(text) => setFormData({ ...formData, lookingFor: text })}
+                placeholder={
+                  formData.type === 'Individual'
+                    ? 'e.g., Female roommate, 1-2 people, Any gender'
+                    : 'e.g., 1BHK, 2BHK, Single Room, PG for girls/boys'
                 }
                 placeholderTextColor="#999"
               />
@@ -1322,10 +1286,11 @@ const RoommateFinder: React.FC = () => {
               <TextInput
                 style={[styles.textInput, styles.textArea]}
                 value={formData.description}
-                onChangeText={(text) => setFormData({...formData, description: text})}
-                placeholder={formData.type === 'Individual'
-                  ? "Describe what you're looking for in detail..."
-                  : "Describe the property, facilities, restrictions, etc."
+                onChangeText={(text) => setFormData({ ...formData, description: text })}
+                placeholder={
+                  formData.type === 'Individual'
+                    ? "Describe what you're looking for in detail..."
+                    : 'Describe the property, facilities, restrictions, etc.'
                 }
                 placeholderTextColor="#999"
                 multiline
@@ -1339,10 +1304,12 @@ const RoommateFinder: React.FC = () => {
                 <TextInput
                   style={styles.textInput}
                   value={formData.details.roomType}
-                  onChangeText={(text) => setFormData({
-                    ...formData, 
-                    details: {...formData.details, roomType: text}
-                  })}
+                  onChangeText={(text) =>
+                    setFormData({
+                      ...formData,
+                      details: { ...formData.details, roomType: text },
+                    })
+                  }
                   placeholder="e.g., 5 rooms available, 2 units left"
                   placeholderTextColor="#999"
                 />
@@ -1353,16 +1320,15 @@ const RoommateFinder: React.FC = () => {
           {/* Location Details */}
           <View style={styles.formSection}>
             <Text style={styles.formSectionTitle}>Location Details</Text>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Area/Locality *</Text>
               <TextInput
                 style={styles.textInput}
                 value={formData.location}
-                onChangeText={(text) => setFormData({...formData, location: text})}
-                placeholder={formData.type === 'Individual' 
-                  ? "e.g., Near MIT, End Point, TC" 
-                  : "Main area of the property"
+                onChangeText={(text) => setFormData({ ...formData, location: text })}
+                placeholder={
+                  formData.type === 'Individual' ? 'e.g., Near MIT, End Point, TC' : 'Main area of the property'
                 }
                 placeholderTextColor="#999"
               />
@@ -1370,21 +1336,21 @@ const RoommateFinder: React.FC = () => {
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>
-                {formData.type === 'Individual' 
-                  ? "Exact Location/Address (Optional)" 
-                  : "Property Address"
-                }
+                {formData.type === 'Individual' ? 'Exact Location/Address (Optional)' : 'Property Address'}
               </Text>
               <TextInput
                 style={[styles.textInput, styles.textArea]}
                 value={formData.details.address}
-                onChangeText={(text) => setFormData({
-                  ...formData, 
-                  details: {...formData.details, address: text}
-                })}
-                placeholder={formData.type === 'Individual'
-                  ? "Full address with nearby landmarks (if you want to share)"
-                  : "Full address of the property with landmarks"
+                onChangeText={(text) =>
+                  setFormData({
+                    ...formData,
+                    details: { ...formData.details, address: text },
+                  })
+                }
+                placeholder={
+                  formData.type === 'Individual'
+                    ? 'Full address with nearby landmarks (if you want to share)'
+                    : 'Full address of the property with landmarks'
                 }
                 placeholderTextColor="#999"
                 multiline
@@ -1397,22 +1363,24 @@ const RoommateFinder: React.FC = () => {
               <TextInput
                 style={styles.textInput}
                 value={formData.area}
-                onChangeText={(text) => setFormData({...formData, area: text})}
+                onChangeText={(text) => setFormData({ ...formData, area: text })}
                 placeholder="e.g., 5 mins walk, 2km, Walking distance"
                 placeholderTextColor="#999"
               />
             </View>
-            
+
             {formData.type === 'Broker' && (
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Surrounding Amenities</Text>
                 <TextInput
                   style={[styles.textInput, styles.textArea]}
                   value={formData.userProfile.department}
-                  onChangeText={(text) => setFormData({
-                    ...formData, 
-                    userProfile: {...formData.userProfile, department: text}
-                  })}
+                  onChangeText={(text) =>
+                    setFormData({
+                      ...formData,
+                      userProfile: { ...formData.userProfile, department: text },
+                    })
+                  }
                   placeholder="Nearby shops, hospitals, transport facilities, etc."
                   placeholderTextColor="#999"
                   multiline
@@ -1425,23 +1393,22 @@ const RoommateFinder: React.FC = () => {
           {/* Accommodation Details */}
           <View style={styles.formSection}>
             <Text style={styles.formSectionTitle}>Accommodation Details</Text>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Accommodation Type *</Text>
               <View style={styles.optionsGrid}>
                 {['PG', 'Flat', 'Hostel', 'Apartment'].map((type) => (
                   <TouchableOpacity
                     key={type}
-                    style={[
-                      styles.optionChip,
-                      formData.accommodationType === type && styles.optionChipActive
-                    ]}
-                    onPress={() => setFormData({...formData, accommodationType: type as any})}
+                    style={[styles.optionChip, formData.accommodationType === type && styles.optionChipActive]}
+                    onPress={() => setFormData({ ...formData, accommodationType: type as any })}
                   >
-                    <Text style={[
-                      styles.optionChipText,
-                      formData.accommodationType === type && styles.optionChipTextActive
-                    ]}>
+                    <Text
+                      style={[
+                        styles.optionChipText,
+                        formData.accommodationType === type && styles.optionChipTextActive,
+                      ]}
+                    >
                       {type}
                     </Text>
                   </TouchableOpacity>
@@ -1455,19 +1422,17 @@ const RoommateFinder: React.FC = () => {
                 {['1BHK', '2BHK', '3BHK', 'Single Room', 'Shared Room'].map((type) => (
                   <TouchableOpacity
                     key={type}
-                    style={[
-                      styles.optionChip,
-                      formData.details.roomType === type && styles.optionChipActive
-                    ]}
-                    onPress={() => setFormData({
-                      ...formData, 
-                      details: {...formData.details, roomType: type}
-                    })}
+                    style={[styles.optionChip, formData.details.roomType === type && styles.optionChipActive]}
+                    onPress={() =>
+                      setFormData({
+                        ...formData,
+                        details: { ...formData.details, roomType: type },
+                      })
+                    }
                   >
-                    <Text style={[
-                      styles.optionChipText,
-                      formData.details.roomType === type && styles.optionChipTextActive
-                    ]}>
+                    <Text
+                      style={[styles.optionChipText, formData.details.roomType === type && styles.optionChipTextActive]}
+                    >
                       {type}
                     </Text>
                   </TouchableOpacity>
@@ -1481,16 +1446,10 @@ const RoommateFinder: React.FC = () => {
                 {['Furnished', 'Semi-Furnished', 'Unfurnished'].map((type) => (
                   <TouchableOpacity
                     key={type}
-                    style={[
-                      styles.optionChip,
-                      formData.furnished === type && styles.optionChipActive
-                    ]}
-                    onPress={() => setFormData({...formData, furnished: type as any})}
+                    style={[styles.optionChip, formData.furnished === type && styles.optionChipActive]}
+                    onPress={() => setFormData({ ...formData, furnished: type as any })}
                   >
-                    <Text style={[
-                      styles.optionChipText,
-                      formData.furnished === type && styles.optionChipTextActive
-                    ]}>
+                    <Text style={[styles.optionChipText, formData.furnished === type && styles.optionChipTextActive]}>
                       {type}
                     </Text>
                   </TouchableOpacity>
@@ -1502,7 +1461,7 @@ const RoommateFinder: React.FC = () => {
           {/* Pricing */}
           <View style={styles.formSection}>
             <Text style={styles.formSectionTitle}>Pricing</Text>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>
                 {formData.type === 'Individual' ? 'Rent per Month *' : 'Rent Range *'}
@@ -1510,10 +1469,10 @@ const RoommateFinder: React.FC = () => {
               <TextInput
                 style={styles.textInput}
                 value={formData.rentPerMonth}
-                onChangeText={(text) => setFormData({...formData, rentPerMonth: text})}
-                placeholder={formData.type === 'Individual' ? "₹15000" : "₹15000-25000 (for different room types)"}
+                onChangeText={(text) => setFormData({ ...formData, rentPerMonth: text })}
+                placeholder={formData.type === 'Individual' ? '₹15000' : '₹15000-25000 (for different room types)'}
                 placeholderTextColor="#999"
-                keyboardType={formData.type === 'Individual' ? "numeric" : "default"}
+                keyboardType={formData.type === 'Individual' ? 'numeric' : 'default'}
               />
             </View>
 
@@ -1523,7 +1482,7 @@ const RoommateFinder: React.FC = () => {
                 <TextInput
                   style={styles.textInput}
                   value={formData.maxBudget}
-                  onChangeText={(text) => setFormData({...formData, maxBudget: text})}
+                  onChangeText={(text) => setFormData({ ...formData, maxBudget: text })}
                   placeholder="₹20000"
                   placeholderTextColor="#999"
                   keyboardType="numeric"
@@ -1538,26 +1497,30 @@ const RoommateFinder: React.FC = () => {
               <TextInput
                 style={styles.textInput}
                 value={formData.details.deposit}
-                onChangeText={(text) => setFormData({
-                  ...formData, 
-                  details: {...formData.details, deposit: text}
-                })}
-                placeholder={formData.type === 'Individual' ? "₹5000" : "₹15000 (1 month advance)"}
+                onChangeText={(text) =>
+                  setFormData({
+                    ...formData,
+                    details: { ...formData.details, deposit: text },
+                  })
+                }
+                placeholder={formData.type === 'Individual' ? '₹5000' : '₹15000 (1 month advance)'}
                 placeholderTextColor="#999"
-                keyboardType={formData.type === 'Individual' ? "numeric" : "default"}
+                keyboardType={formData.type === 'Individual' ? 'numeric' : 'default'}
               />
             </View>
-            
+
             {formData.type === 'Broker' && (
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Maintenance & Additional Charges</Text>
                 <TextInput
                   style={[styles.textInput, styles.textArea]}
                   value={formData.details.utilities}
-                  onChangeText={(text) => setFormData({
-                    ...formData, 
-                    details: {...formData.details, utilities: text}
-                  })}
+                  onChangeText={(text) =>
+                    setFormData({
+                      ...formData,
+                      details: { ...formData.details, utilities: text },
+                    })
+                  }
                   placeholder="Maintenance costs, electricity, water, broker fee, etc."
                   placeholderTextColor="#999"
                   multiline
@@ -1565,14 +1528,12 @@ const RoommateFinder: React.FC = () => {
                 />
               </View>
             )}
-
-
           </View>
 
           {/* Availability */}
           <View style={styles.formSection}>
             <Text style={styles.formSectionTitle}>Availability</Text>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>
                 {formData.type === 'Individual' ? 'Move-in Date (Optional)' : 'Available From'}
@@ -1580,10 +1541,11 @@ const RoommateFinder: React.FC = () => {
               <TextInput
                 style={styles.textInput}
                 value={formData.availabilityDate}
-                onChangeText={(text) => setFormData({...formData, availabilityDate: text})}
-                placeholder={formData.type === 'Individual' 
-                  ? "Immediate / 15 July 2025" 
-                  : "Immediate / Multiple units available from different dates"
+                onChangeText={(text) => setFormData({ ...formData, availabilityDate: text })}
+                placeholder={
+                  formData.type === 'Individual'
+                    ? 'Immediate / 15 July 2025'
+                    : 'Immediate / Multiple units available from different dates'
                 }
                 placeholderTextColor="#999"
               />
@@ -1595,10 +1557,12 @@ const RoommateFinder: React.FC = () => {
                 <TextInput
                   style={styles.textInput}
                   value={formData.preferences.cleanliness}
-                  onChangeText={(text) => setFormData({
-                    ...formData, 
-                    preferences: {...formData.preferences, cleanliness: text}
-                  })}
+                  onChangeText={(text) =>
+                    setFormData({
+                      ...formData,
+                      preferences: { ...formData.preferences, cleanliness: text },
+                    })
+                  }
                   placeholder="e.g., 11 months, 6 months minimum"
                   placeholderTextColor="#999"
                 />
@@ -1611,43 +1575,46 @@ const RoommateFinder: React.FC = () => {
             <Text style={styles.formSectionTitle}>
               {formData.type === 'Individual' ? 'Roommate Preferences' : 'Tenant Requirements'}
             </Text>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Gender Preference *</Text>
               <View style={styles.optionsGrid}>
                 {['Male', 'Female', 'Any'].map((gender) => (
                   <TouchableOpacity
                     key={gender}
-                    style={[
-                      styles.optionChip,
-                      formData.preferences.gender === gender && styles.optionChipActive
-                    ]}
-                    onPress={() => setFormData({
-                      ...formData, 
-                      preferences: {...formData.preferences, gender: gender as any}
-                    })}
+                    style={[styles.optionChip, formData.preferences.gender === gender && styles.optionChipActive]}
+                    onPress={() =>
+                      setFormData({
+                        ...formData,
+                        preferences: { ...formData.preferences, gender: gender as any },
+                      })
+                    }
                   >
-                    <Text style={[
-                      styles.optionChipText,
-                      formData.preferences.gender === gender && styles.optionChipTextActive
-                    ]}>
+                    <Text
+                      style={[
+                        styles.optionChipText,
+                        formData.preferences.gender === gender && styles.optionChipTextActive,
+                      ]}
+                    >
                       {gender}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
             </View>
-            
+
             {formData.type === 'Broker' && (
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Occupancy Rules</Text>
                 <TextInput
                   style={[styles.textInput, styles.textArea]}
                   value={formData.userProfile.year}
-                  onChangeText={(text) => setFormData({
-                    ...formData, 
-                    userProfile: {...formData.userProfile, year: text}
-                  })}
+                  onChangeText={(text) =>
+                    setFormData({
+                      ...formData,
+                      userProfile: { ...formData.userProfile, year: text },
+                    })
+                  }
                   placeholder="Max occupants, student/working professional, family restrictions"
                   placeholderTextColor="#999"
                   multiline
@@ -1659,27 +1626,35 @@ const RoommateFinder: React.FC = () => {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Habits & Lifestyle</Text>
               <View style={styles.optionsGrid}>
-                {['Non-Smoker', 'Smoker', 'Early Riser', 'Night Owl', 'Vegetarian', 'Non-Vegetarian', 'Pets OK', 'No Pets'].map((habit) => (
+                {[
+                  'Non-Smoker',
+                  'Smoker',
+                  'Early Riser',
+                  'Night Owl',
+                  'Vegetarian',
+                  'Non-Vegetarian',
+                  'Pets OK',
+                  'No Pets',
+                ].map((habit) => (
                   <TouchableOpacity
                     key={habit}
-                    style={[
-                      styles.optionChip,
-                      formData.preferences.habits.includes(habit) && styles.optionChipActive
-                    ]}
+                    style={[styles.optionChip, formData.preferences.habits.includes(habit) && styles.optionChipActive]}
                     onPress={() => {
                       const habits = formData.preferences.habits.includes(habit)
-                        ? formData.preferences.habits.filter(h => h !== habit)
+                        ? formData.preferences.habits.filter((h) => h !== habit)
                         : [...formData.preferences.habits, habit];
                       setFormData({
-                        ...formData, 
-                        preferences: {...formData.preferences, habits}
+                        ...formData,
+                        preferences: { ...formData.preferences, habits },
                       });
                     }}
                   >
-                    <Text style={[
-                      styles.optionChipText,
-                      formData.preferences.habits.includes(habit) && styles.optionChipTextActive
-                    ]}>
+                    <Text
+                      style={[
+                        styles.optionChipText,
+                        formData.preferences.habits.includes(habit) && styles.optionChipTextActive,
+                      ]}
+                    >
                       {habit}
                     </Text>
                   </TouchableOpacity>
@@ -1693,19 +1668,20 @@ const RoommateFinder: React.FC = () => {
                 {['Very Clean', 'Moderately Clean', 'Relaxed about Cleanliness'].map((level) => (
                   <TouchableOpacity
                     key={level}
-                    style={[
-                      styles.optionChip,
-                      formData.preferences.cleanliness === level && styles.optionChipActive
-                    ]}
-                    onPress={() => setFormData({
-                      ...formData, 
-                      preferences: {...formData.preferences, cleanliness: level}
-                    })}
+                    style={[styles.optionChip, formData.preferences.cleanliness === level && styles.optionChipActive]}
+                    onPress={() =>
+                      setFormData({
+                        ...formData,
+                        preferences: { ...formData.preferences, cleanliness: level },
+                      })
+                    }
                   >
-                    <Text style={[
-                      styles.optionChipText,
-                      formData.preferences.cleanliness === level && styles.optionChipTextActive
-                    ]}>
+                    <Text
+                      style={[
+                        styles.optionChipText,
+                        formData.preferences.cleanliness === level && styles.optionChipTextActive,
+                      ]}
+                    >
                       {level}
                     </Text>
                   </TouchableOpacity>
@@ -1717,31 +1693,43 @@ const RoommateFinder: React.FC = () => {
           {/* Amenities */}
           <View style={styles.formSection}>
             <Text style={styles.formSectionTitle}>Amenities</Text>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Available Amenities</Text>
               <View style={styles.optionsGrid}>
-                {['WiFi', 'AC', 'Washing Machine', 'Fridge', 'Parking', 'Gym', 'Swimming Pool', 'Security', 'Power Backup', 'Water Supply', 'Kitchen', 'Balcony'].map((amenity) => (
+                {[
+                  'WiFi',
+                  'AC',
+                  'Washing Machine',
+                  'Fridge',
+                  'Parking',
+                  'Gym',
+                  'Swimming Pool',
+                  'Security',
+                  'Power Backup',
+                  'Water Supply',
+                  'Kitchen',
+                  'Balcony',
+                ].map((amenity) => (
                   <TouchableOpacity
                     key={amenity}
-                    style={[
-                      styles.optionChip,
-                      formData.details.amenities.includes(amenity) && styles.optionChipActive
-                    ]}
+                    style={[styles.optionChip, formData.details.amenities.includes(amenity) && styles.optionChipActive]}
                     onPress={() => {
                       const amenities = formData.details.amenities.includes(amenity)
-                        ? formData.details.amenities.filter(a => a !== amenity)
+                        ? formData.details.amenities.filter((a) => a !== amenity)
                         : [...formData.details.amenities, amenity];
                       setFormData({
-                        ...formData, 
-                        details: {...formData.details, amenities}
+                        ...formData,
+                        details: { ...formData.details, amenities },
                       });
                     }}
                   >
-                    <Text style={[
-                      styles.optionChipText,
-                      formData.details.amenities.includes(amenity) && styles.optionChipTextActive
-                    ]}>
+                    <Text
+                      style={[
+                        styles.optionChipText,
+                        formData.details.amenities.includes(amenity) && styles.optionChipTextActive,
+                      ]}
+                    >
                       {amenity}
                     </Text>
                   </TouchableOpacity>
@@ -1753,17 +1741,19 @@ const RoommateFinder: React.FC = () => {
           {/* Contact Information */}
           <View style={styles.formSection}>
             <Text style={styles.formSectionTitle}>Contact Information</Text>
-            
+
             {formData.type === 'Broker' && (
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Phone Number *</Text>
                 <TextInput
                   style={styles.textInput}
                   value={formData.contact.phone}
-                  onChangeText={(text) => setFormData({
-                    ...formData, 
-                    contact: {...formData.contact, phone: text}
-                  })}
+                  onChangeText={(text) =>
+                    setFormData({
+                      ...formData,
+                      contact: { ...formData.contact, phone: text },
+                    })
+                  }
                   placeholder="Enter your business phone number"
                   placeholderTextColor="#999"
                   keyboardType="phone-pad"
@@ -1776,10 +1766,12 @@ const RoommateFinder: React.FC = () => {
               <TextInput
                 style={styles.textInput}
                 value={formData.contact.email}
-                onChangeText={(text) => setFormData({
-                  ...formData, 
-                  contact: {...formData.contact, email: text}
-                })}
+                onChangeText={(text) =>
+                  setFormData({
+                    ...formData,
+                    contact: { ...formData.contact, email: text },
+                  })
+                }
                 placeholder="your.email@example.com"
                 placeholderTextColor="#999"
                 keyboardType="email-address"
@@ -1791,8 +1783,8 @@ const RoommateFinder: React.FC = () => {
           {/* Photos Upload Placeholder */}
           <View style={styles.formSection}>
             <Text style={styles.formSectionTitle}>Photos</Text>
-            <TouchableOpacity 
-              style={styles.photoUploadButton} 
+            <TouchableOpacity
+              style={styles.photoUploadButton}
               onPress={showImagePickerOptions}
               disabled={uploadingImages}
             >
@@ -1801,26 +1793,19 @@ const RoommateFinder: React.FC = () => {
               ) : (
                 <Ionicons name="camera-outline" size={24} color="#4E54C8" />
               )}
-              <Text style={styles.photoUploadText}>
-                {uploadingImages ? 'Uploading...' : 'Add Photos (Optional)'}
-              </Text>
+              <Text style={styles.photoUploadText}>{uploadingImages ? 'Uploading...' : 'Add Photos (Optional)'}</Text>
               <Text style={styles.photoUploadSubtext}>Upload room/property photos</Text>
             </TouchableOpacity>
 
             {/* Display selected photos */}
             {formData.details.photos.length > 0 && (
               <View style={styles.photoPreviewContainer}>
-                <Text style={styles.photoPreviewTitle}>
-                  Selected Photos ({formData.details.photos.length})
-                </Text>
+                <Text style={styles.photoPreviewTitle}>Selected Photos ({formData.details.photos.length})</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {formData.details.photos.map((photo, index) => (
                     <View key={index} style={styles.photoPreviewItem}>
                       <Image source={{ uri: photo }} style={styles.photoPreview} />
-                      <TouchableOpacity
-                        style={styles.removePhotoButton}
-                        onPress={() => removePhoto(index)}
-                      >
+                      <TouchableOpacity style={styles.removePhotoButton} onPress={() => removePhoto(index)}>
                         <Ionicons name="close-circle" size={20} color="#FF4444" />
                       </TouchableOpacity>
                     </View>
@@ -1831,10 +1816,7 @@ const RoommateFinder: React.FC = () => {
           </View>
 
           <View style={styles.formFooter}>
-            <TouchableOpacity
-              style={styles.submitButton}
-              onPress={handlePostListing}
-            >
+            <TouchableOpacity style={styles.submitButton} onPress={handlePostListing}>
               <Text style={styles.submitButtonText}>Post My Listing</Text>
             </TouchableOpacity>
           </View>
@@ -1869,10 +1851,7 @@ const RoommateFinder: React.FC = () => {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
         >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Roommate Finder</Text>
@@ -1881,16 +1860,9 @@ const RoommateFinder: React.FC = () => {
               style={styles.headerButton}
               onPress={() => setViewMode(viewMode === 'card' ? 'list' : 'card')}
             >
-              <Ionicons 
-                name={viewMode === 'card' ? 'list' : 'grid'} 
-                size={24} 
-                color="#FFFFFF" 
-              />
+              <Ionicons name={viewMode === 'card' ? 'list' : 'grid'} size={24} color="#FFFFFF" />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.postButton}
-              onPress={() => setShowPostForm(true)}
-            >
+            <TouchableOpacity style={styles.postButton} onPress={() => setShowPostForm(true)}>
               <Ionicons name="add" size={20} color="#FFFFFF" />
               <Text style={styles.postButtonText}>Post</Text>
             </TouchableOpacity>
@@ -1901,32 +1873,20 @@ const RoommateFinder: React.FC = () => {
         <View style={styles.toggleContainer}>
           <View style={styles.toggleWrapper}>
             <TouchableOpacity
-              style={[
-                styles.toggleOption,
-                listingType === 'roommate' && styles.toggleOptionActive
-              ]}
+              style={[styles.toggleOption, listingType === 'roommate' && styles.toggleOptionActive]}
               onPress={() => setListingType('roommate')}
             >
-              <Text style={[
-                styles.toggleText,
-                listingType === 'roommate' && styles.toggleTextActive
-              ]}>
-                🧑‍🤝‍🧑 Roommate ({listings.filter(l => l.type === 'Individual').length})
+              <Text style={[styles.toggleText, listingType === 'roommate' && styles.toggleTextActive]}>
+                🧑‍🤝‍🧑 Roommate ({listings.filter((l) => l.type === 'Individual').length})
               </Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
-              style={[
-                styles.toggleOption,
-                listingType === 'broker' && styles.toggleOptionActive
-              ]}
+              style={[styles.toggleOption, listingType === 'broker' && styles.toggleOptionActive]}
               onPress={() => setListingType('broker')}
             >
-              <Text style={[
-                styles.toggleText,
-                listingType === 'broker' && styles.toggleTextActive
-              ]}>
-                🏢 Brokers ({listings.filter(l => l.type === 'Broker').length})
+              <Text style={[styles.toggleText, listingType === 'broker' && styles.toggleTextActive]}>
+                🏢 Brokers ({listings.filter((l) => l.type === 'Broker').length})
               </Text>
             </TouchableOpacity>
           </View>
@@ -1943,10 +1903,7 @@ const RoommateFinder: React.FC = () => {
               onChangeText={setSearchQuery}
             />
           </View>
-          <TouchableOpacity
-            style={styles.filterButton}
-            onPress={() => setShowFilters(true)}
-          >
+          <TouchableOpacity style={styles.filterButton} onPress={() => setShowFilters(true)}>
             <Ionicons name="filter" size={20} color="#4E54C8" />
           </TouchableOpacity>
         </View>
@@ -1964,14 +1921,8 @@ const RoommateFinder: React.FC = () => {
             style={[styles.tab, activeTab === 'listings' && styles.activeTab]}
             onPress={() => setActiveTab('listings')}
           >
-            <Ionicons 
-              name="home-outline" 
-              size={16} 
-              color={activeTab === 'listings' ? '#FFFFFF' : '#666'} 
-            />
-            <Text style={[styles.tabText, activeTab === 'listings' && styles.activeTabText]}>
-              Listings
-            </Text>
+            <Ionicons name="home-outline" size={16} color={activeTab === 'listings' ? '#FFFFFF' : '#666'} />
+            <Text style={[styles.tabText, activeTab === 'listings' && styles.activeTabText]}>Listings</Text>
           </TouchableOpacity>
 
           {/* My Post Tab - only shown if user has posted before */}
@@ -1980,14 +1931,8 @@ const RoommateFinder: React.FC = () => {
               style={[styles.tab, activeTab === 'mypost' && styles.activeTab]}
               onPress={() => setActiveTab('mypost')}
             >
-              <Ionicons 
-                name="person-outline" 
-                size={16} 
-                color={activeTab === 'mypost' ? '#FFFFFF' : '#666'} 
-              />
-              <Text style={[styles.tabText, activeTab === 'mypost' && styles.activeTabText]}>
-                My Post
-              </Text>
+              <Ionicons name="person-outline" size={16} color={activeTab === 'mypost' ? '#FFFFFF' : '#666'} />
+              <Text style={[styles.tabText, activeTab === 'mypost' && styles.activeTabText]}>My Post</Text>
             </TouchableOpacity>
           )}
 
@@ -1995,11 +1940,7 @@ const RoommateFinder: React.FC = () => {
             style={[styles.tab, activeTab === 'saved' && styles.activeTab]}
             onPress={() => setActiveTab('saved')}
           >
-            <Ionicons 
-              name="heart-outline" 
-              size={16} 
-              color={activeTab === 'saved' ? '#FFFFFF' : '#666'} 
-            />
+            <Ionicons name="heart-outline" size={16} color={activeTab === 'saved' ? '#FFFFFF' : '#666'} />
             <Text style={[styles.tabText, activeTab === 'saved' && styles.activeTabText]}>
               Saved ({savedListings.length})
             </Text>
@@ -2019,9 +1960,7 @@ const RoommateFinder: React.FC = () => {
                 <View style={styles.emptyState}>
                   <Ionicons name="home-outline" size={64} color="#DDD" />
                   <Text style={styles.emptyStateTitle}>No listings found</Text>
-                  <Text style={styles.emptyStateText}>
-                    Try adjusting your search or filters
-                  </Text>
+                  <Text style={styles.emptyStateText}>Try adjusting your search or filters</Text>
                 </View>
               }
             />
@@ -2029,7 +1968,7 @@ const RoommateFinder: React.FC = () => {
 
           {activeTab === 'saved' && (
             <FlatList
-              data={filteredListings.filter(listing => savedListings.includes(listing.id))}
+              data={filteredListings.filter((listing) => savedListings.includes(listing.id))}
               renderItem={viewMode === 'card' ? renderListingCard : renderListingList}
               keyExtractor={(item) => item.id}
               showsVerticalScrollIndicator={false}
@@ -2038,9 +1977,7 @@ const RoommateFinder: React.FC = () => {
                 <View style={styles.emptyState}>
                   <Ionicons name="heart-outline" size={64} color="#DDD" />
                   <Text style={styles.emptyStateTitle}>No saved listings</Text>
-                  <Text style={styles.emptyStateText}>
-                    Save listings by tapping the heart icon
-                  </Text>
+                  <Text style={styles.emptyStateText}>Save listings by tapping the heart icon</Text>
                 </View>
               }
             />
@@ -2048,7 +1985,7 @@ const RoommateFinder: React.FC = () => {
 
           {activeTab === 'mypost' && (
             <FlatList
-              data={filteredListings.filter(listing => listing.userId === 'current_user_id')}
+              data={filteredListings.filter((listing) => listing.userId === 'current_user_id')}
               renderItem={viewMode === 'card' ? renderListingCard : renderListingList}
               keyExtractor={(item) => item.id}
               showsVerticalScrollIndicator={false}
@@ -2057,9 +1994,7 @@ const RoommateFinder: React.FC = () => {
                 <View style={styles.emptyState}>
                   <Ionicons name="person-outline" size={64} color="#DDD" />
                   <Text style={styles.emptyStateTitle}>Your posts will appear here</Text>
-                  <Text style={styles.emptyStateText}>
-                    Post a new listing by tapping the + button
-                  </Text>
+                  <Text style={styles.emptyStateText}>Post a new listing by tapping the + button</Text>
                 </View>
               }
             />
@@ -2172,7 +2107,7 @@ const styles = StyleSheet.create({
     color: '#4E54C8',
     fontWeight: '600',
   },
-  
+
   // Search and filter styles
   searchFilterContainer: {
     flexDirection: 'row',
@@ -2215,7 +2150,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  
+
   // Results header
   resultsHeader: {
     paddingHorizontal: 15,
@@ -2226,7 +2161,7 @@ const styles = StyleSheet.create({
     color: '#666',
     fontWeight: '500',
   },
-  
+
   // Tab navigation
   tabContainer: {
     flexDirection: 'row',
@@ -2269,7 +2204,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
   },
-  
+
   // Content area
   content: {
     flex: 1,
@@ -2278,7 +2213,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingBottom: 20,
   },
-  
+
   // Listing card styles
   listingCard: {
     marginBottom: 20,
@@ -2330,7 +2265,7 @@ const styles = StyleSheet.create({
   saveButton: {
     padding: 4,
   },
-  
+
   cardBody: {
     marginBottom: 16,
   },
@@ -2361,7 +2296,7 @@ const styles = StyleSheet.create({
     color: '#999',
     marginLeft: 4,
   },
-  
+
   detailsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -2378,7 +2313,7 @@ const styles = StyleSheet.create({
     color: '#555',
     fontWeight: '500',
   },
-  
+
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -2393,7 +2328,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
-  
+
   cardActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -2434,7 +2369,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  
+
   // List view styles
   listItem: {
     flexDirection: 'row',
@@ -2490,7 +2425,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
-  
+
   // Empty state
   emptyState: {
     alignItems: 'center',
@@ -2510,7 +2445,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  
+
   // Form styles
   formContainer: {
     paddingHorizontal: 15,
@@ -2561,7 +2496,7 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: 'top',
   },
-  
+
   // Picker styles
   pickerRow: {
     flexDirection: 'row',
@@ -2588,7 +2523,7 @@ const styles = StyleSheet.create({
   pickerOptionTextActive: {
     color: '#FFFFFF',
   },
-  
+
   postFormButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2604,7 +2539,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  
+
   // Filter modal styles
   filterModal: {
     flex: 1,
@@ -2671,7 +2606,7 @@ const styles = StyleSheet.create({
   filterOptionTextActive: {
     color: '#FFFFFF',
   },
-  
+
   // Rent slider (simplified for now)
   rentSliderContainer: {
     flexDirection: 'row',
@@ -2697,7 +2632,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginLeft: '50%',
   },
-  
+
   filterFooter: {
     padding: 20,
     borderTopWidth: 1,
@@ -2714,7 +2649,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  
+
   // Detail modal styles
   detailModal: {
     flex: 1,
@@ -2748,7 +2683,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
-  
+
   // Profile section in detail
   profileSection: {
     flexDirection: 'row',
@@ -2797,7 +2732,7 @@ const styles = StyleSheet.create({
     color: '#555',
     lineHeight: 20,
   },
-  
+
   // Detail sections
   sectionTitle: {
     fontSize: 18,
@@ -2810,7 +2745,7 @@ const styles = StyleSheet.create({
     color: '#555',
     lineHeight: 24,
   },
-  
+
   // Detail grid
   detailGrid: {
     flexDirection: 'row',
@@ -2837,7 +2772,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 4,
   },
-  
+
   // Address section
   addressSection: {
     marginTop: 16,
@@ -2858,7 +2793,7 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 4,
   },
-  
+
   // Pricing section
   pricingGrid: {
     flexDirection: 'row',
@@ -2882,7 +2817,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#4E54C8',
   },
-  
+
   utilitiesSection: {
     marginTop: 8,
   },
@@ -2896,7 +2831,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
   },
-  
+
   // Preferences section
   preferencesGrid: {
     flexDirection: 'row',
@@ -2920,7 +2855,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  
+
   habitsSection: {
     marginTop: 8,
   },
@@ -2946,7 +2881,7 @@ const styles = StyleSheet.create({
     color: '#4E54C8',
     fontWeight: '500',
   },
-  
+
   // Amenities section
   amenitiesContainer: {
     gap: 8,
@@ -2960,7 +2895,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
-  
+
   // Contact section
   messageSection: {
     padding: 20,
@@ -3015,7 +2950,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
-  
+
   // Loading
   loadingContainer: {
     flex: 1,

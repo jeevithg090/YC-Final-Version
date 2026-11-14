@@ -13,7 +13,6 @@ import {
   Modal,
   FlatList,
   Dimensions,
-  Switch,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -134,8 +133,8 @@ const SmartSplit: React.FC = () => {
     const balances: { [key: string]: SplitCalculation } = {};
 
     // Initialize balances for all participants
-    expenses.forEach(expense => {
-      expense.people.forEach(person => {
+    expenses.forEach((expense) => {
+      expense.people.forEach((person) => {
         if (!balances[person.id]) {
           balances[person.id] = {
             personId: person.id,
@@ -149,9 +148,9 @@ const SmartSplit: React.FC = () => {
     });
 
     // Calculate who owes what
-    expenses.forEach(expense => {
+    expenses.forEach((expense) => {
       if (!expense.isSettled) {
-        expense.people.forEach(person => {
+        expense.people.forEach((person) => {
           if (person.name === expense.paidBy) {
             // This person paid for others
             balances[person.id].isOwed += expense.totalAmount - person.amount;
@@ -164,7 +163,7 @@ const SmartSplit: React.FC = () => {
     });
 
     // Calculate net amounts
-    Object.values(balances).forEach(balance => {
+    Object.values(balances).forEach((balance) => {
       balance.netAmount = balance.isOwed - balance.owes;
     });
 
@@ -186,19 +185,17 @@ const SmartSplit: React.FC = () => {
   };
 
   const removePerson = (personId: string) => {
-    setParticipants(participants.filter(p => p.id !== personId));
+    setParticipants(participants.filter((p) => p.id !== personId));
   };
 
   const updatePersonAmount = (personId: string, amount: string) => {
-    setParticipants(participants.map(p => 
-      p.id === personId ? { ...p, amount: parseFloat(amount) || 0 } : p
-    ));
+    setParticipants(participants.map((p) => (p.id === personId ? { ...p, amount: parseFloat(amount) || 0 } : p)));
   };
 
   const calculateEqualSplit = () => {
     const totalAmount = parseFloat(newExpense.amount) || 0;
     const splitAmount = totalAmount / participants.length;
-    setParticipants(participants.map(p => ({ ...p, amount: splitAmount })));
+    setParticipants(participants.map((p) => ({ ...p, amount: splitAmount })));
   };
 
   const addExpense = () => {
@@ -229,7 +226,7 @@ const SmartSplit: React.FC = () => {
     };
 
     setExpenses([expense, ...expenses]);
-    
+
     // Reset form
     setNewExpense({
       title: '',
@@ -241,31 +238,25 @@ const SmartSplit: React.FC = () => {
     });
     setParticipants([]);
     setShowAddExpense(false);
-    
+
     Alert.alert('Success', 'Expense added successfully!');
   };
 
   const settleExpense = (expenseId: string) => {
-    Alert.alert(
-      'Settle Expense',
-      'Mark this expense as settled?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Settle',
-          onPress: () => {
-            setExpenses(expenses.map(exp => 
-              exp.id === expenseId ? { ...exp, isSettled: true } : exp
-            ));
-          },
+    Alert.alert('Settle Expense', 'Mark this expense as settled?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Settle',
+        onPress: () => {
+          setExpenses(expenses.map((exp) => (exp.id === expenseId ? { ...exp, isSettled: true } : exp)));
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const renderExpenseCard = ({ item }: { item: Expense }) => {
-    const categoryInfo = categories.find(c => c.name === item.category) || categories[0];
-    
+    const categoryInfo = categories.find((c) => c.name === item.category) || categories[0];
+
     return (
       <View style={styles.expenseCard}>
         <LinearGradient
@@ -293,15 +284,13 @@ const SmartSplit: React.FC = () => {
               )}
             </View>
           </View>
-          
+
           <View style={styles.participantsList}>
             {item.people.map((person, index) => (
               <View key={person.id} style={styles.participantItem}>
                 <Text style={styles.participantName}>{person.name}</Text>
                 <View style={styles.participantAmount}>
-                  <Text style={[styles.amountOwed, person.isPaid && styles.paidAmount]}>
-                    ₹{person.amount}
-                  </Text>
+                  <Text style={[styles.amountOwed, person.isPaid && styles.paidAmount]}>₹{person.amount}</Text>
                   {person.isPaid ? (
                     <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
                   ) : (
@@ -313,10 +302,7 @@ const SmartSplit: React.FC = () => {
           </View>
 
           {!item.isSettled && (
-            <TouchableOpacity
-              style={styles.settleButton}
-              onPress={() => settleExpense(item.id)}
-            >
+            <TouchableOpacity style={styles.settleButton} onPress={() => settleExpense(item.id)}>
               <Text style={styles.settleButtonText}>Mark as Settled</Text>
             </TouchableOpacity>
           )}
@@ -333,34 +319,21 @@ const SmartSplit: React.FC = () => {
       >
         <View style={styles.balanceHeader}>
           <Text style={styles.balanceName}>{item.name}</Text>
-          <Text style={[
-            styles.balanceAmount,
-            { color: item.netAmount >= 0 ? '#4CAF50' : '#F44336' }
-          ]}>
+          <Text style={[styles.balanceAmount, { color: item.netAmount >= 0 ? '#4CAF50' : '#F44336' }]}>
             {item.netAmount >= 0 ? '+' : ''}₹{Math.abs(item.netAmount).toFixed(2)}
           </Text>
         </View>
         <Text style={styles.balanceDetails}>
-          {item.netAmount >= 0 
-            ? `Should receive ₹${item.isOwed.toFixed(2)}`
-            : `Owes ₹${item.owes.toFixed(2)}`
-          }
+          {item.netAmount >= 0 ? `Should receive ₹${item.isOwed.toFixed(2)}` : `Owes ₹${item.owes.toFixed(2)}`}
         </Text>
       </LinearGradient>
     </View>
   );
 
   const renderAddExpenseModal = () => (
-    <Modal
-      visible={showAddExpense}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
+    <Modal visible={showAddExpense} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.modalContainer}>
-        <LinearGradient
-          colors={['#F8FAFF', '#FFFFFF']}
-          style={styles.modalContent}
-        >
+        <LinearGradient colors={['#F8FAFF', '#FFFFFF']} style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowAddExpense(false)}>
               <Ionicons name="close" size={24} color="#666" />
@@ -377,7 +350,7 @@ const SmartSplit: React.FC = () => {
               <TextInput
                 style={styles.textInput}
                 value={newExpense.title}
-                onChangeText={(text) => setNewExpense({...newExpense, title: text})}
+                onChangeText={(text) => setNewExpense({ ...newExpense, title: text })}
                 placeholder="e.g., Dinner at restaurant"
               />
             </View>
@@ -387,7 +360,7 @@ const SmartSplit: React.FC = () => {
               <TextInput
                 style={styles.textInput}
                 value={newExpense.amount}
-                onChangeText={(text) => setNewExpense({...newExpense, amount: text})}
+                onChangeText={(text) => setNewExpense({ ...newExpense, amount: text })}
                 placeholder="0.00"
                 keyboardType="numeric"
               />
@@ -399,11 +372,8 @@ const SmartSplit: React.FC = () => {
                 {categories.map((category) => (
                   <TouchableOpacity
                     key={category.name}
-                    style={[
-                      styles.categoryButton,
-                      newExpense.category === category.name && styles.selectedCategory
-                    ]}
-                    onPress={() => setNewExpense({...newExpense, category: category.name})}
+                    style={[styles.categoryButton, newExpense.category === category.name && styles.selectedCategory]}
+                    onPress={() => setNewExpense({ ...newExpense, category: category.name })}
                   >
                     <Ionicons name={category.icon as any} size={20} color={category.color} />
                     <Text style={styles.categoryText}>{category.name}</Text>
@@ -415,10 +385,7 @@ const SmartSplit: React.FC = () => {
             <View style={styles.formGroup}>
               <View style={styles.participantsHeader}>
                 <Text style={styles.label}>Participants</Text>
-                <TouchableOpacity
-                  style={styles.addPersonButton}
-                  onPress={() => setShowAddPerson(true)}
-                >
+                <TouchableOpacity style={styles.addPersonButton} onPress={() => setShowAddPerson(true)}>
                   <Ionicons name="add" size={20} color="#4E54C8" />
                   <Text style={styles.addPersonText}>Add Person</Text>
                 </TouchableOpacity>
@@ -443,10 +410,7 @@ const SmartSplit: React.FC = () => {
               ))}
 
               {participants.length > 0 && (
-                <TouchableOpacity
-                  style={styles.equalSplitButton}
-                  onPress={calculateEqualSplit}
-                >
+                <TouchableOpacity style={styles.equalSplitButton} onPress={calculateEqualSplit}>
                   <Text style={styles.equalSplitText}>Split Equally</Text>
                 </TouchableOpacity>
               )}
@@ -489,17 +453,11 @@ const SmartSplit: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-      
-      <LinearGradient
-        colors={['#F8FAFF', '#FFFFFF', '#F0F8FF']}
-        style={styles.gradient}
-      >
+
+      <LinearGradient colors={['#F8FAFF', '#FFFFFF', '#F0F8FF']} style={styles.gradient}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#1C1C1E" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Smart Split</Text>
@@ -510,10 +468,7 @@ const SmartSplit: React.FC = () => {
             >
               <Ionicons name="camera" size={20} color="#4E54C8" />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.addExpenseButton}
-              onPress={() => setShowAddExpense(true)}
-            >
+            <TouchableOpacity style={styles.addExpenseButton} onPress={() => setShowAddExpense(true)}>
               <Ionicons name="add" size={24} color="#4E54C8" />
             </TouchableOpacity>
           </View>
@@ -546,9 +501,7 @@ const SmartSplit: React.FC = () => {
               <View style={styles.emptyState}>
                 <Ionicons name="receipt-outline" size={64} color="#C7C7CC" />
                 <Text style={styles.emptyStateText}>No expenses yet</Text>
-                <Text style={styles.emptyStateSubtext}>
-                  Add your first expense to start splitting bills
-                </Text>
+                <Text style={styles.emptyStateSubtext}>Add your first expense to start splitting bills</Text>
               </View>
             }
           />
@@ -565,9 +518,7 @@ const SmartSplit: React.FC = () => {
               <View style={styles.emptyState}>
                 <Ionicons name="analytics-outline" size={64} color="#C7C7CC" />
                 <Text style={styles.emptyStateText}>No balances to show</Text>
-                <Text style={styles.emptyStateSubtext}>
-                  Add expenses to see who owes what
-                </Text>
+                <Text style={styles.emptyStateSubtext}>Add expenses to see who owes what</Text>
               </View>
             }
           />
@@ -577,9 +528,7 @@ const SmartSplit: React.FC = () => {
           <View style={styles.comingSoon}>
             <Ionicons name="people-outline" size={64} color="#C7C7CC" />
             <Text style={styles.comingSoonText}>Groups Feature</Text>
-            <Text style={styles.comingSoonSubtext}>
-              Coming soon! Create groups for recurring expenses.
-            </Text>
+            <Text style={styles.comingSoonSubtext}>Coming soon! Create groups for recurring expenses.</Text>
           </View>
         )}
 

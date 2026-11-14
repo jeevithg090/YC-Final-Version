@@ -28,38 +28,38 @@ const CabShare: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
-  
+
   const features = [
     {
       icon: '🚗',
       title: 'Share Ride Costs',
-      description: 'Split cab fares with fellow students and save money on transportation.'
+      description: 'Split cab fares with fellow students and save money on transportation.',
     },
     {
       icon: '📍',
       title: 'Campus & City Routes',
-      description: 'Find rides to popular destinations around campus and the city.'
+      description: 'Find rides to popular destinations around campus and the city.',
     },
     {
       icon: '⏰',
       title: 'Flexible Timing',
-      description: 'Schedule rides according to your convenience and class timings.'
+      description: 'Schedule rides according to your convenience and class timings.',
     },
     {
       icon: '👥',
       title: 'Connect with Students',
-      description: 'Travel safely with verified students from your campus community.'
+      description: 'Travel safely with verified students from your campus community.',
     },
     {
       icon: '💰',
       title: 'Transparent Pricing',
-      description: 'Know the exact cost per person before joining any cab share.'
+      description: 'Know the exact cost per person before joining any cab share.',
     },
     {
       icon: '🔒',
       title: 'Safe & Secure',
-      description: 'All rides are within the trusted campus community network.'
-    }
+      description: 'All rides are within the trusted campus community network.',
+    },
   ];
 
   const handleFindCab = async () => {
@@ -71,7 +71,7 @@ const CabShare: React.FC = () => {
         Alert.alert('Login Required', 'Please log in to find a cab share');
         return;
       }
-      
+
       // Navigate to FindACabShare screen
       navigation.navigate('FindACabShare');
     } catch (error) {
@@ -90,7 +90,7 @@ const CabShare: React.FC = () => {
         Alert.alert('Login Required', 'Please log in to publish a cab share');
         return;
       }
-      
+
       // Navigate to PublishACabShare screen
       navigation.navigate('PublishACabShare');
     } catch (error) {
@@ -105,18 +105,11 @@ const CabShare: React.FC = () => {
       <StatusBar barStyle="dark-content" />
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Image 
-            source={require('../../assets/images/campus-life.png')} 
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <Image source={require('../../assets/images/campus-life.png')} style={styles.logo} resizeMode="contain" />
           <Text style={styles.appName}>YOGO Campus</Text>
         </View>
         <View style={styles.headerRight} />
@@ -126,9 +119,7 @@ const CabShare: React.FC = () => {
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <Text style={styles.title}>🚕 Cab Share</Text>
-          <Text style={styles.subtitle}>
-            Share rides, split costs, and connect with your campus community
-          </Text>
+          <Text style={styles.subtitle}>Share rides, split costs, and connect with your campus community</Text>
         </View>
 
         {/* Features Section */}

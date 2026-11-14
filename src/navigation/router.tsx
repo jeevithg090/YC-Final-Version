@@ -556,14 +556,14 @@ const Router: React.FC = () => {
         <Stack.Screen
           name="InitializeApiKeys"
           component={InitializeApiKeys}
-        options={{
-          headerShown: true,
-          title: 'Initialize API Keys',
-          headerStyle: { backgroundColor: '#F8FAFF' },
-          headerTitleStyle: { color: '#4E54C8', fontWeight: 'bold', fontSize: 18 },
-          headerTintColor: '#4E54C8',
-        }}
-      />
+          options={{
+            headerShown: true,
+            title: 'Initialize API Keys',
+            headerStyle: { backgroundColor: '#F8FAFF' },
+            headerTitleStyle: { color: '#4E54C8', fontWeight: 'bold', fontSize: 18 },
+            headerTintColor: '#4E54C8',
+          }}
+        />
       )}
       <Stack.Screen
         name="Alerts"

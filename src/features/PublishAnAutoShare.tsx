@@ -6,10 +6,8 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
-  Modal,
   ActivityIndicator,
   TextInput,
-  Platform,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
@@ -135,19 +133,19 @@ const LOCATION_LIST: string[] = [
 ];
 const AB_SHORTNAMES: { [key: string]: string } = {
   'ab-1': 'MIT administrative block (Academic Block 1)',
-  'ab1': 'MIT administrative block (Academic Block 1)',
+  ab1: 'MIT administrative block (Academic Block 1)',
   'ab 1': 'MIT administrative block (Academic Block 1)',
   'ab-2': 'MIT Hostel - 2nd Block',
-  'ab2': 'MIT Hostel - 2nd Block',
+  ab2: 'MIT Hostel - 2nd Block',
   'ab 2': 'MIT Hostel - 2nd Block',
   'ab-3': 'New Lecture Hall (Academic Block 3) - MIT',
-  'ab3': 'New Lecture Hall (Academic Block 3) - MIT',
+  ab3: 'New Lecture Hall (Academic Block 3) - MIT',
   'ab 3': 'New Lecture Hall (Academic Block 3) - MIT',
   'ab-4': 'Innovation Centre (Academic Block 4) - MIT',
-  'ab4': 'Innovation Centre (Academic Block 4) - MIT',
+  ab4: 'Innovation Centre (Academic Block 4) - MIT',
   'ab 4': 'Innovation Centre (Academic Block 4) - MIT',
   'ab-5': 'Academic Block 5 - MIT',
-  'ab5': 'Academic Block 5 - MIT',
+  ab5: 'Academic Block 5 - MIT',
   'ab 5': 'Academic Block 5 - MIT',
 };
 
@@ -205,9 +203,7 @@ const PublishAnAutoShare: React.FC = () => {
   useEffect(() => {
     if (showPickupOptions) {
       const query = pickupQuery.trim().toLowerCase();
-      let filtered = LOCATION_LIST.filter(loc =>
-        loc.toLowerCase().includes(query)
-      );
+      let filtered = LOCATION_LIST.filter((loc) => loc.toLowerCase().includes(query));
       // Add AB-x alias matches
       Object.entries(AB_SHORTNAMES).forEach(([alias, fullname]) => {
         if (query && alias.startsWith(query.replace(/\s+/g, ''))) {
@@ -219,7 +215,7 @@ const PublishAnAutoShare: React.FC = () => {
       // Always show 'Block 16,17,18,19,20-Faster Match' first
       filtered = [
         'Block 16,17,18,19,20-Faster Match',
-        ...filtered.filter(l => l !== 'Block 16,17,18,19,20-Faster Match')
+        ...filtered.filter((l) => l !== 'Block 16,17,18,19,20-Faster Match'),
       ];
       setPickupSuggestions(filtered);
     }
@@ -228,9 +224,7 @@ const PublishAnAutoShare: React.FC = () => {
   useEffect(() => {
     if (showDropOptions) {
       const query = dropQuery.trim().toLowerCase();
-      let filtered = LOCATION_LIST.filter(loc =>
-        loc.toLowerCase().includes(query)
-      );
+      let filtered = LOCATION_LIST.filter((loc) => loc.toLowerCase().includes(query));
       let ab1Match = false;
       Object.entries(AB_SHORTNAMES).forEach(([alias, fullname]) => {
         if (query && alias.startsWith(query.replace(/\s+/g, ''))) {
@@ -244,10 +238,7 @@ const PublishAnAutoShare: React.FC = () => {
         }
       });
       // Always show 'AB-1 (Last Point of Drop)' first
-      filtered = [
-        'AB-1 (Last Point of Drop)',
-        ...filtered.filter(l => l !== 'AB-1 (Last Point of Drop)')
-      ];
+      filtered = ['AB-1 (Last Point of Drop)', ...filtered.filter((l) => l !== 'AB-1 (Last Point of Drop)')];
       setDropSuggestions(filtered);
     }
   }, [dropQuery, showDropOptions]);
@@ -327,12 +318,12 @@ const PublishAnAutoShare: React.FC = () => {
       const userId = currentUser.uid;
       const userName = currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
       const phoneNumber = currentUser.phoneNumber || 'No phone number';
-      
+
       // Add ride to Firestore
       const autoRidesRef = collection(db, 'auto_rides');
       // Create a current timestamp (as a Date object) to use instead of serverTimestamp in the array
       const currentTimestamp = new Date();
-      
+
       const newRide = {
         pickupLocation: formData.pickupLocation,
         dropLocation: formData.dropLocation,
@@ -348,7 +339,7 @@ const PublishAnAutoShare: React.FC = () => {
             name: userName,
             phoneNumber: phoneNumber,
             joinedAt: currentTimestamp, // Using Date object instead of serverTimestamp()
-          }
+          },
         ],
         status: 'active',
         createdAt: serverTimestamp(),
@@ -364,19 +355,15 @@ const PublishAnAutoShare: React.FC = () => {
         rideId: docRef.id,
         role: 'creator',
         status: 'active',
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
       });
 
-      Alert.alert(
-        'Success',
-        'Your auto share has been published!',
-        [
-          {
-            text: 'View Details',
-            onPress: () => navigation.navigate('AutoRideDetails', { rideId: docRef.id }),
-          },
-        ]
-      );
+      Alert.alert('Success', 'Your auto share has been published!', [
+        {
+          text: 'View Details',
+          onPress: () => navigation.navigate('AutoRideDetails', { rideId: docRef.id }),
+        },
+      ]);
     } catch (error) {
       console.error('Error publishing ride:', error);
       Alert.alert('Error', 'Failed to publish the auto share. Please try again.');
@@ -386,7 +373,7 @@ const PublishAnAutoShare: React.FC = () => {
   };
 
   const getLocationName = (locationId: string) => {
-    const location = LOCATION_OPTIONS.find(opt => opt.id === locationId);
+    const location = LOCATION_OPTIONS.find((opt) => opt.id === locationId);
     return location ? location.name : locationId;
   };
 
@@ -395,10 +382,7 @@ const PublishAnAutoShare: React.FC = () => {
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Publish an Auto Share</Text>
@@ -407,22 +391,15 @@ const PublishAnAutoShare: React.FC = () => {
 
         <ScrollView style={styles.content}>
           <View style={styles.formContainer}>
-            <LinearGradient
-              colors={['#f8f9fa', '#e9ecef']}
-              style={styles.formHeader}
-            >
+            <LinearGradient colors={['#f8f9fa', '#e9ecef']} style={styles.formHeader}>
               <Text style={styles.formHeaderTitle}>Create a New Auto Share</Text>
-              <Text style={styles.formHeaderSubtitle}>
-                Fill in the details to publish your auto share
-              </Text>
+              <Text style={styles.formHeaderSubtitle}>Fill in the details to publish your auto share</Text>
             </LinearGradient>
 
             {/* Form Progress */}
             <View style={styles.progressContainer}>
               <View style={styles.progressTrack}>
-                <View
-                  style={[styles.progressBar, { width: `${formProgress}%` }]}
-                />
+                <View style={[styles.progressBar, { width: `${formProgress}%` }]} />
               </View>
               <Text style={styles.progressText}>{formProgress}% Complete</Text>
             </View>
@@ -563,7 +540,11 @@ const PublishAnAutoShare: React.FC = () => {
                     onPress={() => setShowDatePicker(true)}
                   >
                     <Text style={styles.inputText}>
-                      {formData.travelDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                      {formData.travelDate.toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -640,10 +621,7 @@ const PublishAnAutoShare: React.FC = () => {
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={[
-                styles.publishButton,
-                formProgress < 100 && styles.publishButtonDisabled,
-              ]}
+              style={[styles.publishButton, formProgress < 100 && styles.publishButtonDisabled]}
               onPress={publishRide}
               disabled={formProgress < 100 || loading}
             >

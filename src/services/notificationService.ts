@@ -1,14 +1,14 @@
 import { db } from './firebase';
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
+import {
+  collection,
+  query,
+  where,
+  getDocs,
   deleteDoc,
   doc,
   orderBy,
   addDoc,
-  serverTimestamp
+  serverTimestamp,
 } from 'firebase/firestore';
 import { ClassEntry, TimetableData } from '../types/timetable';
 import * as Notifications from 'expo-notifications';
@@ -50,12 +50,12 @@ class NotificationService {
     try {
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
-      
+
       if (existingStatus !== 'granted') {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
-      
+
       if (finalStatus !== 'granted') {
         console.log('Notification permissions not granted');
         return false;
@@ -70,16 +70,13 @@ class NotificationService {
   }
 
   // Schedule class alarms with AI-generated messages
-  async scheduleClassAlarms(
-    timetableData: TimetableData, 
-    reminderMinutes: number = 20
-  ): Promise<void> {
+  async scheduleClassAlarms(timetableData: TimetableData, reminderMinutes: number = 20): Promise<void> {
     try {
       console.log('Scheduling class alarms with AI-generated messages...');
-      
+
       // Cancel existing notifications first
       await this.cancelAllAlarms();
-      
+
       const hasPermission = await this.initializeNotifications();
       if (!hasPermission) {
         throw new Error('Notification permissions not granted');
@@ -87,17 +84,26 @@ class NotificationService {
 
       const today = new Date();
       const currentTime = today.getHours() * 60 + today.getMinutes();
-      
+
       // Get day names mapping
       const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const dayAbbreviations: { [key: string]: string } = {
-        'SUN': 'Sunday', 'SUNDAY': 'Sunday',
-        'MON': 'Monday', 'MONDAY': 'Monday',
-        'TUE': 'Tuesday', 'TUESDAY': 'Tuesday', 'TUES': 'Tuesday',
-        'WED': 'Wednesday', 'WEDNESDAY': 'Wednesday',
-        'THU': 'Thursday', 'THURSDAY': 'Thursday', 'THURS': 'Thursday',
-        'FRI': 'Friday', 'FRIDAY': 'Friday',
-        'SAT': 'Saturday', 'SATURDAY': 'Saturday'
+        SUN: 'Sunday',
+        SUNDAY: 'Sunday',
+        MON: 'Monday',
+        MONDAY: 'Monday',
+        TUE: 'Tuesday',
+        TUESDAY: 'Tuesday',
+        TUES: 'Tuesday',
+        WED: 'Wednesday',
+        WEDNESDAY: 'Wednesday',
+        THU: 'Thursday',
+        THURSDAY: 'Thursday',
+        THURS: 'Thursday',
+        FRI: 'Friday',
+        FRIDAY: 'Friday',
+        SAT: 'Saturday',
+        SATURDAY: 'Saturday',
       };
 
       const scheduledNotifications: string[] = [];
@@ -141,7 +147,7 @@ class NotificationService {
           classTime.setHours(0, 0, 0, 0);
           classTime.setTime(classTime.getTime() + classTimeMs);
 
-          const notificationTime = new Date(classTime.getTime() - (22 * 60 * 1000)); // 22 minutes before
+          const notificationTime = new Date(classTime.getTime() - 22 * 60 * 1000); // 22 minutes before
 
           // Only schedule if notification time is in the future
           if (notificationTime > new Date()) {
@@ -161,17 +167,19 @@ class NotificationService {
                     classId: `${daySchedule.day}_0`,
                     subject: classEntry.subject,
                     startTime: classEntry.startTime,
-                    isFirstClass: isFirstClass
-                  }
+                    isFirstClass: isFirstClass,
+                  },
                 },
                 trigger: {
                   type: 'date',
                   date: notificationTime,
-                } as Notifications.DateTriggerInput
+                } as Notifications.DateTriggerInput,
               });
 
               scheduledNotifications.push(notificationId);
-              console.log(`Scheduled first class notification for ${classEntry.subject} on ${fullDayName} at ${notificationTime.toLocaleTimeString()}`);
+              console.log(
+                `Scheduled first class notification for ${classEntry.subject} on ${fullDayName} at ${notificationTime.toLocaleTimeString()}`,
+              );
             } catch (aiError) {
               console.error('AI message generation failed, using fallback:', aiError);
 
@@ -190,13 +198,13 @@ class NotificationService {
                     classId: `${daySchedule.day}_0`,
                     subject: classEntry.subject,
                     startTime: classEntry.startTime,
-                    isFirstClass: isFirstClass
-                  }
+                    isFirstClass: isFirstClass,
+                  },
                 },
                 trigger: {
                   type: 'date',
                   date: notificationTime,
-                } as Notifications.DateTriggerInput
+                } as Notifications.DateTriggerInput,
               });
 
               scheduledNotifications.push(notificationId);
@@ -207,7 +215,6 @@ class NotificationService {
 
       this.scheduledNotificationIds = scheduledNotifications;
       console.log(`Successfully scheduled ${scheduledNotifications.length} notifications`);
-      
     } catch (error) {
       console.error('Error scheduling class alarms:', error);
       throw error;
@@ -220,12 +227,12 @@ class NotificationService {
       const notificationsRef = collection(db, SCHEDULED_NOTIFICATIONS_COLLECTION);
       const q = query(notificationsRef, where('userId', '==', this.userId), where('status', '==', 'pending'));
       const querySnapshot = await getDocs(q);
-      
+
       const deletePromises: Promise<void>[] = [];
       querySnapshot.forEach((docSnapshot) => {
         deletePromises.push(deleteDoc(doc(db, SCHEDULED_NOTIFICATIONS_COLLECTION, docSnapshot.id)));
       });
-      
+
       await Promise.all(deletePromises);
       console.log('Cleared existing scheduled notifications');
     } catch (error) {
@@ -238,26 +245,26 @@ class NotificationService {
     let cleanTime = timeString.replace(/\s?(AM|PM|am|pm)\s?/g, '');
     const isPM = timeString.toLowerCase().includes('pm');
     const isAM = timeString.toLowerCase().includes('am');
-    
+
     const timeParts = cleanTime.split(':');
     if (timeParts.length !== 2) return 0;
-    
+
     let hours = parseInt(timeParts[0], 10);
     const minutes = parseInt(timeParts[1], 10);
-    
+
     // Handle 12-hour format conversion
     if (isPM && hours !== 12) {
       hours += 12;
     } else if (isAM && hours === 12) {
       hours = 0;
     }
-    
+
     // Validate hours and minutes
     if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
       return 0;
     }
-    
-    return (hours * 60 * 60 * 1000) + (minutes * 60 * 1000);
+
+    return hours * 60 * 60 * 1000 + minutes * 60 * 1000;
   }
 
   // Cancel all scheduled alarms
@@ -283,10 +290,10 @@ class NotificationService {
 
       // Generate AI message for test
       const aiMessage = await aiNotificationService.generateClassReminder(classData, true);
-      
+
       // Save test notification to alerts collection
       await this.saveClassAlertToFirestore(classData, aiMessage, true, 'Test');
-      
+
       await Notifications.scheduleNotificationAsync({
         content: {
           title: '🧪 Test Notification',
@@ -295,25 +302,25 @@ class NotificationService {
           data: {
             test: true,
             subject: classData.subject,
-            startTime: classData.startTime
-          }
+            startTime: classData.startTime,
+          },
         },
         trigger: {
           type: 'date',
           date: new Date(Date.now() + 3000), // 3 seconds from now
-        } as Notifications.DateTriggerInput
+        } as Notifications.DateTriggerInput,
       });
 
       console.log('Test notification scheduled successfully');
     } catch (error) {
       console.error('Error sending test notification:', error);
-      
+
       // Fallback test notification
       const fallbackMessage = `Test reminder for ${classData.subject} at ${classData.startTime}`;
-      
+
       // Save fallback test notification to alerts collection
       await this.saveClassAlertToFirestore(classData, fallbackMessage, true, 'Test');
-      
+
       await Notifications.scheduleNotificationAsync({
         content: {
           title: '🧪 Test Notification',
@@ -322,23 +329,23 @@ class NotificationService {
           data: {
             test: true,
             subject: classData.subject,
-            startTime: classData.startTime
-          }
+            startTime: classData.startTime,
+          },
         },
         trigger: {
           type: 'date',
           date: new Date(Date.now() + 3000),
-        } as Notifications.DateTriggerInput
+        } as Notifications.DateTriggerInput,
       });
     }
   }
 
   // Save class notification to alerts collection for Alerts.tsx
   private async saveClassAlertToFirestore(
-    classEntry: ClassEntry, 
-    message: string, 
+    classEntry: ClassEntry,
+    message: string,
     isFirstClass: boolean = false,
-    dayName?: string
+    dayName?: string,
   ): Promise<void> {
     try {
       const alertData = {
@@ -368,10 +375,10 @@ class NotificationService {
 
   // Public method to manually save a class alert (for testing)
   async saveClassAlert(
-    classEntry: ClassEntry, 
-    message: string, 
+    classEntry: ClassEntry,
+    message: string,
     isFirstClass: boolean = false,
-    dayName?: string
+    dayName?: string,
   ): Promise<void> {
     return this.saveClassAlertToFirestore(classEntry, message, isFirstClass, dayName);
   }
@@ -380,13 +387,9 @@ class NotificationService {
   async getNotificationHistory(): Promise<ScheduledNotification[]> {
     try {
       const notificationsRef = collection(db, SCHEDULED_NOTIFICATIONS_COLLECTION);
-      const q = query(
-        notificationsRef, 
-        where('userId', '==', this.userId),
-        orderBy('createdAt', 'desc')
-      );
+      const q = query(notificationsRef, where('userId', '==', this.userId), orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(q);
-      
+
       const notifications: ScheduledNotification[] = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
@@ -398,10 +401,10 @@ class NotificationService {
           dayName: data.dayName,
           reminderMinutes: data.reminderMinutes,
           status: data.status,
-          createdAt: data.createdAt.toDate()
+          createdAt: data.createdAt.toDate(),
         });
       });
-      
+
       return notifications;
     } catch (error) {
       console.error('Error getting notification history:', error);
@@ -450,27 +453,27 @@ export default new NotificationService();
 /*
  * EXPO NOTIFICATIONS IMPLEMENTATION:
  * ==================================
- * 
+ *
  * This service now uses Expo Notifications with AI-powered message generation.
- * 
+ *
  * Features:
  * - AI-generated motivational messages using OpenRouter API
  * - Special "start of new day" messages for first classes
  * - 22-minute scheduling buffer (2 min for AI processing, shown as 20 min to user)
  * - Multiple AI model fallbacks for reliability
  * - Expo-compatible local notifications
- * 
+ *
  * AI Models Used (in priority order):
  * 1. meta-llama/llama-3.2-3b-instruct:free (primary)
  * 2. microsoft/phi-3-mini-128k-instruct:free (backup)
  * 3. google/gemma-2-9b-it:free (backup)
  * 4. qwen/qwen-2-7b-instruct:free (backup)
- * 
+ *
  * Requirements:
  * - expo-notifications package (already installed)
  * - OpenRouter API key (configured in aiNotificationService.ts)
  * - Notification permissions from user
- * 
+ *
  * Usage:
  * - Schedule alarms: await notificationService.scheduleClassAlarms(timetableData, 20)
  * - Test notifications: await notificationService.sendTestNotification(classData)

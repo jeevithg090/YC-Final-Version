@@ -16,10 +16,10 @@ const InitializeApiKeys: React.FC = () => {
       try {
         // API keys to store in Firestore
         const apiKeys = {
-          "GEMINI_API_KEY": process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? '',
-          "OPENROUTER_API_KEY": process.env.EXPO_PUBLIC_OPENROUTER_API_KEY ?? '',
-          "OCR_API_KEY": process.env.EXPO_PUBLIC_OCR_API_KEY ?? '',
-          "TAVUS_API_KEY": process.env.EXPO_PUBLIC_TAVUS_API_KEY ?? ''
+          GEMINI_API_KEY: process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? '',
+          OPENROUTER_API_KEY: process.env.EXPO_PUBLIC_OPENROUTER_API_KEY ?? '',
+          OCR_API_KEY: process.env.EXPO_PUBLIC_OCR_API_KEY ?? '',
+          TAVUS_API_KEY: process.env.EXPO_PUBLIC_TAVUS_API_KEY ?? '',
         };
 
         const missingKeys = Object.entries(apiKeys)
@@ -32,7 +32,7 @@ const InitializeApiKeys: React.FC = () => {
 
         // Create or update the API keys document
         await setDoc(doc(db, 'api_keys', 'keys'), apiKeys);
-        
+
         console.log('API keys initialized in Firestore');
         setSuccess(true);
       } catch (err) {
@@ -66,9 +66,7 @@ const InitializeApiKeys: React.FC = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.successText}>API keys initialized successfully!</Text>
-      <Text style={styles.infoText}>
-        The following keys have been stored in Firestore:
-      </Text>
+      <Text style={styles.infoText}>The following keys have been stored in Firestore:</Text>
       <Text style={styles.keyItem}>• GEMINI_API_KEY</Text>
       <Text style={styles.keyItem}>• OPENROUTER_API_KEY</Text>
       <Text style={styles.keyItem}>• OCR_API_KEY</Text>

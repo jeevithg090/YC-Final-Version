@@ -64,12 +64,12 @@ interface EventsDetailsProps {
   onContactPerson: (contactPerson: Event['contactPerson']) => void;
   getCategoryColor: (category: string) => string;
   formatDate: (date: Date) => string;
-  categories: Array<{
+  categories: {
     id: string;
     name: string;
     color: string;
     icon: string;
-  }>;
+  }[];
 }
 
 const EventsDetails: React.FC<EventsDetailsProps> = ({
@@ -105,7 +105,7 @@ const EventsDetails: React.FC<EventsDetailsProps> = ({
     if (retryCount < 3) {
       setImageLoading(true);
       setImageError(false);
-      setRetryCount(prev => prev + 1);
+      setRetryCount((prev) => prev + 1);
     } else {
       Alert.alert('Image Load Error', 'Unable to load event image after multiple attempts.');
     }
@@ -114,26 +114,15 @@ const EventsDetails: React.FC<EventsDetailsProps> = ({
   if (!selectedEvent) return null;
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      style={{ flex: 1 }}
-    >
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" style={{ flex: 1 }}>
       <SafeAreaView style={styles.modalContainer}>
         {/* Header */}
         <View style={styles.modalHeader}>
-          <TouchableOpacity 
-            onPress={onClose}
-            style={styles.modalCloseButton}
-          >
+          <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
             <Ionicons name="close" size={24} color="#333" />
           </TouchableOpacity>
           <Text style={styles.modalTitle}>Event Details</Text>
-          <TouchableOpacity 
-            onPress={() => onShare(selectedEvent)}
-            style={styles.modalShareButton}
-          >
+          <TouchableOpacity onPress={() => onShare(selectedEvent)} style={styles.modalShareButton}>
             <Ionicons name="share-outline" size={24} color="#667eea" />
           </TouchableOpacity>
         </View>
@@ -145,34 +134,27 @@ const EventsDetails: React.FC<EventsDetailsProps> = ({
             {/* Event Image */}
             <View style={styles.imageContainer}>
               {imageLoading && !imageError && (
-                <ActivityIndicator 
-                  size="large" 
-                  color="#667eea" 
-                  style={styles.imageLoader} 
-                />
+                <ActivityIndicator size="large" color="#667eea" style={styles.imageLoader} />
               )}
-              
+
               {imageError && (
                 <View style={styles.imageErrorContainer}>
                   <Ionicons name="image-outline" size={48} color="#999" />
                   <Text style={styles.imageErrorText}>Failed to load image</Text>
-                  <TouchableOpacity 
-                    style={styles.retryButton} 
-                    onPress={retryImageLoad}
-                    disabled={retryCount >= 3}
-                  >
-                    <Text style={styles.retryButtonText}>
-                      {retryCount >= 3 ? 'Max retries reached' : 'Retry'}
-                    </Text>
+                  <TouchableOpacity style={styles.retryButton} onPress={retryImageLoad} disabled={retryCount >= 3}>
+                    <Text style={styles.retryButtonText}>{retryCount >= 3 ? 'Max retries reached' : 'Retry'}</Text>
                   </TouchableOpacity>
                 </View>
               )}
-              
+
               {!imageError && (
-                <Image 
+                <Image
                   key={retryCount}
-                  source={{ 
-                    uri: selectedEvent.posterUrl || selectedEvent.imageUrl || 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=400'
+                  source={{
+                    uri:
+                      selectedEvent.posterUrl ||
+                      selectedEvent.imageUrl ||
+                      'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=400',
                   }}
                   style={styles.cardImage}
                   resizeMode="cover"
@@ -180,64 +162,70 @@ const EventsDetails: React.FC<EventsDetailsProps> = ({
                   onError={handleImageError}
                 />
               )}
-              
+
               {/* Status Badge */}
               <View style={styles.statusBadgeContainer}>
                 {selectedEvent.registrationRequired && (
-                  <View style={[styles.statusBadge, { 
-                    backgroundColor: selectedEvent.maxParticipants && (selectedEvent.currentParticipants || 0) >= selectedEvent.maxParticipants 
-                      ? '#ff6b6b' 
-                      : '#51cf66' 
-                  }]}>
-                    <Ionicons 
-                      name={selectedEvent.maxParticipants && (selectedEvent.currentParticipants || 0) >= selectedEvent.maxParticipants 
-                        ? "close-circle" 
-                        : "checkmark-circle"
-                      } 
-                      size={12} 
-                      color="#fff" 
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      {
+                        backgroundColor:
+                          selectedEvent.maxParticipants &&
+                          (selectedEvent.currentParticipants || 0) >= selectedEvent.maxParticipants
+                            ? '#ff6b6b'
+                            : '#51cf66',
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={
+                        selectedEvent.maxParticipants &&
+                        (selectedEvent.currentParticipants || 0) >= selectedEvent.maxParticipants
+                          ? 'close-circle'
+                          : 'checkmark-circle'
+                      }
+                      size={12}
+                      color="#fff"
                     />
                     <Text style={styles.statusText}>
-                      {selectedEvent.maxParticipants && (selectedEvent.currentParticipants || 0) >= selectedEvent.maxParticipants 
-                        ? 'FULL' 
-                        : 'OPEN'
-                      }
+                      {selectedEvent.maxParticipants &&
+                      (selectedEvent.currentParticipants || 0) >= selectedEvent.maxParticipants
+                        ? 'FULL'
+                        : 'OPEN'}
                     </Text>
                   </View>
                 )}
-                
+
                 <View style={[styles.statusBadge, { backgroundColor: '#667eea' }]}>
-                  <Ionicons 
-                    name={categories.find(c => c.id === selectedEvent.category)?.icon as any || 'apps'} 
-                    size={12} 
-                    color="#fff" 
+                  <Ionicons
+                    name={(categories.find((c) => c.id === selectedEvent.category)?.icon as any) || 'apps'}
+                    size={12}
+                    color="#fff"
                   />
                   <Text style={styles.statusText}>{selectedEvent.category.toUpperCase()}</Text>
                 </View>
               </View>
-              
+
               {/* Gradient Overlay */}
-              <LinearGradient
-                colors={['transparent', 'rgba(0,0,0,0.7)']}
-                style={styles.imageGradient}
-              />
-              
+              <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.imageGradient} />
+
               {/* Card Header Info */}
               <View style={styles.cardHeaderInfo}>
                 <Text style={styles.cardTitle}>{selectedEvent.title}</Text>
                 <Text style={styles.cardSubtitle}>{selectedEvent.description}</Text>
-                
+
                 <View style={styles.cardDetailsRow}>
                   <View style={styles.cardDetailItem}>
                     <Ionicons name="location" size={16} color="#fff" />
                     <Text style={styles.cardDetailText}>{selectedEvent.venue.name}</Text>
                   </View>
-                  
+
                   <View style={styles.cardDetailItem}>
                     <Ionicons name="calendar" size={16} color="#fff" />
                     <Text style={styles.cardDetailText}>{formatDate(selectedEvent.date)}</Text>
                   </View>
-                  
+
                   <View style={styles.cardDetailItem}>
                     <Ionicons name="bookmark" size={16} color="#fff" />
                     <Text style={styles.cardDetailText}>{selectedEvent.category}</Text>
@@ -248,7 +236,6 @@ const EventsDetails: React.FC<EventsDetailsProps> = ({
           </View>
 
           <View style={styles.detailContent}>
-
             {/* Info Grid */}
             <View style={styles.detailInfoGrid}>
               {/* Date & Time */}
@@ -258,9 +245,7 @@ const EventsDetails: React.FC<EventsDetailsProps> = ({
                 </View>
                 <View style={styles.infoTextContainer}>
                   <Text style={styles.detailInfoLabel}>Date & Time</Text>
-                  <Text style={styles.detailInfoValue}>
-                    {formatDate(selectedEvent.date)}
-                  </Text>
+                  <Text style={styles.detailInfoValue}>{formatDate(selectedEvent.date)}</Text>
                   <Text style={styles.detailInfoSubValue}>{selectedEvent.time}</Text>
                 </View>
               </View>
@@ -268,16 +253,10 @@ const EventsDetails: React.FC<EventsDetailsProps> = ({
               {/* Venue */}
               <View style={styles.detailInfoCard}>
                 <View style={styles.infoIconContainer}>
-                  <Ionicons 
-                    name={selectedEvent.isOnline ? "videocam" : "location"} 
-                    size={20} 
-                    color="#667eea" 
-                  />
+                  <Ionicons name={selectedEvent.isOnline ? 'videocam' : 'location'} size={20} color="#667eea" />
                 </View>
                 <View style={styles.infoTextContainer}>
-                  <Text style={styles.detailInfoLabel}>
-                    {selectedEvent.isOnline ? 'Platform' : 'Venue'}
-                  </Text>
+                  <Text style={styles.detailInfoLabel}>{selectedEvent.isOnline ? 'Platform' : 'Venue'}</Text>
                   <Text style={styles.detailInfoValue}>{selectedEvent.venue.name}</Text>
                   {selectedEvent.venue.address && (
                     <Text style={styles.detailInfoSubValue}>{selectedEvent.venue.address}</Text>
@@ -292,9 +271,7 @@ const EventsDetails: React.FC<EventsDetailsProps> = ({
                 </View>
                 <View style={styles.infoTextContainer}>
                   <Text style={styles.detailInfoLabel}>Organizer</Text>
-                  <Text style={styles.detailInfoValue}>
-                    {selectedEvent.organizingClub || selectedEvent.organizer}
-                  </Text>
+                  <Text style={styles.detailInfoValue}>{selectedEvent.organizingClub || selectedEvent.organizer}</Text>
                   {selectedEvent.organizingDepartment && (
                     <Text style={styles.detailInfoSubValue}>{selectedEvent.organizingDepartment}</Text>
                   )}
@@ -308,10 +285,11 @@ const EventsDetails: React.FC<EventsDetailsProps> = ({
                 </View>
                 <View style={styles.infoTextContainer}>
                   <Text style={styles.detailInfoLabel}>Contact</Text>
-                  <TouchableOpacity onPress={() => onContactPerson(selectedEvent.contactPerson)} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={[styles.detailInfoValue, styles.contactLink]}>
-                      {selectedEvent.contactPerson.name}
-                    </Text>
+                  <TouchableOpacity
+                    onPress={() => onContactPerson(selectedEvent.contactPerson)}
+                    style={{ flexDirection: 'row', alignItems: 'center' }}
+                  >
+                    <Text style={[styles.detailInfoValue, styles.contactLink]}>{selectedEvent.contactPerson.name}</Text>
                   </TouchableOpacity>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
                     <Text style={styles.detailInfoSubValue}>{selectedEvent.contactPerson.phone}</Text>
@@ -347,9 +325,7 @@ const EventsDetails: React.FC<EventsDetailsProps> = ({
             {/* Description */}
             <View style={styles.detailSection}>
               <Text style={styles.detailSectionTitle}>Description</Text>
-              <Text style={styles.detailDescription}>
-                {selectedEvent.fullDescription || selectedEvent.description}
-              </Text>
+              <Text style={styles.detailDescription}>{selectedEvent.fullDescription || selectedEvent.description}</Text>
             </View>
 
             {/* Objectives */}
@@ -402,12 +378,7 @@ const EventsDetails: React.FC<EventsDetailsProps> = ({
                 <Text style={styles.detailSectionTitle}>Past Event Gallery</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryContainer}>
                   {selectedEvent.pastEventPhotos.map((photo, index) => (
-                    <Image 
-                      key={index}
-                      source={{ uri: photo }}
-                      style={styles.pastEventPhoto}
-                      resizeMode="cover"
-                    />
+                    <Image key={index} source={{ uri: photo }} style={styles.pastEventPhoto} resizeMode="cover" />
                   ))}
                 </ScrollView>
               </View>
@@ -418,24 +389,29 @@ const EventsDetails: React.FC<EventsDetailsProps> = ({
         {/* Footer Actions */}
         <View style={styles.modalFooter}>
           {selectedEvent.registrationRequired && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.modalActionButton, 
+                styles.modalActionButton,
                 styles.registerModalButton,
-                (selectedEvent.maxParticipants && (selectedEvent.currentParticipants || 0) >= selectedEvent.maxParticipants) ? styles.disabledButton : null
+                selectedEvent.maxParticipants &&
+                (selectedEvent.currentParticipants || 0) >= selectedEvent.maxParticipants
+                  ? styles.disabledButton
+                  : null,
               ]}
               onPress={() => onRegister(selectedEvent)}
-              disabled={selectedEvent.maxParticipants ? (selectedEvent.currentParticipants || 0) >= selectedEvent.maxParticipants : false}
+              disabled={
+                selectedEvent.maxParticipants
+                  ? (selectedEvent.currentParticipants || 0) >= selectedEvent.maxParticipants
+                  : false
+              }
             >
               <Ionicons name="person-add" size={16} color="#fff" style={{ marginRight: 8 }} />
-              <Text style={styles.registerModalButtonText}>
-                Register Now
-              </Text>
+              <Text style={styles.registerModalButtonText}>Register Now</Text>
             </TouchableOpacity>
           )}
 
           {selectedEvent.venue.mapUrl && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.modalActionButton, styles.mapButton]}
               onPress={() => Linking.openURL(selectedEvent.venue.mapUrl!)}
             >
@@ -454,7 +430,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: '#fff',
-    zIndex: 1  // Add this line
+    zIndex: 1, // Add this line
   },
   modalHeader: {
     flexDirection: 'row',
@@ -492,7 +468,7 @@ const styles = StyleSheet.create({
   modalContent: {
     flex: 1,
     backgroundColor: '#f8f9fa',
-    zIndex: 1  // Add this line
+    zIndex: 1, // Add this line
   },
   detailPosterImage: {
     width: '100%',

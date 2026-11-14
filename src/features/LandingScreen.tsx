@@ -9,7 +9,7 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
-  Dimensions
+  Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -21,19 +21,16 @@ type LandingScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const LandingScreen: React.FC = () => {
   const navigation = useNavigation<LandingScreenNavigationProp>();
-  
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <ImageBackground 
-        source={require('../../assets/images/campus-life.png')} 
+      <ImageBackground
+        source={require('../../assets/images/campus-life.png')}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
-        <LinearGradient
-          colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.7)']}
-          style={styles.gradient}
-        >
+        <LinearGradient colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.7)']} style={styles.gradient}>
           <SafeAreaView style={styles.safeArea}>
             <View style={styles.topSection}>
               {/* Development shortcut: skips sign-in, so it is hidden in production builds */}
@@ -47,18 +44,14 @@ const LandingScreen: React.FC = () => {
                   <Ionicons name="arrow-forward-circle" size={40} color="#ffffff" />
                 </TouchableOpacity>
               )}
-              <Image 
-                source={require('../../assets/images/favicon.png')} 
-                style={styles.logo} 
-                resizeMode="contain"
-              />
+              <Image source={require('../../assets/images/favicon.png')} style={styles.logo} resizeMode="contain" />
             </View>
-            
+
             <View style={styles.middleSection}>
               <Text style={styles.title}>YOGO Campus</Text>
               <Text style={styles.tagline}>Simplifying Student Life on Campus</Text>
             </View>
-            
+
             <View style={styles.bottomSection}>
               <TouchableOpacity
                 style={styles.button}
@@ -79,10 +72,7 @@ const LandingScreen: React.FC = () => {
               {__DEV__ && (
                 <>
                   {/* Direct Dashboard Navigation Button */}
-                  <TouchableOpacity
-                    style={styles.dashboardButton}
-                    onPress={() => navigation.navigate('Dashboard')}
-                  >
+                  <TouchableOpacity style={styles.dashboardButton} onPress={() => navigation.navigate('Dashboard')}>
                     <View style={styles.dashboardButtonContent}>
                       <Text style={styles.dashboardButtonText}>Skip to Dashboard</Text>
                       <Ionicons name="arrow-forward" size={20} color="#4e54c8" />

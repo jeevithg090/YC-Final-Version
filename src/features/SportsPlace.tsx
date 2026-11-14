@@ -18,8 +18,19 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
-import { collection, addDoc, onSnapshot, query, orderBy, where, updateDoc, doc, getDoc, getDocs, increment } from 'firebase/firestore';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import {
+  collection,
+  addDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  updateDoc,
+  doc,
+  getDoc,
+  getDocs,
+  increment,
+} from 'firebase/firestore';
 import { db } from '../services/firebase';
 import CreateSportsGroup from './CreateSportsGroup';
 import { useNavigation } from '@react-navigation/native';
@@ -38,7 +49,7 @@ const { width, height } = Dimensions.get('window');
 // Custom SportIcon component for better sport representation
 const SportIcon: React.FC<{ sport?: string; size: number; color: string }> = ({ sport, size, color }) => {
   // Use specific icons based on sport ID
-  switch(sport) {
+  switch (sport) {
     case 'badminton':
       // Using a more appropriate shuttlecock-like icon for badminton
       return <FontAwesome5 name="feather-alt" size={size} color={color} />;
@@ -148,8 +159,22 @@ interface SportsPost {
 }
 
 const SPORTS: Sport[] = [
-  { id: 'basketball', name: 'Basketball', icon: 'basketball', color: ['#FF6B35', '#F7931E'], maxPlayers: 10, minPlayers: 6 },
-  { id: 'badminton', name: 'Badminton', icon: 'badminton', color: ['#4ECDC4', '#44A08D'], maxPlayers: 4, minPlayers: 2 },
+  {
+    id: 'basketball',
+    name: 'Basketball',
+    icon: 'basketball',
+    color: ['#FF6B35', '#F7931E'],
+    maxPlayers: 10,
+    minPlayers: 6,
+  },
+  {
+    id: 'badminton',
+    name: 'Badminton',
+    icon: 'badminton',
+    color: ['#4ECDC4', '#44A08D'],
+    maxPlayers: 4,
+    minPlayers: 2,
+  },
   { id: 'swimming', name: 'Swimming', icon: 'swimmer', color: ['#667eea', '#764ba2'], maxPlayers: 8, minPlayers: 2 },
   { id: 'tennis', name: 'Tennis', icon: 'tennis', color: ['#fdbb2d', '#22c1c3'], maxPlayers: 4, minPlayers: 2 },
   { id: 'football', name: 'Football', icon: 'football', color: ['#56ab2f', '#a8e6cf'], maxPlayers: 22, minPlayers: 10 },
@@ -167,7 +192,7 @@ const SKILL_LEVELS = [
 const SportsPlace: React.FC = () => {
   // Navigation
   const navigation = useNavigation<SportsPlaceNavigationProp>();
-  
+
   // State Management
   const [activeTab, setActiveTab] = useState<'groups' | 'leaderboard' | 'social'>('groups');
   const [selectedSport, setSelectedSport] = useState<string>('all');
@@ -178,14 +203,14 @@ const SportsPlace: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   // Add expanded group state
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
-  
+
   // Modal States
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showMatchResult, setShowMatchResult] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [showMyGroups, setShowMyGroups] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
-  
+
   // Form States (now only used for match results)
   const [matchForm, setMatchForm] = useState({
     team1Score: '',
@@ -203,7 +228,7 @@ const SportsPlace: React.FC = () => {
     // Check Firebase connection
     console.log('Firebase DB instance:', db);
     console.log('Firebase connection test starting...');
-    
+
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -214,7 +239,7 @@ const SportsPlace: React.FC = () => {
         toValue: 0,
         duration: 800,
         useNativeDriver: true,
-      })
+      }),
     ]).start();
 
     loadSportsData();
@@ -222,14 +247,14 @@ const SportsPlace: React.FC = () => {
 
   useEffect(() => {
     console.log('Setting up Firebase listeners...');
-    
+
     const unsubscribeGroups = onSnapshot(
       query(collection(db, 'sports_groups'), orderBy('createdAt', 'desc')),
       (snapshot) => {
         console.log('Groups snapshot received:', snapshot.size, 'documents');
-        const groups = snapshot.docs.map(doc => ({
+        const groups = snapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         })) as SportsGroup[];
         setSportsGroups(groups);
         console.log('Groups loaded:', groups.length);
@@ -238,23 +263,23 @@ const SportsPlace: React.FC = () => {
         console.error('Firebase groups listener error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         Alert.alert('Error', `Failed to connect to Firebase: ${errorMessage}`);
-      }
+      },
     );
 
     const unsubscribePosts = onSnapshot(
       query(collection(db, 'sports_posts'), orderBy('createdAt', 'desc')),
       (snapshot) => {
         console.log('Posts snapshot received:', snapshot.size, 'documents');
-        const posts = snapshot.docs.map(doc => ({
+        const posts = snapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         })) as SportsPost[];
         setSportsPosts(posts);
         console.log('Posts loaded:', posts.length);
       },
       (error) => {
         console.error('Firebase posts listener error:', error);
-      }
+      },
     );
 
     return () => {
@@ -268,21 +293,21 @@ const SportsPlace: React.FC = () => {
     setLoading(true);
     try {
       console.log('Loading sports data from Firebase...');
-      
+
       // Test Firebase connection first
       const testCollection = collection(db, 'sports_groups');
       console.log('Test collection created:', testCollection);
-      
+
       // Load user stats and leaderboard data
       const statsQuery = query(collection(db, 'user_stats'), orderBy('points', 'desc'));
       console.log('Stats query created:', statsQuery);
-      
+
       const statsSnapshot = await getDocs(statsQuery);
       console.log('Stats snapshot received:', statsSnapshot.size, 'documents');
-      
-      const stats = statsSnapshot.docs.map(doc => ({
+
+      const stats = statsSnapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       })) as UserStats[];
       setUserStats(stats);
       console.log('User stats loaded successfully:', stats.length, 'items');
@@ -306,7 +331,7 @@ const SportsPlace: React.FC = () => {
     try {
       const groupRef = doc(db, 'sports_groups', groupId);
       const groupDoc = await getDoc(groupRef);
-      
+
       if (groupDoc.exists()) {
         const groupData = groupDoc.data() as SportsGroup;
         if (groupData.currentPlayers < groupData.maxPlayers) {
@@ -314,15 +339,15 @@ const SportsPlace: React.FC = () => {
             id: 'current_user_id',
             name: 'Current User',
             level: 'amateur',
-            rating: 1200
+            rating: 1200,
           };
 
           await updateDoc(groupRef, {
             currentPlayers: increment(1),
             players: [...groupData.players, newPlayer],
-            status: groupData.currentPlayers + 1 >= groupData.maxPlayers ? 'full' : 'open'
+            status: groupData.currentPlayers + 1 >= groupData.maxPlayers ? 'full' : 'open',
           });
-          
+
           Alert.alert('Success', 'Joined group successfully!');
         } else {
           Alert.alert('Error', 'Group is already full');
@@ -349,28 +374,28 @@ const SportsPlace: React.FC = () => {
             name: 'Team 1',
             players: [],
             score: parseInt(matchForm.team1Score),
-            stats: {}
+            stats: {},
           },
           {
             name: 'Team 2',
             players: [],
             score: parseInt(matchForm.team2Score),
-            stats: {}
-          }
+            stats: {},
+          },
         ],
         scores: [parseInt(matchForm.team1Score), parseInt(matchForm.team2Score)],
         duration: parseInt(matchForm.duration) || 60,
         location: 'Sports Center',
         completedAt: Date.now(),
         participants: [],
-        winnerTeam: parseInt(matchForm.team1Score) > parseInt(matchForm.team2Score) ? 0 : 1
+        winnerTeam: parseInt(matchForm.team1Score) > parseInt(matchForm.team2Score) ? 0 : 1,
       };
 
       await addDoc(collection(db, 'sports_matches'), matchResult);
-      
+
       // Update user stats and create social post
       await createMatchPost(matchResult);
-      
+
       setShowMatchResult(false);
       resetMatchForm();
       Alert.alert('Success', 'Match result submitted!');
@@ -391,7 +416,7 @@ const SportsPlace: React.FC = () => {
         matchData: match as Match,
         likes: 0,
         comments: 0,
-        createdAt: Date.now()
+        createdAt: Date.now(),
       };
 
       await addDoc(collection(db, 'sports_posts'), post);
@@ -410,8 +435,6 @@ const SportsPlace: React.FC = () => {
     });
   };
 
-
-
   // Filter groups based on selected sport
   // Only show groups where now < dateTime + 3 hours
   const now = Date.now();
@@ -421,9 +444,8 @@ const SportsPlace: React.FC = () => {
     return now < groupTime + 3 * 60 * 60 * 1000;
   };
 
-  const filteredGroups = (selectedSport === 'all' 
-    ? sportsGroups 
-    : sportsGroups.filter(group => group.sport === selectedSport)
+  const filteredGroups = (
+    selectedSport === 'all' ? sportsGroups : sportsGroups.filter((group) => group.sport === selectedSport)
   ).filter(isGroupActive);
 
   // For My Groups, allow 6 hours after start time
@@ -433,7 +455,7 @@ const SportsPlace: React.FC = () => {
     return now < groupTime + 6 * 60 * 60 * 1000;
   };
   const myGroups = sportsGroups
-    .filter(group => group.players.some(player => player.id === 'current_user_id'))
+    .filter((group) => group.players.some((player) => player.id === 'current_user_id'))
     .filter(isMyGroupActive);
 
   const onRefresh = async () => {
@@ -443,15 +465,15 @@ const SportsPlace: React.FC = () => {
   };
 
   const renderGroupCard = ({ item }: { item: SportsGroup }) => {
-    const sport = SPORTS.find(s => s.id === item.sport);
-    const skillLevel = SKILL_LEVELS.find(s => s.key === item.skillLevel);
-    
+    const sport = SPORTS.find((s) => s.id === item.sport);
+    const skillLevel = SKILL_LEVELS.find((s) => s.key === item.skillLevel);
+
     return (
       <TouchableOpacity
         activeOpacity={0.95}
         onPress={() => setExpandedGroupId(expandedGroupId === item.id ? null : item.id)}
       >
-        <Animated.View style={[styles.groupCard, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}> 
+        <Animated.View style={[styles.groupCard, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
           <LinearGradient colors={sport?.color || ['#667eea', '#764ba2']} style={styles.groupCardHeader}>
             <View style={styles.groupCardTop}>
               <View style={styles.sportInfo}>
@@ -464,15 +486,17 @@ const SportsPlace: React.FC = () => {
               </View>
             </View>
           </LinearGradient>
-          
+
           <View style={styles.groupCardContent}>
             <Text style={styles.groupTitle}>{item.title}</Text>
             <Text style={styles.groupDescription}>{item.description}</Text>
-            
+
             <View style={styles.groupDetails}>
               <View style={styles.detailItem}>
                 <Ionicons name="people" size={16} color="#8E8E93" />
-                <Text style={styles.detailText}>{item.currentPlayers}/{item.maxPlayers} players</Text>
+                <Text style={styles.detailText}>
+                  {item.currentPlayers}/{item.maxPlayers} players
+                </Text>
               </View>
               <View style={styles.detailItem}>
                 <Ionicons name="time" size={16} color="#8E8E93" />
@@ -483,10 +507,10 @@ const SportsPlace: React.FC = () => {
                 <Text style={styles.detailText}>{item.location}</Text>
               </View>
             </View>
-            
+
             <View style={styles.playersPreview}>
               {item.players.slice(0, 4).map((player, index) => (
-                <View key={player.id} style={[styles.playerAvatar, { zIndex: 4 - index }]}> 
+                <View key={player.id} style={[styles.playerAvatar, { zIndex: 4 - index }]}>
                   <Text style={styles.playerInitial}>{player.name.charAt(0)}</Text>
                 </View>
               ))}
@@ -496,19 +520,17 @@ const SportsPlace: React.FC = () => {
                 </View>
               )}
             </View>
-            
+
             <TouchableOpacity
               style={[styles.joinButton, item.status === 'full' && styles.fullButton]}
               onPress={() => joinGroup(item.id)}
               disabled={item.status === 'full'}
             >
-              <LinearGradient 
-                colors={item.status === 'full' ? ['#8E8E93', '#8E8E93'] : sport?.color || ['#667eea', '#764ba2']} 
+              <LinearGradient
+                colors={item.status === 'full' ? ['#8E8E93', '#8E8E93'] : sport?.color || ['#667eea', '#764ba2']}
                 style={styles.joinButtonGradient}
               >
-                <Text style={styles.joinButtonText}>
-                  {item.status === 'full' ? 'Full' : 'Join Group'}
-                </Text>
+                <Text style={styles.joinButtonText}>{item.status === 'full' ? 'Full' : 'Join Group'}</Text>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -519,8 +541,10 @@ const SportsPlace: React.FC = () => {
                 {item.players.length === 0 ? (
                   <Text style={styles.expandedPlayerName}>No players yet</Text>
                 ) : (
-                  item.players.map(player => (
-                    <Text key={player.id} style={styles.expandedPlayerName}>{player.name}</Text>
+                  item.players.map((player) => (
+                    <Text key={player.id} style={styles.expandedPlayerName}>
+                      {player.name}
+                    </Text>
                   ))
                 )}
                 <Text style={styles.expandedTitle}>Date & Time:</Text>
@@ -536,22 +560,22 @@ const SportsPlace: React.FC = () => {
   };
 
   const renderLeaderboardItem = ({ item, index }: { item: UserStats; index: number }) => {
-    const sport = SPORTS.find(s => s.id === item.sport);
-    const levelInfo = SKILL_LEVELS.find(s => s.key === item.level);
-    
+    const sport = SPORTS.find((s) => s.id === item.sport);
+    const levelInfo = SKILL_LEVELS.find((s) => s.key === item.level);
+
     return (
       <View style={styles.leaderboardItem}>
         <View style={styles.rankContainer}>
           <Text style={styles.rankText}>#{index + 1}</Text>
           {index < 3 && (
-            <Ionicons 
-              name={index === 0 ? 'trophy' : index === 1 ? 'medal' : 'ribbon'} 
-              size={20} 
-              color={index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32'} 
+            <Ionicons
+              name={index === 0 ? 'trophy' : index === 1 ? 'medal' : 'ribbon'}
+              size={20}
+              color={index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32'}
             />
           )}
         </View>
-        
+
         <View style={styles.playerInfo}>
           <View style={styles.playerAvatar}>
             <Text style={styles.playerInitial}>U</Text>
@@ -559,14 +583,16 @@ const SportsPlace: React.FC = () => {
           <View style={styles.playerDetails}>
             <Text style={styles.playerName}>User {item.userId}</Text>
             <View style={styles.playerStats}>
-              <Text style={styles.statText}>{item.gamesWon}W - {item.gamesLost}L</Text>
+              <Text style={styles.statText}>
+                {item.gamesWon}W - {item.gamesLost}L
+              </Text>
               <View style={[styles.levelBadge, { backgroundColor: levelInfo?.color }]}>
                 <Text style={styles.levelText}>{levelInfo?.label}</Text>
               </View>
             </View>
           </View>
         </View>
-        
+
         <View style={styles.pointsContainer}>
           <Text style={styles.pointsText}>{item.points}</Text>
           <Text style={styles.pointsLabel}>pts</Text>
@@ -576,8 +602,8 @@ const SportsPlace: React.FC = () => {
   };
 
   const renderSocialPost = ({ item }: { item: SportsPost }) => {
-    const sport = SPORTS.find(s => s.id === item.sport);
-    
+    const sport = SPORTS.find((s) => s.id === item.sport);
+
     return (
       <View style={styles.socialPost}>
         <View style={styles.postHeader}>
@@ -594,9 +620,9 @@ const SportsPlace: React.FC = () => {
             <SportIcon sport={sport?.id} size={12} color="#FFFFFF" />
           </View>
         </View>
-        
+
         <Text style={styles.postContent}>{item.content}</Text>
-        
+
         {item.matchData && (
           <View style={styles.matchCard}>
             <Text style={styles.matchTitle}>Match Result</Text>
@@ -607,7 +633,7 @@ const SportsPlace: React.FC = () => {
             </View>
           </View>
         )}
-        
+
         <View style={styles.postActions}>
           <TouchableOpacity style={styles.actionButton}>
             <Ionicons name="heart-outline" size={20} color="#8E8E93" />
@@ -637,9 +663,9 @@ const SportsPlace: React.FC = () => {
   );
 
   const renderMyGroupCard = (item: SportsGroup) => {
-    const sport = SPORTS.find(s => s.id === item.sport);
-    const skillLevel = SKILL_LEVELS.find(s => s.key === item.skillLevel);
-    
+    const sport = SPORTS.find((s) => s.id === item.sport);
+    const skillLevel = SKILL_LEVELS.find((s) => s.key === item.skillLevel);
+
     return (
       <View style={styles.myGroupCard}>
         <LinearGradient colors={sport?.color || ['#667eea', '#764ba2']} style={styles.myGroupCardHeader}>
@@ -649,22 +675,20 @@ const SportsPlace: React.FC = () => {
               <Text style={styles.sportName}>{sport?.name}</Text>
             </View>
             <View style={[styles.skillBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-              <Ionicons name={skillLevel?.icon as any || 'star'} size={12} color="#FFFFFF" />
+              <Ionicons name={(skillLevel?.icon as any) || 'star'} size={12} color="#FFFFFF" />
               <Text style={styles.skillText}>{skillLevel?.label}</Text>
             </View>
           </View>
         </LinearGradient>
-        
+
         <View style={styles.myGroupCardContent}>
           <Text style={styles.groupTitle}>{item.title}</Text>
           <Text style={styles.groupDescription}>{item.description}</Text>
-          
+
           <View style={styles.groupDetails}>
             <View style={styles.detailItem}>
               <Ionicons name="calendar" size={14} color="#8E8E93" />
-              <Text style={styles.detailText}>
-                {new Date(item.dateTime).toLocaleDateString()}
-              </Text>
+              <Text style={styles.detailText}>{new Date(item.dateTime).toLocaleDateString()}</Text>
             </View>
             <View style={styles.detailItem}>
               <Ionicons name="time" size={14} color="#8E8E93" />
@@ -675,7 +699,7 @@ const SportsPlace: React.FC = () => {
               <Text style={styles.detailText}>{item.location}</Text>
             </View>
           </View>
-          
+
           <View style={styles.myGroupActions}>
             <TouchableOpacity style={styles.actionButton}>
               <Ionicons name="chatbubble-outline" size={16} color="#4E54C8" />
@@ -685,7 +709,7 @@ const SportsPlace: React.FC = () => {
               <Ionicons name="people-outline" size={16} color="#4E54C8" />
               <Text style={[styles.actionText, { color: '#4E54C8' }]}>Members</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={() => {
                 console.log('Navigating to MyGroupSports with groupId:', item.id);
@@ -715,16 +739,14 @@ const SportsPlace: React.FC = () => {
           <Text style={styles.modalTitle}>My Groups</Text>
           <View style={{ width: 24 }} />
         </View>
-        
+
         <ScrollView style={styles.modalContent}>
           {myGroups.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="people-outline" size={64} color="#D1D1D6" />
               <Text style={styles.emptyStateTitle}>No Groups Yet</Text>
-              <Text style={styles.emptyStateSubtitle}>
-                Join or create a group to start playing sports with others!
-              </Text>
-              <TouchableOpacity 
+              <Text style={styles.emptyStateSubtitle}>Join or create a group to start playing sports with others!</Text>
+              <TouchableOpacity
                 style={styles.emptyStateButton}
                 onPress={() => {
                   setShowMyGroups(false);
@@ -763,7 +785,7 @@ const SportsPlace: React.FC = () => {
             <Text style={styles.createButton}>Submit</Text>
           </TouchableOpacity>
         </View>
-        
+
         <ScrollView style={styles.modalContent}>
           <View style={styles.scoreInput}>
             <View style={styles.teamScore}>
@@ -771,7 +793,7 @@ const SportsPlace: React.FC = () => {
               <TextInput
                 style={styles.scoreField}
                 value={matchForm.team1Score}
-                onChangeText={(text) => setMatchForm({...matchForm, team1Score: text})}
+                onChangeText={(text) => setMatchForm({ ...matchForm, team1Score: text })}
                 placeholder="0"
                 keyboardType="numeric"
               />
@@ -782,40 +804,40 @@ const SportsPlace: React.FC = () => {
               <TextInput
                 style={styles.scoreField}
                 value={matchForm.team2Score}
-                onChangeText={(text) => setMatchForm({...matchForm, team2Score: text})}
+                onChangeText={(text) => setMatchForm({ ...matchForm, team2Score: text })}
                 placeholder="0"
                 keyboardType="numeric"
               />
             </View>
           </View>
-          
+
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Match Duration (minutes)</Text>
             <TextInput
               style={styles.textInput}
               value={matchForm.duration}
-              onChangeText={(text) => setMatchForm({...matchForm, duration: text})}
+              onChangeText={(text) => setMatchForm({ ...matchForm, duration: text })}
               placeholder="60"
               keyboardType="numeric"
             />
           </View>
-          
+
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>MVP</Text>
             <TextInput
               style={styles.textInput}
               value={matchForm.mvp}
-              onChangeText={(text) => setMatchForm({...matchForm, mvp: text})}
+              onChangeText={(text) => setMatchForm({ ...matchForm, mvp: text })}
               placeholder="Player name"
             />
           </View>
-          
+
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Notes</Text>
             <TextInput
               style={[styles.textInput, styles.multilineInput]}
               value={matchForm.notes}
-              onChangeText={(text) => setMatchForm({...matchForm, notes: text})}
+              onChangeText={(text) => setMatchForm({ ...matchForm, notes: text })}
               placeholder="Any additional notes about the match"
               multiline
               numberOfLines={3}
@@ -829,38 +851,28 @@ const SportsPlace: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity 
-            style={styles.backButton} 
-            onPress={() => navigation.goBack()}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#1C1C1E" />
           </TouchableOpacity>
-          <Image 
-            source={require('../../assets/images/campus-life.png')} 
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <Image source={require('../../assets/images/campus-life.png')} style={styles.logo} resizeMode="contain" />
           <View style={styles.appNameContainer}>
             <Text style={styles.appName}>YOGO Campus</Text>
             <Text style={styles.appSubtitle}>Sports Hub</Text>
           </View>
         </View>
-        
+
         <View style={styles.headerRight}>
-          <TouchableOpacity 
-            style={styles.myGroupsButton} 
-            onPress={() => setShowMyGroups(true)}
-          >
+          <TouchableOpacity style={styles.myGroupsButton} onPress={() => setShowMyGroups(true)}>
             <LinearGradient colors={['#34C759', '#30D158']} style={styles.myGroupsGradient}>
               <Ionicons name="people" size={16} color="#FFFFFF" />
               <Text style={styles.myGroupsText}>My Groups</Text>
             </LinearGradient>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.addButton} onPress={() => setShowCreateGroup(true)}>
             <LinearGradient colors={['#4E54C8', '#8F94FB']} style={styles.addButtonGradient}>
               <Ionicons name="add" size={24} color="#FFFFFF" />
@@ -881,38 +893,30 @@ const SportsPlace: React.FC = () => {
             style={[styles.tab, activeTab === tab.key && styles.activeTab]}
             onPress={() => setActiveTab(tab.key as any)}
           >
-            <Ionicons 
-              name={tab.icon as any} 
-              size={20} 
-              color={activeTab === tab.key ? '#4E54C8' : '#8E8E93'} 
-            />
-            <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>
-              {tab.label}
-            </Text>
+            <Ionicons name={tab.icon as any} size={20} color={activeTab === tab.key ? '#4E54C8' : '#8E8E93'} />
+            <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>{tab.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
       {/* Content */}
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {activeTab === 'groups' && (
           <>
             {/* Sport Filters */}
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false} 
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.filterContainer}
             >
               <TouchableOpacity
                 style={[styles.filterPill, selectedSport === 'all' && styles.activeFilterPill]}
                 onPress={() => setSelectedSport('all')}
               >
-                <Text style={[styles.filterText, selectedSport === 'all' && styles.activeFilterText]}>
-                  All
-                </Text>
+                <Text style={[styles.filterText, selectedSport === 'all' && styles.activeFilterText]}>All</Text>
               </TouchableOpacity>
               {SPORTS.map((sport) => (
                 <TouchableOpacity
@@ -926,7 +930,7 @@ const SportsPlace: React.FC = () => {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            
+
             <FlatList
               data={filteredGroups}
               renderItem={renderGroupCard}
@@ -949,15 +953,12 @@ const SportsPlace: React.FC = () => {
 
         {activeTab === 'social' && (
           <>
-            <TouchableOpacity 
-              style={styles.fab}
-              onPress={() => setShowMatchResult(true)}
-            >
+            <TouchableOpacity style={styles.fab} onPress={() => setShowMatchResult(true)}>
               <LinearGradient colors={['#FF6B35', '#F7931E']} style={styles.fabGradient}>
                 <Ionicons name="add" size={24} color="#FFFFFF" />
               </LinearGradient>
             </TouchableOpacity>
-            
+
             <FlatList
               data={sportsPosts}
               renderItem={renderSocialPost}

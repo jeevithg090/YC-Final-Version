@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  Image, 
-  Alert, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
   ActivityIndicator,
-  ScrollView,
   Platform,
   Modal,
   Dimensions,
@@ -15,31 +13,32 @@ import {
   Switch,
   SafeAreaView,
   StatusBar,
-  Animated
+  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
-import * as WebBrowser from 'expo-web-browser';
 import { db } from '../services/firebase';
-import { 
-  collection, 
-  doc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  getDocs, 
+import {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  getDocs,
   getDoc,
-  onSnapshot,
   query,
   orderBy,
   Timestamp,
-  setDoc
+  setDoc,
 } from 'firebase/firestore';
-import { ThemedView } from '../components/ThemedView';
-import { ThemedText } from '../components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
 import { GeminiTimetableService } from '../services/geminiTimetableService';
-import { TimetableData, ExtractedTimetable, ClassEntry, DaySchedule, ClassNotificationSettings, UploadLimitData } from '../types/timetable';
+import {
+  TimetableData,
+  ExtractedTimetable,
+  ClassEntry,
+  ClassNotificationSettings,
+  UploadLimitData,
+} from '../types/timetable';
 
 interface ClassNotificationProps {
   navigation?: {
@@ -69,28 +68,32 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
   const [notificationSettings, setNotificationSettings] = useState<ClassNotificationSettings>({
     enabled: true,
     reminderMinutes: 15,
-    soundEnabled: true
+    soundEnabled: true,
   });
-  const [editingClass, setEditingClass] = useState<{ dayIndex: number; classIndex: number; classData: ClassEntry } | null>(null);
+  const [editingClass, setEditingClass] = useState<{
+    dayIndex: number;
+    classIndex: number;
+    classData: ClassEntry;
+  } | null>(null);
   const [showSettings, setShowSettings] = useState<boolean>(false);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.95));
-  
+
   // Edit modal state
   const [editSubject, setEditSubject] = useState<string>('');
   const [editStartTime, setEditStartTime] = useState<string>('');
   const [editEndTime, setEditEndTime] = useState<string>('');
   const [editRoom, setEditRoom] = useState<string>('');
   const [editProfessor, setEditProfessor] = useState<string>('');
-  
+
   // Settings modal state
   const [settingsEnabled, setSettingsEnabled] = useState<boolean>(true);
   const [settingsReminderMinutes, setSettingsReminderMinutes] = useState<string>('15');
   const [settingsSoundEnabled, setSettingsSoundEnabled] = useState<boolean>(true);
-  
+
   // Hardcoded user ID (should be replaced with actual authentication)
-  const userId = "user123";
-  
+  const userId = 'user123';
+
   // Initialize Gemini service
   const geminiService = new GeminiTimetableService();
 
@@ -140,7 +143,9 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
         const daysLeft = UPLOAD_RESET_DAYS - Math.floor((now - data.lastResetDate) / (1000 * 60 * 60 * 24));
         setUploadLimitMessage(`Upload limit reached. Try again in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}.`);
       } else {
-        setUploadLimitMessage(`${UPLOAD_LIMIT - data.uploadsThisMonth} upload${UPLOAD_LIMIT - data.uploadsThisMonth !== 1 ? 's' : ''} left this month.`);
+        setUploadLimitMessage(
+          `${UPLOAD_LIMIT - data.uploadsThisMonth} upload${UPLOAD_LIMIT - data.uploadsThisMonth !== 1 ? 's' : ''} left this month.`,
+        );
       }
     } catch (error) {
       setUploadLimitMessage('Error loading upload limit.');
@@ -163,7 +168,9 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
     if (newUploads >= UPLOAD_LIMIT) {
       setUploadLimitMessage('Upload limit reached. Try again in 30 days.');
     } else {
-      setUploadLimitMessage(`${UPLOAD_LIMIT - newUploads} upload${UPLOAD_LIMIT - newUploads !== 1 ? 's' : ''} left this month.`);
+      setUploadLimitMessage(
+        `${UPLOAD_LIMIT - newUploads} upload${UPLOAD_LIMIT - newUploads !== 1 ? 's' : ''} left this month.`,
+      );
     }
   };
 
@@ -173,14 +180,14 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
       Alert.alert('Upload Limit', uploadLimitMessage);
       return;
     }
-    if (!await requestPermissions()) return;
+    if (!(await requestPermissions())) return;
     try {
       setLoading(true);
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
         allowsEditing: false,
         quality: 1,
-        aspect: [3, 4]
+        aspect: [3, 4],
       });
       if (result.canceled || !result.assets || result.assets.length === 0) {
         setLoading(false);
@@ -201,14 +208,14 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
       Alert.alert('Upload Limit', uploadLimitMessage);
       return;
     }
-    if (!await requestPermissions()) return;
+    if (!(await requestPermissions())) return;
     try {
       setLoading(true);
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: false,
         quality: 1,
-        aspect: [3, 4]
+        aspect: [3, 4],
       });
       if (result.canceled || !result.assets || result.assets.length === 0) {
         setLoading(false);
@@ -239,7 +246,7 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
     // Load data from Firebase
     loadExtractedTimetables();
     loadNotificationSettings();
-    
+
     // Animate components in
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -261,7 +268,7 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
       const timetablesRef = collection(db, EXTRACTED_TIMETABLES_COLLECTION);
       const q = query(timetablesRef, orderBy('extractionDate', 'desc'));
       const querySnapshot = await getDocs(q);
-      
+
       const extractedList: ExtractedTimetable[] = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
@@ -271,10 +278,10 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
           originalImageUrl: data.originalImageUrl || data.imageUri || '',
           extractedData: data.extractedData,
           extractionDate: data.extractionDate,
-          confidence: data.confidence
+          confidence: data.confidence,
         });
       });
-      
+
       setExtractedTimetables(extractedList);
       if (extractedList.length > 0 && !selectedTimetableData) {
         const mostRecent = extractedList[0];
@@ -291,13 +298,13 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
     try {
       const settingsRef = doc(db, NOTIFICATION_SETTINGS_COLLECTION, userId);
       const docSnap = await getDoc(settingsRef);
-      
+
       if (docSnap.exists()) {
         const data = docSnap.data();
         setNotificationSettings({
           enabled: data.enabled,
           reminderMinutes: data.reminderMinutes,
-          soundEnabled: data.soundEnabled
+          soundEnabled: data.soundEnabled,
         });
       }
     } catch (error) {
@@ -314,7 +321,7 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
         enabled: settings.enabled,
         reminderMinutes: settings.reminderMinutes,
         soundEnabled: settings.soundEnabled,
-        updatedAt: Timestamp.now()
+        updatedAt: Timestamp.now(),
       }).catch(async () => {
         // If document doesn't exist, create it
         await addDoc(collection(db, NOTIFICATION_SETTINGS_COLLECTION), {
@@ -323,10 +330,10 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
           reminderMinutes: settings.reminderMinutes,
           soundEnabled: settings.soundEnabled,
           createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now()
+          updatedAt: Timestamp.now(),
         });
       });
-      
+
       setNotificationSettings(settings);
       Alert.alert('Success', 'Notification settings saved!');
     } catch (error) {
@@ -353,7 +360,6 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
       // Process directly with Gemini AI
       const extractedData = await geminiService.processTimetableImage(imageUri);
       if (extractedData) {
-        
         // Save to Firestore
         const docRef = await addDoc(collection(db, EXTRACTED_TIMETABLES_COLLECTION), {
           userId,
@@ -361,9 +367,9 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
           extractedData,
           extractionDate: Date.now(),
           confidence: 0.85,
-          createdAt: Timestamp.now()
+          createdAt: Timestamp.now(),
         });
-        
+
         const newExtracted: ExtractedTimetable = {
           id: docRef.id,
           userId,
@@ -372,11 +378,11 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
           extractionDate: Date.now(),
           confidence: 0.85,
         };
-        
+
         const updatedExtracted = [...extractedTimetables, newExtracted];
         setExtractedTimetables(updatedExtracted);
         await incrementUploadCount();
-        
+
         Alert.alert(
           'Success!',
           `Timetable processed successfully! Found ${extractedData.days.reduce((total, day) => total + day.classes.length, 0)} classes across ${extractedData.days.length} days.`,
@@ -384,16 +390,19 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
             {
               text: 'View Schedule',
               onPress: () => viewTimetableData(extractedData, newExtracted.id),
-              style: 'default'
+              style: 'default',
             },
             {
               text: 'OK',
-              style: 'cancel'
-            }
-          ]
+              style: 'cancel',
+            },
+          ],
         );
       } else {
-        Alert.alert('Processing Failed', 'Could not extract timetable data from image. Please try again with a clearer image.');
+        Alert.alert(
+          'Processing Failed',
+          'Could not extract timetable data from image. Please try again with a clearer image.',
+        );
       }
     } catch (error) {
       console.error('Error processing image with AI:', error);
@@ -409,7 +418,7 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
     if (navigation) {
       navigation.navigate('DailyTimetable', {
         timetableData,
-        extractedId
+        extractedId,
       });
     } else {
       setSelectedTimetableData(timetableData);
@@ -420,71 +429,57 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      
+
       {/* Custom Header */}
-      <LinearGradient
-        colors={['#4285F4', '#6A7FFA']}
-        style={styles.headerGradient}
-      >
+      <LinearGradient colors={['#4285F4', '#6A7FFA']} style={styles.headerGradient}>
         <View style={styles.customHeader}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation?.goBack?.() || console.log('Back pressed')}
           >
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
-          
+
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Class Notifications</Text>
             <Text style={styles.headerSubtitle}>AI-Powered Timetable Scanner</Text>
           </View>
-          
         </View>
       </LinearGradient>
 
-      <Animated.ScrollView 
-        style={[styles.scrollContainer, { opacity: fadeAnim }]}
-        showsVerticalScrollIndicator={false}
-      >
+      <Animated.ScrollView style={[styles.scrollContainer, { opacity: fadeAnim }]} showsVerticalScrollIndicator={false}>
         {/* Upload Section */}
         <Animated.View style={[styles.uploadSection, { transform: [{ scale: scaleAnim }] }]}>
-          <LinearGradient
-            colors={['#F8F9FF', '#FFFFFF']}
-            style={styles.uploadCard}
-          >
+          <LinearGradient colors={['#F8F9FF', '#FFFFFF']} style={styles.uploadCard}>
             <View style={styles.uploadHeader}>
               <Ionicons name="cloud-upload-outline" size={32} color="#4285F4" />
               <Text style={styles.uploadTitle}>Upload Your Timetable</Text>
               <Text style={styles.uploadSubtitle}>
                 Take a photo or select from gallery to extract your class schedule
               </Text>
-              <Text style={{ color: canUpload ? '#4285F4' : 'red', marginTop: 8, fontWeight: 'bold' }}>{uploadLimitMessage}</Text>
+              <Text style={{ color: canUpload ? '#4285F4' : 'red', marginTop: 8, fontWeight: 'bold' }}>
+                {uploadLimitMessage}
+              </Text>
             </View>
 
             <View style={styles.uploadButtons}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.uploadButton, (!canUpload || loading || aiProcessing) && styles.uploadButtonDisabled]}
                 onPress={handleCameraCapture}
                 disabled={!canUpload || loading || aiProcessing}
               >
-                <LinearGradient
-                  colors={['#4285F4', '#6A7FFA']}
-                  style={styles.buttonGradient}
-                >
+                <LinearGradient colors={['#4285F4', '#6A7FFA']} style={styles.buttonGradient}>
                   <Ionicons name="camera" size={24} color="#fff" />
                   <Text style={styles.uploadButtonText}>Take Photo</Text>
                 </LinearGradient>
               </TouchableOpacity>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.uploadButton, (!canUpload || loading || aiProcessing) && styles.uploadButtonDisabled]}
                 onPress={handleGallerySelect}
                 disabled={!canUpload || loading || aiProcessing}
               >
-                <LinearGradient
-                  colors={['#34A853', '#5DD65A']}
-                  style={styles.buttonGradient}
-                >
+                <LinearGradient colors={['#34A853', '#5DD65A']} style={styles.buttonGradient}>
                   <Ionicons name="images" size={24} color="#fff" />
                   <Text style={styles.uploadButtonText}>From Gallery</Text>
                 </LinearGradient>
@@ -494,9 +489,7 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
             {(loading || aiProcessing) && (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#4285F4" />
-                <Text style={styles.loadingText}>
-                  {aiProcessing ? 'Processing with AI...' : 'Loading...'}
-                </Text>
+                <Text style={styles.loadingText}>{aiProcessing ? 'Processing with AI...' : 'Loading...'}</Text>
               </View>
             )}
           </LinearGradient>
@@ -512,24 +505,15 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
                 style={styles.timetableCard}
                 onPress={() => viewTimetableData(timetable.extractedData, timetable.id)}
               >
-                <LinearGradient
-                  colors={['#FFFFFF', '#F8F9FF']}
-                  style={styles.timetableCardGradient}
-                >
+                <LinearGradient colors={['#FFFFFF', '#F8F9FF']} style={styles.timetableCardGradient}>
                   <View style={styles.timetableCardHeader}>
                     <View style={styles.timetableCardInfo}>
-                      <Text style={styles.timetableCardTitle}>
-                        Timetable #{index + 1}
-                      </Text>
-                      <Text style={styles.timetableCardDate}>
-                        {formatDate(timetable.extractionDate)}
-                      </Text>
+                      <Text style={styles.timetableCardTitle}>Timetable #{index + 1}</Text>
+                      <Text style={styles.timetableCardDate}>{formatDate(timetable.extractionDate)}</Text>
                     </View>
                     <View style={styles.timetableCardStats}>
                       <View style={styles.statItem}>
-                        <Text style={styles.statNumber}>
-                          {timetable.extractedData.days.length}
-                        </Text>
+                        <Text style={styles.statNumber}>{timetable.extractedData.days.length}</Text>
                         <Text style={styles.statLabel}>Days</Text>
                       </View>
                       <View style={styles.statItem}>
@@ -586,15 +570,9 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
       >
         <View style={styles.modalContainer}>
           <View style={styles.settingsModal}>
-            <LinearGradient
-              colors={['#4285F4', '#6A7FFA']}
-              style={styles.modalHeader}
-            >
+            <LinearGradient colors={['#4285F4', '#6A7FFA']} style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Notification Settings</Text>
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setShowSettings(false)}
-              >
+              <TouchableOpacity style={styles.modalCloseButton} onPress={() => setShowSettings(false)}>
                 <Ionicons name="close" size={24} color="#fff" />
               </TouchableOpacity>
             </LinearGradient>
@@ -603,12 +581,10 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
               <View style={styles.settingItem}>
                 <View style={styles.settingInfo}>
                   <Text style={styles.settingLabel}>Enable Notifications</Text>
-                  <Text style={styles.settingDescription}>
-                    Get reminders before your classes
-                  </Text>
+                  <Text style={styles.settingDescription}>Get reminders before your classes</Text>
                 </View>
-                <Switch 
-                  value={settingsEnabled} 
+                <Switch
+                  value={settingsEnabled}
                   onValueChange={setSettingsEnabled}
                   trackColor={{ false: '#CCCCCC', true: '#4285F4' }}
                 />
@@ -617,12 +593,10 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
               <View style={styles.settingItem}>
                 <View style={styles.settingInfo}>
                   <Text style={styles.settingLabel}>Sound Alerts</Text>
-                  <Text style={styles.settingDescription}>
-                    Play sound with notifications
-                  </Text>
+                  <Text style={styles.settingDescription}>Play sound with notifications</Text>
                 </View>
-                <Switch 
-                  value={settingsSoundEnabled} 
+                <Switch
+                  value={settingsSoundEnabled}
                   onValueChange={setSettingsSoundEnabled}
                   trackColor={{ false: '#CCCCCC', true: '#4285F4' }}
                 />
@@ -631,9 +605,7 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
               <View style={styles.settingItem}>
                 <View style={styles.settingInfo}>
                   <Text style={styles.settingLabel}>Reminder Time</Text>
-                  <Text style={styles.settingDescription}>
-                    Minutes before class
-                  </Text>
+                  <Text style={styles.settingDescription}>Minutes before class</Text>
                 </View>
                 <TextInput
                   style={styles.settingInput}
@@ -650,16 +622,13 @@ const ClassNotification: React.FC<ClassNotificationProps> = ({ navigation }) => 
                   const settings: ClassNotificationSettings = {
                     enabled: settingsEnabled,
                     reminderMinutes: parseInt(settingsReminderMinutes) || 15,
-                    soundEnabled: settingsSoundEnabled
+                    soundEnabled: settingsSoundEnabled,
                   };
                   await saveNotificationSettings(settings);
                   setShowSettings(false);
                 }}
               >
-                <LinearGradient
-                  colors={['#4285F4', '#6A7FFA']}
-                  style={styles.buttonGradient}
-                >
+                <LinearGradient colors={['#4285F4', '#6A7FFA']} style={styles.buttonGradient}>
                   <Text style={styles.saveButtonText}>Save Settings</Text>
                 </LinearGradient>
               </TouchableOpacity>

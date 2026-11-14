@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Platform,
   Dimensions,
   FlatList,
   Image,
@@ -17,14 +16,25 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
-import { collection, addDoc, onSnapshot, query, orderBy, where, updateDoc, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import {
+  collection,
+  addDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  where,
+  updateDoc,
+  doc,
+  arrayUnion,
+  arrayRemove,
+} from 'firebase/firestore';
 import { db, auth } from '../services/firebase';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 
-// Firebase Console Action: 
+// Firebase Console Action:
 // 1. Create Firestore collection: 'sports_posts'
 // 2. Create composite index:
 //    - Collection: 'sports_posts' | Fields: sport (Ascending), createdAt (Descending)
@@ -80,7 +90,7 @@ const SPORTS = [
 
 const SportsSocial: React.FC = () => {
   const navigation = useNavigation<SportsSocialNavigationProp>();
-  
+
   // State management
   const [selectedSport, setSelectedSport] = useState('all');
   const [posts, setPosts] = useState<SportsPost[]>([]);
@@ -97,8 +107,8 @@ const SportsSocial: React.FC = () => {
       location: '',
       result: 'win' as 'win' | 'loss' | 'draw',
       mvp: '',
-      highlights: [] as string[]
-    }
+      highlights: [] as string[],
+    },
   });
 
   useEffect(() => {
@@ -109,33 +119,34 @@ const SportsSocial: React.FC = () => {
     // Firebase Console Action: Create composite index for 'sports_posts' collection:
     // Fields: sport (Ascending), createdAt (Descending)
     // Or use the provided URL: https://console.firebase.google.com/v1/r/project/yogo-campus/firestore/indexes
-    
+
     let postsQuery;
     if (selectedSport === 'all') {
-      postsQuery = query(
-        collection(db, 'sports_posts'),
-        orderBy('createdAt', 'desc')
-      );
+      postsQuery = query(collection(db, 'sports_posts'), orderBy('createdAt', 'desc'));
     } else {
       postsQuery = query(
         collection(db, 'sports_posts'),
         where('sport', '==', selectedSport),
-        orderBy('createdAt', 'desc')
+        orderBy('createdAt', 'desc'),
       );
     }
-    
-    const unsubscribe = onSnapshot(postsQuery, (snapshot) => {
-      const postsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as SportsPost[];
-      
-      setPosts(postsData);
-      setLoading(false);
-    }, (error) => {
-      console.error('Error loading posts:', error);
-      setLoading(false);
-    });
+
+    const unsubscribe = onSnapshot(
+      postsQuery,
+      (snapshot) => {
+        const postsData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as SportsPost[];
+
+        setPosts(postsData);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error loading posts:', error);
+        setLoading(false);
+      },
+    );
 
     return unsubscribe;
   };
@@ -150,14 +161,14 @@ const SportsSocial: React.FC = () => {
     try {
       const postRef = doc(db, 'sports_posts', postId);
       const currentUserId = auth.currentUser?.uid || 'anonymous';
-      
+
       if (isLiked) {
         await updateDoc(postRef, {
-          likes: arrayRemove(currentUserId)
+          likes: arrayRemove(currentUserId),
         });
       } else {
         await updateDoc(postRef, {
-          likes: arrayUnion(currentUserId)
+          likes: arrayUnion(currentUserId),
         });
       }
     } catch (error) {
@@ -175,11 +186,11 @@ const SportsSocial: React.FC = () => {
         userId: auth.currentUser?.uid || 'anonymous',
         userName: auth.currentUser?.displayName || 'Anonymous User',
         content: commentText.trim(),
-        createdAt: Date.now()
+        createdAt: Date.now(),
       };
 
       await updateDoc(postRef, {
-        comments: arrayUnion(newComment)
+        comments: arrayUnion(newComment),
       });
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -195,9 +206,9 @@ const SportsSocial: React.FC = () => {
     });
 
     if (!result.canceled) {
-      setNewPost(prev => ({
+      setNewPost((prev) => ({
         ...prev,
-        imageUrl: result.assets[0].uri
+        imageUrl: result.assets[0].uri,
       }));
     }
   };
@@ -220,11 +231,11 @@ const SportsSocial: React.FC = () => {
         likes: [],
         comments: [],
         createdAt: Date.now(),
-        isHighlight: false
+        isHighlight: false,
       };
 
       await addDoc(collection(db, 'sports_posts'), postData);
-      
+
       // Reset form
       setNewPost({
         content: '',
@@ -236,10 +247,10 @@ const SportsSocial: React.FC = () => {
           location: '',
           result: 'win',
           mvp: '',
-          highlights: []
-        }
+          highlights: [],
+        },
       });
-      
+
       setShowCreateModal(false);
       Alert.alert('Success', 'Post created successfully!');
     } catch (error) {
@@ -249,8 +260,8 @@ const SportsSocial: React.FC = () => {
   };
 
   const renderSportSelector = () => (
-    <ScrollView 
-      horizontal 
+    <ScrollView
+      horizontal
       showsHorizontalScrollIndicator={false}
       style={styles.sportSelector}
       contentContainerStyle={styles.sportSelectorContent}
@@ -258,25 +269,15 @@ const SportsSocial: React.FC = () => {
       {SPORTS.map((sport) => (
         <TouchableOpacity
           key={sport.id}
-          style={[
-            styles.sportChip,
-            selectedSport === sport.id && styles.selectedSportChip
-          ]}
+          style={[styles.sportChip, selectedSport === sport.id && styles.selectedSportChip]}
           onPress={() => setSelectedSport(sport.id)}
         >
           <LinearGradient
             colors={selectedSport === sport.id ? sport.color : ['#F8F9FA', '#F8F9FA']}
             style={styles.sportChipGradient}
           >
-            <FontAwesome5 
-              name={sport.icon} 
-              size={16} 
-              color={selectedSport === sport.id ? '#FFFFFF' : '#8E8E93'} 
-            />
-            <Text style={[
-              styles.sportChipText,
-              selectedSport === sport.id && styles.selectedSportChipText
-            ]}>
+            <FontAwesome5 name={sport.icon} size={16} color={selectedSport === sport.id ? '#FFFFFF' : '#8E8E93'} />
+            <Text style={[styles.sportChipText, selectedSport === sport.id && styles.selectedSportChipText]}>
               {sport.name}
             </Text>
           </LinearGradient>
@@ -288,8 +289,8 @@ const SportsSocial: React.FC = () => {
   const renderPost = ({ item }: { item: SportsPost }) => {
     const currentUserId = auth.currentUser?.uid || 'anonymous';
     const isLiked = item.likes.includes(currentUserId);
-    const sport = SPORTS.find(s => s.id === item.sport);
-    
+    const sport = SPORTS.find((s) => s.id === item.sport);
+
     return (
       <View style={styles.postCard}>
         {/* Post Header */}
@@ -303,9 +304,7 @@ const SportsSocial: React.FC = () => {
               <View style={styles.postMeta}>
                 <FontAwesome5 name={sport?.icon} size={12} color={sport?.color[0]} />
                 <Text style={styles.sportName}>{sport?.name}</Text>
-                <Text style={styles.postTime}>
-                  • {new Date(item.createdAt).toLocaleDateString()}
-                </Text>
+                <Text style={styles.postTime}>• {new Date(item.createdAt).toLocaleDateString()}</Text>
               </View>
             </View>
           </View>
@@ -334,11 +333,19 @@ const SportsSocial: React.FC = () => {
               {item.matchStats.result && (
                 <View style={styles.statRow}>
                   <Text style={styles.statLabel}>Result:</Text>
-                  <Text style={[
-                    styles.statValue,
-                    { color: item.matchStats.result === 'win' ? '#4CAF50' : 
-                             item.matchStats.result === 'loss' ? '#F44336' : '#FF9800' }
-                  ]}>
+                  <Text
+                    style={[
+                      styles.statValue,
+                      {
+                        color:
+                          item.matchStats.result === 'win'
+                            ? '#4CAF50'
+                            : item.matchStats.result === 'loss'
+                              ? '#F44336'
+                              : '#FF9800',
+                      },
+                    ]}
+                  >
                     {item.matchStats.result.toUpperCase()}
                   </Text>
                 </View>
@@ -354,31 +361,20 @@ const SportsSocial: React.FC = () => {
         )}
 
         {/* Post Image */}
-        {item.imageUrl && (
-          <Image source={{ uri: item.imageUrl }} style={styles.postImage} />
-        )}
+        {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={styles.postImage} />}
 
         {/* Post Actions */}
         <View style={styles.postActions}>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => handleLike(item.id, isLiked)}
-          >
-            <Ionicons 
-              name={isLiked ? "heart" : "heart-outline"} 
-              size={20} 
-              color={isLiked ? "#FF3B30" : "#8E8E93"} 
-            />
-            <Text style={[styles.actionText, isLiked && styles.likedText]}>
-              {item.likes.length}
-            </Text>
+          <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id, isLiked)}>
+            <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={20} color={isLiked ? '#FF3B30' : '#8E8E93'} />
+            <Text style={[styles.actionText, isLiked && styles.likedText]}>{item.likes.length}</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.actionButton}>
             <Ionicons name="chatbubble-outline" size={20} color="#8E8E93" />
             <Text style={styles.actionText}>{item.comments.length}</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.actionButton}>
             <Ionicons name="share-outline" size={20} color="#8E8E93" />
             <Text style={styles.actionText}>Share</Text>
@@ -396,9 +392,7 @@ const SportsSocial: React.FC = () => {
             ))}
             {item.comments.length > 2 && (
               <TouchableOpacity>
-                <Text style={styles.viewMoreComments}>
-                  View all {item.comments.length} comments
-                </Text>
+                <Text style={styles.viewMoreComments}>View all {item.comments.length} comments</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -408,11 +402,7 @@ const SportsSocial: React.FC = () => {
   };
 
   const renderCreatePostModal = () => (
-    <Modal
-      visible={showCreateModal}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
+    <Modal visible={showCreateModal} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={() => setShowCreateModal(false)}>
@@ -430,24 +420,20 @@ const SportsSocial: React.FC = () => {
             <Text style={styles.formLabel}>Sport</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.sportOptions}>
-                {SPORTS.filter(s => s.id !== 'all').map((sport) => (
+                {SPORTS.filter((s) => s.id !== 'all').map((sport) => (
                   <TouchableOpacity
                     key={sport.id}
-                    style={[
-                      styles.sportOption,
-                      newPost.sport === sport.id && styles.selectedSportOption
-                    ]}
-                    onPress={() => setNewPost(prev => ({ ...prev, sport: sport.id }))}
+                    style={[styles.sportOption, newPost.sport === sport.id && styles.selectedSportOption]}
+                    onPress={() => setNewPost((prev) => ({ ...prev, sport: sport.id }))}
                   >
-                    <FontAwesome5 
-                      name={sport.icon} 
-                      size={16} 
-                      color={newPost.sport === sport.id ? '#FFFFFF' : '#8E8E93'} 
+                    <FontAwesome5
+                      name={sport.icon}
+                      size={16}
+                      color={newPost.sport === sport.id ? '#FFFFFF' : '#8E8E93'}
                     />
-                    <Text style={[
-                      styles.sportOptionText,
-                      newPost.sport === sport.id && styles.selectedSportOptionText
-                    ]}>
+                    <Text
+                      style={[styles.sportOptionText, newPost.sport === sport.id && styles.selectedSportOptionText]}
+                    >
                       {sport.name}
                     </Text>
                   </TouchableOpacity>
@@ -465,7 +451,7 @@ const SportsSocial: React.FC = () => {
               multiline
               numberOfLines={4}
               value={newPost.content}
-              onChangeText={(text) => setNewPost(prev => ({ ...prev, content: text }))}
+              onChangeText={(text) => setNewPost((prev) => ({ ...prev, content: text }))}
             />
           </View>
 
@@ -492,57 +478,66 @@ const SportsSocial: React.FC = () => {
                 style={styles.statInput}
                 placeholder="Score (e.g., 21-18, 3-2)"
                 value={newPost.matchStats.score}
-                onChangeText={(text) => setNewPost(prev => ({
-                  ...prev,
-                  matchStats: { ...prev.matchStats, score: text }
-                }))}
+                onChangeText={(text) =>
+                  setNewPost((prev) => ({
+                    ...prev,
+                    matchStats: { ...prev.matchStats, score: text },
+                  }))
+                }
               />
               <TextInput
                 style={styles.statInput}
                 placeholder="Duration (e.g., 45 min)"
                 value={newPost.matchStats.duration}
-                onChangeText={(text) => setNewPost(prev => ({
-                  ...prev,
-                  matchStats: { ...prev.matchStats, duration: text }
-                }))}
+                onChangeText={(text) =>
+                  setNewPost((prev) => ({
+                    ...prev,
+                    matchStats: { ...prev.matchStats, duration: text },
+                  }))
+                }
               />
               <TextInput
                 style={styles.statInput}
                 placeholder="Location"
                 value={newPost.matchStats.location}
-                onChangeText={(text) => setNewPost(prev => ({
-                  ...prev,
-                  matchStats: { ...prev.matchStats, location: text }
-                }))}
+                onChangeText={(text) =>
+                  setNewPost((prev) => ({
+                    ...prev,
+                    matchStats: { ...prev.matchStats, location: text },
+                  }))
+                }
               />
               <TextInput
                 style={styles.statInput}
                 placeholder="MVP Player"
                 value={newPost.matchStats.mvp}
-                onChangeText={(text) => setNewPost(prev => ({
-                  ...prev,
-                  matchStats: { ...prev.matchStats, mvp: text }
-                }))}
+                onChangeText={(text) =>
+                  setNewPost((prev) => ({
+                    ...prev,
+                    matchStats: { ...prev.matchStats, mvp: text },
+                  }))
+                }
               />
-              
+
               {/* Result Selection */}
               <View style={styles.resultSelection}>
                 {['win', 'loss', 'draw'].map((result) => (
                   <TouchableOpacity
                     key={result}
-                    style={[
-                      styles.resultOption,
-                      newPost.matchStats.result === result && styles.selectedResultOption
-                    ]}
-                    onPress={() => setNewPost(prev => ({
-                      ...prev,
-                      matchStats: { ...prev.matchStats, result: result as any }
-                    }))}
+                    style={[styles.resultOption, newPost.matchStats.result === result && styles.selectedResultOption]}
+                    onPress={() =>
+                      setNewPost((prev) => ({
+                        ...prev,
+                        matchStats: { ...prev.matchStats, result: result as any },
+                      }))
+                    }
                   >
-                    <Text style={[
-                      styles.resultOptionText,
-                      newPost.matchStats.result === result && styles.selectedResultOptionText
-                    ]}>
+                    <Text
+                      style={[
+                        styles.resultOptionText,
+                        newPost.matchStats.result === result && styles.selectedResultOptionText,
+                      ]}
+                    >
                       {result.toUpperCase()}
                     </Text>
                   </TouchableOpacity>
@@ -559,13 +554,8 @@ const SportsSocial: React.FC = () => {
     <View style={styles.emptyState}>
       <FontAwesome5 name="users" size={64} color="#E5E5EA" />
       <Text style={styles.emptyStateTitle}>No Posts Yet</Text>
-      <Text style={styles.emptyStateText}>
-        Be the first to share your sports moments and achievements!
-      </Text>
-      <TouchableOpacity 
-        style={styles.createFirstPostButton}
-        onPress={() => setShowCreateModal(true)}
-      >
+      <Text style={styles.emptyStateText}>Be the first to share your sports moments and achievements!</Text>
+      <TouchableOpacity style={styles.createFirstPostButton} onPress={() => setShowCreateModal(true)}>
         <Text style={styles.createFirstPostText}>Create First Post</Text>
       </TouchableOpacity>
     </View>
@@ -574,7 +564,7 @@ const SportsSocial: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
@@ -582,14 +572,11 @@ const SportsSocial: React.FC = () => {
             <Ionicons name="arrow-back" size={24} color="#1C1C1E" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Sports Social</Text>
-          <TouchableOpacity 
-            style={styles.createButton}
-            onPress={() => setShowCreateModal(true)}
-          >
+          <TouchableOpacity style={styles.createButton} onPress={() => setShowCreateModal(true)}>
             <Ionicons name="add" size={24} color="#4E54C8" />
           </TouchableOpacity>
         </View>
-        
+
         <Text style={styles.headerSubtitle}>Share your sports moments and achievements</Text>
       </View>
 

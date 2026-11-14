@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
   Image,
   Dimensions,
-  SafeAreaView
+  SafeAreaView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -22,7 +22,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { auth } from '../../services/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Ionicons } from '@expo/vector-icons';
-import { getUserPoints } from '../../services/pointsService';
 
 type LoginNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -35,7 +34,7 @@ const Login: React.FC = () => {
   const navigation = useNavigation<LoginNavigationProp>();
   const [form, setForm] = useState<FormState>({
     email: '',
-    password: ''
+    password: '',
   });
   const [loading, setLoading] = useState<boolean>(false);
   const [errors, setErrors] = useState<Partial<FormState>>({});
@@ -76,23 +75,17 @@ const Login: React.FC = () => {
   };
 
   return (
-    <LinearGradient
-      colors={["#f5f7fa", "#c3cfe2"]}
-      style={styles.gradientBackground}
-    >
+    <LinearGradient colors={['#f5f7fa', '#c3cfe2']} style={styles.gradientBackground}>
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
         <KeyboardAvoidingView
           style={styles.keyboardAvoidingContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <ScrollView 
-            contentContainerStyle={styles.scrollContainer}
-            showsVerticalScrollIndicator={false}
-          >
+          <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
             <View style={styles.logoContainer}>
-              <Image 
-                source={require('../../../assets/images/YOGOCampus.jpg')} 
+              <Image
+                source={require('../../../assets/images/YOGOCampus.jpg')}
                 style={styles.logo}
                 resizeMode="contain"
               />
@@ -116,8 +109,8 @@ const Login: React.FC = () => {
                     autoCapitalize="none"
                     value={form.email}
                     onChangeText={(text) => {
-                      setForm({...form, email: text});
-                      if (errors.email) setErrors({...errors, email: undefined});
+                      setForm({ ...form, email: text });
+                      if (errors.email) setErrors({ ...errors, email: undefined });
                     }}
                   />
                 </View>
@@ -135,35 +128,26 @@ const Login: React.FC = () => {
                     secureTextEntry={secureTextEntry}
                     value={form.password}
                     onChangeText={(text) => {
-                      setForm({...form, password: text});
-                      if (errors.password) setErrors({...errors, password: undefined});
+                      setForm({ ...form, password: text });
+                      if (errors.password) setErrors({ ...errors, password: undefined });
                     }}
                   />
                   <TouchableOpacity onPress={toggleSecureEntry} style={styles.eyeIcon}>
-                    <Ionicons 
-                      name={secureTextEntry ? "eye-outline" : "eye-off-outline"} 
-                      size={20} 
-                      color="#666" 
-                    />
+                    <Ionicons name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'} size={20} color="#666" />
                   </TouchableOpacity>
                 </View>
                 {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
               </View>
-              
-              <TouchableOpacity 
-                onPress={() => navigation.navigate('Forgot')} 
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Forgot')}
                 style={styles.forgotPassword}
                 activeOpacity={0.7}
               >
                 <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.button}
-                onPress={handleLogin}
-                disabled={loading}
-                activeOpacity={0.8}
-              >
+              <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading} activeOpacity={0.8}>
                 <LinearGradient
                   colors={['#4e54c8', '#8f94fb']}
                   start={{ x: 0, y: 0 }}
@@ -181,10 +165,7 @@ const Login: React.FC = () => {
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>Don't have an account?</Text>
-              <TouchableOpacity 
-                onPress={() => navigation.navigate('SignUp')}
-                activeOpacity={0.7}
-              >
+              <TouchableOpacity onPress={() => navigation.navigate('SignUp')} activeOpacity={0.7}>
                 <Text style={styles.signupText}>Sign Up</Text>
               </TouchableOpacity>
             </View>

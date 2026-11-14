@@ -21,7 +21,7 @@ export const useWeather = () => {
 
   useEffect(() => {
     const weatherRef = ref(realtimeDb, 'weather_data');
-    
+
     const unsubscribe = onValue(
       weatherRef,
       (snapshot) => {
@@ -40,7 +40,7 @@ export const useWeather = () => {
         setError('Failed to load weather data');
         setLoading(false);
         setWeatherData(null);
-      }
+      },
     );
 
     return () => {

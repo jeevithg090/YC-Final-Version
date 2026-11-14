@@ -66,7 +66,7 @@ const Alerts: React.FC = () => {
     try {
       const notificationRef = doc(db, 'alerts', notificationId);
       await updateDoc(notificationRef, {
-        read: true
+        read: true,
       });
       console.log(`Marked notification ${notificationId} as read`);
     } catch (error) {
@@ -77,9 +77,9 @@ const Alerts: React.FC = () => {
   // Mark all notifications as read
   const markAllNotificationsAsRead = async () => {
     try {
-      const unreadNotifications = notifications.filter(notification => !notification.read);
-      const updatePromises = unreadNotifications.map(notification => 
-        updateDoc(doc(db, 'alerts', notification.id), { read: true })
+      const unreadNotifications = notifications.filter((notification) => !notification.read);
+      const updatePromises = unreadNotifications.map((notification) =>
+        updateDoc(doc(db, 'alerts', notification.id), { read: true }),
       );
       await Promise.all(updatePromises);
       console.log(`Marked ${unreadNotifications.length} notifications as read`);
@@ -93,7 +93,7 @@ const Alerts: React.FC = () => {
     if (!notification.read) {
       await markNotificationAsRead(notification.id);
     }
-    
+
     // For now, just mark as read. Navigation can be added later if needed
     console.log(`Tapped on ${notification.type} notification: ${notification.title}`);
   };
@@ -101,7 +101,7 @@ const Alerts: React.FC = () => {
   useEffect(() => {
     const q = query(collection(db, 'alerts'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetched: AlertNotification[] = snapshot.docs.map(doc => {
+      const fetched: AlertNotification[] = snapshot.docs.map((doc) => {
         const data = doc.data();
         return {
           id: doc.id,
@@ -121,7 +121,7 @@ const Alerts: React.FC = () => {
           professor: data.professor,
           dayName: data.dayName,
           isFirstClass: data.isFirstClass,
-          userId: data.userId // include userId for filtering
+          userId: data.userId, // include userId for filtering
         };
       });
       setNotifications(fetched);
@@ -130,7 +130,7 @@ const Alerts: React.FC = () => {
   }, []);
 
   // Filter notifications based on selected filter and userId
-  const filteredNotifications = notifications.filter(notification => {
+  const filteredNotifications = notifications.filter((notification) => {
     if (!currentUser) return false;
     if (notification.userId && notification.userId !== currentUser.id) return false;
     switch (notificationFilter) {
@@ -150,18 +150,20 @@ const Alerts: React.FC = () => {
   });
 
   // Check if there are unread notifications
-  const hasUnreadNotifications = notifications.some(notification => !notification.read);
+  const hasUnreadNotifications = notifications.some((notification) => !notification.read);
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Top Navigation Bar */}
       <View style={styles.navBar}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.reset({
-            index: 0,
-            routes: [{ name: 'Dashboard' }],
-          })}
+          onPress={() =>
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Dashboard' }],
+            })
+          }
         >
           <Ionicons name="arrow-back" size={24} color="#4E54C8" />
         </TouchableOpacity>
@@ -174,18 +176,10 @@ const Alerts: React.FC = () => {
           {(['all', 'mentions', 'system', 'club', 'class'] as const).map((filter) => (
             <TouchableOpacity
               key={filter}
-              style={[
-                styles.filterButton,
-                notificationFilter === filter && styles.activeFilterButton,
-              ]}
+              style={[styles.filterButton, notificationFilter === filter && styles.activeFilterButton]}
               onPress={() => setNotificationFilter(filter)}
             >
-              <Text
-                style={[
-                  styles.filterText,
-                  notificationFilter === filter && styles.activeFilterText,
-                ]}
-              >
+              <Text style={[styles.filterText, notificationFilter === filter && styles.activeFilterText]}>
                 {filter.charAt(0).toUpperCase() + filter.slice(1)}
               </Text>
             </TouchableOpacity>
@@ -194,10 +188,7 @@ const Alerts: React.FC = () => {
 
         {/* Mark all as read button */}
         {hasUnreadNotifications && (
-          <TouchableOpacity
-            style={styles.markAllReadButton}
-            onPress={markAllNotificationsAsRead}
-          >
+          <TouchableOpacity style={styles.markAllReadButton} onPress={markAllNotificationsAsRead}>
             <Text style={styles.markAllReadText}>Mark all as read</Text>
           </TouchableOpacity>
         )}
@@ -210,20 +201,22 @@ const Alerts: React.FC = () => {
                 style={[styles.notificationItem, !notification.read && styles.unreadNotificationItem]}
                 onPress={() => handleNotificationTap(notification)}
                 activeOpacity={0.7}
-              >  
+              >
                 <View style={styles.notificationIconContainer}>
                   <Ionicons name={notification.icon as any} size={20} color="#4E54C8" />
                 </View>
                 <View style={styles.notificationContent}>
                   <Text style={styles.notificationTitle}>{notification.title}</Text>
-                  {notification.body ? (
-                    <Text style={styles.notificationBody}>{notification.body}</Text>
-                  ) : null}
+                  {notification.body ? <Text style={styles.notificationBody}>{notification.body}</Text> : null}
                   {/* Show meal, day, messName for mess notifications */}
                   {notification.type === 'mess' && (notification.meal || notification.day || notification.messName) && (
                     <Text style={styles.notificationMeta}>
-                      {notification.meal ? `${notification.meal.charAt(0).toUpperCase() + notification.meal.slice(1)}` : ''}
-                      {notification.day ? ` • ${notification.day.charAt(0).toUpperCase() + notification.day.slice(1)}` : ''}
+                      {notification.meal
+                        ? `${notification.meal.charAt(0).toUpperCase() + notification.meal.slice(1)}`
+                        : ''}
+                      {notification.day
+                        ? ` • ${notification.day.charAt(0).toUpperCase() + notification.day.slice(1)}`
+                        : ''}
                       {notification.messName ? ` • ${notification.messName}` : ''}
                     </Text>
                   )}

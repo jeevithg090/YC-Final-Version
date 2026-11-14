@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -16,8 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { db, auth, collection, addDoc, serverTimestamp } from '../services/firebase';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type NavigationProp = NativeStackNavigationProp<any>;
 
@@ -87,22 +86,22 @@ const PublishACabShare: React.FC = () => {
     const step1Fields = ['pickupLocation', 'dropLocation', 'travelType'];
     const step2Fields = ['travelDate', 'flightTime', 'cabTravelTime', 'flexibilityMinutes'];
     const step3Fields = ['cabCost', 'numberOfPassengers', 'carryOnBags', 'checkinBags', 'laptopBags'];
-    
+
     let filledFields = 0;
     let totalFields = 0;
-    
+
     if (currentStep >= 1) {
       totalFields += step1Fields.length;
-      step1Fields.forEach(field => {
+      step1Fields.forEach((field) => {
         if (formData[field as keyof FormData] && String(formData[field as keyof FormData]).trim() !== '') {
           filledFields++;
         }
       });
     }
-    
+
     if (currentStep >= 2) {
       totalFields += step2Fields.length;
-      step2Fields.forEach(field => {
+      step2Fields.forEach((field) => {
         if (field === 'travelDate' || field === 'flightTime' || field === 'cabTravelTime') {
           filledFields++; // Dates are always filled
         } else if (formData[field as keyof FormData] && String(formData[field as keyof FormData]).trim() !== '') {
@@ -110,23 +109,26 @@ const PublishACabShare: React.FC = () => {
         }
       });
     }
-    
+
     if (currentStep >= 3) {
       totalFields += step3Fields.length;
-      step3Fields.forEach(field => {
+      step3Fields.forEach((field) => {
         // Cab cost is optional, so count it as filled even if empty
-        if (field === 'cabCost' || (formData[field as keyof FormData] && String(formData[field as keyof FormData]).trim() !== '')) {
+        if (
+          field === 'cabCost' ||
+          (formData[field as keyof FormData] && String(formData[field as keyof FormData]).trim() !== '')
+        ) {
           filledFields++;
         }
       });
     }
-    
+
     return totalFields > 0 ? (filledFields / totalFields) * 100 : 0;
   };
 
   const validateStep = (step: number): boolean => {
     const newErrors: ValidationErrors = {};
-    
+
     if (step === 1) {
       if (!formData.pickupLocation.trim()) {
         newErrors.pickupLocation = 'Pickup location is required';
@@ -148,11 +150,15 @@ const PublishACabShare: React.FC = () => {
       }
       if (!formData.numberOfPassengers.trim()) {
         newErrors.numberOfPassengers = 'Number of passengers is required';
-      } else if (isNaN(Number(formData.numberOfPassengers)) || Number(formData.numberOfPassengers) < 1 || Number(formData.numberOfPassengers) > 6) {
+      } else if (
+        isNaN(Number(formData.numberOfPassengers)) ||
+        Number(formData.numberOfPassengers) < 1 ||
+        Number(formData.numberOfPassengers) > 6
+      ) {
         newErrors.numberOfPassengers = 'Number of passengers must be between 1 and 6';
       }
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -178,7 +184,7 @@ const PublishACabShare: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    
+
     try {
       // Create data for published_rides collection (for matching functionality)
       const publishedRideData = {
@@ -199,7 +205,7 @@ const PublishACabShare: React.FC = () => {
           carryOnBags: parseInt(formData.carryOnBags),
           checkinBags: parseInt(formData.checkinBags),
           laptopBags: parseInt(formData.laptopBags),
-        }
+        },
       };
 
       // Create data for cab_rides collection (for ride details display)
@@ -243,7 +249,7 @@ const PublishACabShare: React.FC = () => {
         ...publishedRideData,
         cabRideId: cabRideRef.id,
       });
-      
+
       // Create a user ride record for "Your Rides" feature
       await addDoc(collection(db, 'user_rides'), {
         userId: currentUserId,
@@ -251,9 +257,9 @@ const PublishACabShare: React.FC = () => {
         publishedRideId: publishedRideRef.id,
         role: 'creator',
         createdAt: serverTimestamp(),
-        status: 'active'
+        status: 'active',
       });
-      
+
       Alert.alert(
         'Success!',
         'Your cab share has been published successfully. Other students can now find and join your ride.',
@@ -262,27 +268,25 @@ const PublishACabShare: React.FC = () => {
             text: 'View Ride Details',
             onPress: () => navigation.navigate('CabRideDetails' as any, { rideId: cabRideRef.id }),
           },
-        ]
+        ],
       );
     } catch (error) {
       console.error('Error publishing cab share:', error);
-      Alert.alert(
-        'Error',
-        'Failed to publish your cab share. Please check your internet connection and try again.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Error', 'Failed to publish your cab share. Please check your internet connection and try again.', [
+        { text: 'OK' },
+      ]);
     } finally {
       setIsSubmitting(false);
     }
     // Firebase Console Action: Create 'published_rides' collection for matching functionality
-    // Firebase Console Action: Create 'user_rides' collection to track user's ride history  
+    // Firebase Console Action: Create 'user_rides' collection to track user's ride history
   };
 
   const updateFormData = (field: keyof FormData, value: string | Date) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error for this field when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: '' }));
     }
   };
 
@@ -357,10 +361,7 @@ const PublishACabShare: React.FC = () => {
               </TouchableOpacity>
             ))}
           </ScrollView>
-          <TouchableOpacity
-            style={styles.flexibilityCloseButton}
-            onPress={() => setShowFlexibilityPicker(false)}
-          >
+          <TouchableOpacity style={styles.flexibilityCloseButton} onPress={() => setShowFlexibilityPicker(false)}>
             <Text style={styles.flexibilityCloseText}>Close</Text>
           </TouchableOpacity>
         </View>
@@ -447,16 +448,11 @@ const PublishACabShare: React.FC = () => {
                   onPress={() => handleLocationSelect('pickupLocation', location)}
                 >
                   <Text style={styles.dropdownItemName}>{location.name}</Text>
-                  {location.description && (
-                    <Text style={styles.dropdownItemDescription}>{location.description}</Text>
-                  )}
+                  {location.description && <Text style={styles.dropdownItemDescription}>{location.description}</Text>}
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            <TouchableOpacity
-              style={styles.dropdownCloseButton}
-              onPress={() => setShowPickupDropdown(false)}
-            >
+            <TouchableOpacity style={styles.dropdownCloseButton} onPress={() => setShowPickupDropdown(false)}>
               <Text style={styles.dropdownCloseText}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -475,16 +471,11 @@ const PublishACabShare: React.FC = () => {
                   onPress={() => handleLocationSelect('dropLocation', location)}
                 >
                   <Text style={styles.dropdownItemName}>{location.name}</Text>
-                  {location.description && (
-                    <Text style={styles.dropdownItemDescription}>{location.description}</Text>
-                  )}
+                  {location.description && <Text style={styles.dropdownItemDescription}>{location.description}</Text>}
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            <TouchableOpacity
-              style={styles.dropdownCloseButton}
-              onPress={() => setShowDropDropdown(false)}
-            >
+            <TouchableOpacity style={styles.dropdownCloseButton} onPress={() => setShowDropDropdown(false)}>
               <Text style={styles.dropdownCloseText}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -537,9 +528,7 @@ const PublishACabShare: React.FC = () => {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>
-          Flexibility Time *
-        </Text>
+        <Text style={styles.inputLabel}>Flexibility Time *</Text>
         <TouchableOpacity
           style={[
             styles.input,
@@ -555,8 +544,8 @@ const PublishACabShare: React.FC = () => {
         </TouchableOpacity>
         {errors.flexibilityMinutes && <Text style={styles.errorText}>{errors.flexibilityMinutes}</Text>}
         <Text style={styles.helperText}>
-          {formData.travelType === 'departure' 
-            ? 'How many minutes are you flexible to leave before cab time?' 
+          {formData.travelType === 'departure'
+            ? 'How many minutes are you flexible to leave before cab time?'
             : 'How many minutes are you flexible to wait after your preferred cab time?'}
         </Text>
       </View>
@@ -700,10 +689,7 @@ const PublishACabShare: React.FC = () => {
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Cab Cost (₹) (Optional)</Text>
         <TextInput
-          style={[
-            styles.input,
-            errors.cabCost ? styles.inputError : formData.cabCost ? styles.inputFilled : {},
-          ]}
+          style={[styles.input, errors.cabCost ? styles.inputError : formData.cabCost ? styles.inputFilled : {}]}
           value={formData.cabCost}
           onChangeText={(value) => updateFormData('cabCost', value)}
           placeholder="Enter total cab cost (optional)"
@@ -711,7 +697,9 @@ const PublishACabShare: React.FC = () => {
           keyboardType="numeric"
         />
         {errors.cabCost && <Text style={styles.errorText}>{errors.cabCost}</Text>}
-        <Text style={styles.helperText}>Total cost that will be split among all passengers (you can negotiate this later)</Text>
+        <Text style={styles.helperText}>
+          Total cost that will be split among all passengers (you can negotiate this later)
+        </Text>
       </View>
 
       <View style={styles.inputGroup}>
@@ -733,21 +721,15 @@ const PublishACabShare: React.FC = () => {
 
       <View style={styles.luggageContainer}>
         <Text style={styles.inputLabel}>Your Luggage Details</Text>
-        
+
         <View style={styles.luggageItem}>
           <Text style={styles.luggageLabel}>Carry-On Bags</Text>
           <View style={styles.counterContainer}>
-            <TouchableOpacity
-              style={styles.counterButton}
-              onPress={() => updateCounter('carryOnBags', false)}
-            >
+            <TouchableOpacity style={styles.counterButton} onPress={() => updateCounter('carryOnBags', false)}>
               <Text style={styles.counterButtonText}>-</Text>
             </TouchableOpacity>
             <Text style={styles.counterValue}>{formData.carryOnBags}</Text>
-            <TouchableOpacity
-              style={styles.counterButton}
-              onPress={() => updateCounter('carryOnBags', true)}
-            >
+            <TouchableOpacity style={styles.counterButton} onPress={() => updateCounter('carryOnBags', true)}>
               <Text style={styles.counterButtonText}>+</Text>
             </TouchableOpacity>
           </View>
@@ -756,17 +738,11 @@ const PublishACabShare: React.FC = () => {
         <View style={styles.luggageItem}>
           <Text style={styles.luggageLabel}>Check-in Bags</Text>
           <View style={styles.counterContainer}>
-            <TouchableOpacity
-              style={styles.counterButton}
-              onPress={() => updateCounter('checkinBags', false)}
-            >
+            <TouchableOpacity style={styles.counterButton} onPress={() => updateCounter('checkinBags', false)}>
               <Text style={styles.counterButtonText}>-</Text>
             </TouchableOpacity>
             <Text style={styles.counterValue}>{formData.checkinBags}</Text>
-            <TouchableOpacity
-              style={styles.counterButton}
-              onPress={() => updateCounter('checkinBags', true)}
-            >
+            <TouchableOpacity style={styles.counterButton} onPress={() => updateCounter('checkinBags', true)}>
               <Text style={styles.counterButtonText}>+</Text>
             </TouchableOpacity>
           </View>
@@ -775,17 +751,11 @@ const PublishACabShare: React.FC = () => {
         <View style={styles.luggageItem}>
           <Text style={styles.luggageLabel}>Laptop Bags</Text>
           <View style={styles.counterContainer}>
-            <TouchableOpacity
-              style={styles.counterButton}
-              onPress={() => updateCounter('laptopBags', false)}
-            >
+            <TouchableOpacity style={styles.counterButton} onPress={() => updateCounter('laptopBags', false)}>
               <Text style={styles.counterButtonText}>-</Text>
             </TouchableOpacity>
             <Text style={styles.counterValue}>{formData.laptopBags}</Text>
-            <TouchableOpacity
-              style={styles.counterButton}
-              onPress={() => updateCounter('laptopBags', true)}
-            >
+            <TouchableOpacity style={styles.counterButton} onPress={() => updateCounter('laptopBags', true)}>
               <Text style={styles.counterButtonText}>+</Text>
             </TouchableOpacity>
           </View>
@@ -794,7 +764,7 @@ const PublishACabShare: React.FC = () => {
 
       <View style={styles.summaryContainer}>
         <Text style={styles.summaryTitle}>🎯 Ride Summary</Text>
-        
+
         <View style={styles.summarySection}>
           <Text style={styles.summarySectionTitle}>📍 Route</Text>
           <View style={styles.summaryRouteContainer}>
@@ -819,11 +789,15 @@ const PublishACabShare: React.FC = () => {
             <Text style={styles.summaryValue}>{formatDate(formData.travelDate)}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Flight {formData.travelType === 'departure' ? 'Departure' : 'Arrival'}:</Text>
+            <Text style={styles.summaryLabel}>
+              Flight {formData.travelType === 'departure' ? 'Departure' : 'Arrival'}:
+            </Text>
             <Text style={styles.summaryValue}>{formatTime(formData.flightTime)}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Cab {formData.travelType === 'departure' ? 'Departure' : 'Arrival'}:</Text>
+            <Text style={styles.summaryLabel}>
+              Cab {formData.travelType === 'departure' ? 'Departure' : 'Arrival'}:
+            </Text>
             <Text style={styles.summaryValue}>{formatTime(formData.cabTravelTime)}</Text>
           </View>
           <View style={styles.summaryRow}>
@@ -844,9 +818,7 @@ const PublishACabShare: React.FC = () => {
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Estimated Cost:</Text>
-            <Text style={styles.summaryValue}>
-              {formData.cabCost ? `₹${formData.cabCost}` : 'To be discussed'}
-            </Text>
+            <Text style={styles.summaryValue}>{formData.cabCost ? `₹${formData.cabCost}` : 'To be discussed'}</Text>
           </View>
           {formData.cabCost && (
             <View style={styles.summaryRow}>
@@ -920,14 +892,7 @@ const PublishACabShare: React.FC = () => {
       <View style={styles.stepIndicator}>
         {[1, 2, 3].map((step, index) => (
           <View key={step} style={styles.stepContainer}>
-            {index > 0 && (
-              <View
-                style={[
-                  styles.stepConnector,
-                  currentStep > step && styles.stepConnectorCompleted,
-                ]}
-              />
-            )}
+            {index > 0 && <View style={[styles.stepConnector, currentStep > step && styles.stepConnectorCompleted]} />}
             <View
               style={[
                 styles.stepCircle,
@@ -975,9 +940,12 @@ const PublishACabShare: React.FC = () => {
             <Text style={styles.previousButtonText}>Previous</Text>
           </TouchableOpacity>
         )}
-        
+
         {currentStep < 3 ? (
-          <TouchableOpacity style={[styles.nextButton, currentStep === 1 && styles.fullWidthButton]} onPress={handleNext}>
+          <TouchableOpacity
+            style={[styles.nextButton, currentStep === 1 && styles.fullWidthButton]}
+            onPress={handleNext}
+          >
             <Text style={styles.nextButtonText}>Next</Text>
           </TouchableOpacity>
         ) : (

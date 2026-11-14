@@ -15,20 +15,8 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
-import {
-  getFirestore,
-  collection,
-  query,
-  getDocs,
-  orderBy,
-  doc,
-  getDoc,
-} from 'firebase/firestore';
-import {
-  getStorage,
-  ref as storageRef,
-  getDownloadURL,
-} from 'firebase/storage';
+import { getFirestore, collection, query, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
+import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -71,20 +59,20 @@ const ClubRecruitment: React.FC = () => {
   const [selectedClub, setSelectedClub] = useState<ClubRecruitment | null>(null);
   const [detailsVisible, setDetailsVisible] = useState<boolean>(false);
   const insets = useSafeAreaInsets();
-  
+
   // Firestore and Storage
   const db = getFirestore();
   const storage = getStorage();
-  
+
   const loadRecruitments = async () => {
     try {
       setLoading(true);
       console.log('Loading recruitment data...');
-      
+
       // Get recruitment data from Firestore
       const recruitmentRef = collection(db, 'club_recruitment');
       const q = query(recruitmentRef, orderBy('deadline', 'asc'));
-      
+
       // Add a timeout for the Firebase query
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
@@ -93,14 +81,14 @@ const ClubRecruitment: React.FC = () => {
         setLoading(false);
         alert('Failed to load data. Please check your internet connection and try again.');
       }, 15000);
-      
+
       const querySnapshot = await getDocs(q);
       clearTimeout(timeoutId);
-      
+
       console.log('Received data from Firestore');
       const recruitmentData: ClubRecruitment[] = [];
       const loadImagePromises: Promise<void>[] = [];
-      
+
       querySnapshot.forEach((doc) => {
         const data = doc.data() as Omit<ClubRecruitment, 'id'>;
         const recruitment: ClubRecruitment = {
@@ -116,25 +104,25 @@ const ClubRecruitment: React.FC = () => {
           accomplishments: data.accomplishments || [],
           perks: data.perks || [],
           contactPerson: data.contactPerson || { name: '', email: '' },
-          imageLoaded: false
+          imageLoaded: false,
         };
-        
+
         recruitmentData.push(recruitment);
-        
+
         // Load club image from Firebase Storage
         if (doc.id) {
           const imageLoadPromise = (async () => {
             try {
               const imageRef = storageRef(storage, `club_images/${doc.id}`);
               const url = await getDownloadURL(imageRef);
-              
+
               // Update recruitment with image URL
               const index = recruitmentData.findIndex((r) => r.id === doc.id);
               if (index !== -1) {
                 recruitmentData[index] = {
                   ...recruitmentData[index],
                   imageUrl: url,
-                  imageLoaded: true
+                  imageLoaded: true,
                 };
               }
             } catch (error) {
@@ -145,16 +133,16 @@ const ClubRecruitment: React.FC = () => {
                 recruitmentData[index] = {
                   ...recruitmentData[index],
                   imageUrl: 'https://via.placeholder.com/400x200?text=Club+Image',
-                  imageLoaded: true
+                  imageLoaded: true,
                 };
               }
             }
           })();
-          
+
           loadImagePromises.push(imageLoadPromise);
         }
       });
-      
+
       // Wait for all images to load or fail, with timeout
       try {
         const timeoutId = setTimeout(() => {
@@ -162,10 +150,10 @@ const ClubRecruitment: React.FC = () => {
           setRecruitments(recruitmentData);
           setLoading(false);
         }, 10000);
-        
+
         await Promise.all(loadImagePromises);
         clearTimeout(timeoutId);
-        
+
         console.log('All images loaded successfully');
       } catch (imageError) {
         console.warn('Some images failed to load:', imageError);
@@ -179,38 +167,36 @@ const ClubRecruitment: React.FC = () => {
       alert('Failed to load recruitment data. Please check your internet connection and try again.');
     }
   };
-  
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadRecruitments();
     setRefreshing(false);
   };
-  
+
   // Load recruitment data on component mount
   useEffect(() => {
     loadRecruitments();
   }, []);
-  
+
   // View detailed information for a club
   const viewClubDetails = async (clubId: string) => {
     try {
       console.log('Loading details for club:', clubId);
-      const loadingToast = Platform.OS === 'android' ? 
-        alert('Loading club details...') : 
-        undefined;
-        
+      const loadingToast = Platform.OS === 'android' ? alert('Loading club details...') : undefined;
+
       const clubDocRef = doc(db, 'club_recruitment', clubId);
-      
+
       // Add a timeout for the Firestore getDoc operation
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
         throw new Error('Club details request timed out');
       }, 8000);
-      
+
       const clubDoc = await getDoc(clubDocRef);
       clearTimeout(timeoutId);
-      
+
       if (clubDoc.exists()) {
         console.log('Club details fetched successfully');
         const data = clubDoc.data() as Omit<ClubRecruitment, 'id'>;
@@ -227,9 +213,9 @@ const ClubRecruitment: React.FC = () => {
           accomplishments: data.accomplishments || [],
           perks: data.perks || [],
           contactPerson: data.contactPerson || { name: '', email: '' },
-          imageLoaded: false
+          imageLoaded: false,
         };
-        
+
         // Get club image with timeout
         const imageTimeoutId = setTimeout(() => {
           console.log('Image loading timed out, using placeholder');
@@ -238,7 +224,7 @@ const ClubRecruitment: React.FC = () => {
           setSelectedClub(clubDetails);
           setDetailsVisible(true);
         }, 5000);
-        
+
         try {
           const imageRef = storageRef(storage, `club_images/${clubId}`);
           const url = await getDownloadURL(imageRef);
@@ -252,7 +238,7 @@ const ClubRecruitment: React.FC = () => {
           clubDetails.imageUrl = 'https://via.placeholder.com/400x200?text=Club+Image';
           clubDetails.imageLoaded = true;
         }
-        
+
         setSelectedClub(clubDetails);
         setDetailsVisible(true);
       } else {
@@ -264,19 +250,19 @@ const ClubRecruitment: React.FC = () => {
       alert('Failed to load club details. Please try again later.');
     }
   };
-  
+
   // Format date for display
   const formatDate = (dateString?: string): string => {
     if (!dateString) return 'No date specified';
-    
-    const options: Intl.DateTimeFormatOptions = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+
+    const options: Intl.DateTimeFormatOptions = {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
     };
     return new Date(dateString).toLocaleDateString('en-US', options);
   };
-  
+
   // Check if deadline has passed
   const isDeadlinePassed = (dateString?: string): boolean => {
     if (!dateString) return false;
@@ -284,16 +270,13 @@ const ClubRecruitment: React.FC = () => {
     const today = new Date();
     return deadline < today;
   };
-  
+
   // Render a recruitment card
   const renderRecruitmentCard = ({ item }: { item: ClubRecruitment }) => {
     const deadlinePassed = isDeadlinePassed(item.deadline);
     return (
       <Pressable
-        style={({ pressed }) => [
-          styles.card,
-          pressed && { transform: [{ scale: 0.98 }], shadowOpacity: 0.18 },
-        ]}
+        style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.98 }], shadowOpacity: 0.18 }]}
         accessibilityLabel={`View details for ${item.clubName}`}
         onPress={() => item.id && viewClubDetails(item.id)}
         android_ripple={{ color: '#e5e5e5' }}
@@ -312,10 +295,7 @@ const ClubRecruitment: React.FC = () => {
               <ActivityIndicator color="#fff" size="large" />
             </View>
           )}
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.7)']}
-            style={styles.imageOverlay}
-          />
+          <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.imageOverlay} />
           <Text style={styles.clubName}>{item.clubName || 'Unnamed Club'}</Text>
         </View>
         {/* Recruitment Info */}
@@ -358,18 +338,14 @@ const ClubRecruitment: React.FC = () => {
                 )}
               </>
             ) : (
-              <Text style={styles.responsibilityText}>
-                • No specific responsibilities listed
-              </Text>
+              <Text style={styles.responsibilityText}>• No specific responsibilities listed</Text>
             )}
           </View>
           {/* Deadline */}
           <View style={styles.infoSection}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="calendar-outline" size={18} color={deadlinePassed ? "#ff3b30" : "#7d7cf9"} />
-              <Text style={[styles.sectionTitle, deadlinePassed && styles.deadlinePassed]}>
-                Application Deadline
-              </Text>
+              <Ionicons name="calendar-outline" size={18} color={deadlinePassed ? '#ff3b30' : '#7d7cf9'} />
+              <Text style={[styles.sectionTitle, deadlinePassed && styles.deadlinePassed]}>Application Deadline</Text>
             </View>
             <Text style={[styles.deadlineText, deadlinePassed && styles.deadlinePassed]}>
               {formatDate(item.deadline)} {deadlinePassed && ' (Closed)'}
@@ -411,7 +387,7 @@ const ClubRecruitment: React.FC = () => {
       </Pressable>
     );
   };
-  
+
   // Club Details Modal
   const renderDetailsModal = () => {
     if (!selectedClub) return null;
@@ -423,7 +399,9 @@ const ClubRecruitment: React.FC = () => {
         visible={detailsVisible}
         onRequestClose={() => setDetailsVisible(false)}
       >
-        <View style={[styles.modalContainer, { paddingTop: insets.top }]}> {/* Safe area */}
+        <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
+          {' '}
+          {/* Safe area */}
           <ScrollView
             style={styles.detailsContainer}
             contentContainerStyle={styles.detailsContent}
@@ -444,16 +422,11 @@ const ClubRecruitment: React.FC = () => {
                 </View>
               )}
               {/* Gradient overlay for text readability */}
-              <LinearGradient
-                colors={['transparent', 'rgba(0,0,0,0.8)']}
-                style={styles.detailsImageOverlay}
-              />
+              <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={styles.detailsImageOverlay} />
               {/* Club name at bottom-left of image */}
               <View style={styles.clubDetailsTitleContainer}>
                 <Text style={styles.detailsClubName}>{selectedClub.clubName}</Text>
-                {selectedClub.role && (
-                  <Text style={styles.detailsRole}>{selectedClub.role}</Text>
-                )}
+                {selectedClub.role && <Text style={styles.detailsRole}>{selectedClub.role}</Text>}
               </View>
               {/* Close button at top-right, floating over image */}
               <TouchableOpacity
@@ -486,7 +459,7 @@ const ClubRecruitment: React.FC = () => {
                   )}
                 </View>
               </View>
-              
+
               {/* Requirements */}
               {selectedClub.requirements && selectedClub.requirements.length > 0 && (
                 <View style={styles.detailsSection}>
@@ -495,11 +468,13 @@ const ClubRecruitment: React.FC = () => {
                     <Text style={styles.detailsSectionTitle}>Requirements</Text>
                   </View>
                   {selectedClub.requirements.map((req, index) => (
-                    <Text key={index} style={styles.detailsListItem}>• {req}</Text>
+                    <Text key={index} style={styles.detailsListItem}>
+                      • {req}
+                    </Text>
                   ))}
                 </View>
               )}
-              
+
               {/* Responsibilities */}
               <View style={styles.detailsSection}>
                 <View style={styles.detailsSectionHeader}>
@@ -508,28 +483,26 @@ const ClubRecruitment: React.FC = () => {
                 </View>
                 {selectedClub.responsibilities && selectedClub.responsibilities.length > 0 ? (
                   selectedClub.responsibilities.map((resp, index) => (
-                    <Text key={index} style={styles.detailsListItem}>• {resp}</Text>
+                    <Text key={index} style={styles.detailsListItem}>
+                      • {resp}
+                    </Text>
                   ))
                 ) : (
                   <Text style={styles.detailsListItem}>• No specific responsibilities listed</Text>
                 )}
               </View>
-              
+
               {/* Application Deadline */}
               <View style={styles.detailsSection}>
                 <View style={styles.detailsSectionHeader}>
-                  <Ionicons 
-                    name="calendar-outline" 
-                    size={20} 
-                    color={deadlinePassed ? "#ff3b30" : "#5856d6"} 
-                  />
+                  <Ionicons name="calendar-outline" size={20} color={deadlinePassed ? '#ff3b30' : '#5856d6'} />
                   <Text style={styles.detailsSectionTitle}>Application Deadline</Text>
                 </View>
                 <Text style={[styles.detailsText, deadlinePassed && styles.deadlinePassed]}>
                   {formatDate(selectedClub.deadline)} {deadlinePassed && ' (Closed)'}
                 </Text>
               </View>
-              
+
               {/* About Club */}
               {selectedClub.aboutClub && (
                 <View style={styles.detailsSection}>
@@ -540,7 +513,7 @@ const ClubRecruitment: React.FC = () => {
                   <Text style={styles.detailsText}>{selectedClub.aboutClub}</Text>
                 </View>
               )}
-              
+
               {/* Accomplishments */}
               {selectedClub.accomplishments && selectedClub.accomplishments.length > 0 && (
                 <View style={styles.detailsSection}>
@@ -549,11 +522,13 @@ const ClubRecruitment: React.FC = () => {
                     <Text style={styles.detailsSectionTitle}>Accomplishments</Text>
                   </View>
                   {selectedClub.accomplishments.map((accomplishment, index) => (
-                    <Text key={index} style={styles.detailsListItem}>• {accomplishment}</Text>
+                    <Text key={index} style={styles.detailsListItem}>
+                      • {accomplishment}
+                    </Text>
                   ))}
                 </View>
               )}
-              
+
               {/* Perks */}
               {selectedClub.perks && selectedClub.perks.length > 0 && (
                 <View style={styles.detailsSection}>
@@ -562,11 +537,13 @@ const ClubRecruitment: React.FC = () => {
                     <Text style={styles.detailsSectionTitle}>Perks</Text>
                   </View>
                   {selectedClub.perks.map((perk, index) => (
-                    <Text key={index} style={styles.detailsListItem}>• {perk}</Text>
+                    <Text key={index} style={styles.detailsListItem}>
+                      • {perk}
+                    </Text>
                   ))}
                 </View>
               )}
-              
+
               {/* Contact Person */}
               {selectedClub.contactPerson && (
                 <View style={styles.detailsSection}>
@@ -574,51 +551,41 @@ const ClubRecruitment: React.FC = () => {
                     <Ionicons name="person-outline" size={20} color="#5856d6" />
                     <Text style={styles.detailsSectionTitle}>Contact Person</Text>
                   </View>
-                  <Text style={styles.detailsText}>
-                    {selectedClub.contactPerson.name}
-                  </Text>
+                  <Text style={styles.detailsText}>{selectedClub.contactPerson.name}</Text>
                   {selectedClub.contactPerson.email && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => Linking.openURL(`mailto:${selectedClub.contactPerson?.email}`)}
                       style={styles.contactButton}
                     >
                       <Ionicons name="mail-outline" size={16} color="#5856d6" />
-                      <Text style={styles.contactButtonText}>
-                        {selectedClub.contactPerson.email}
-                      </Text>
+                      <Text style={styles.contactButtonText}>{selectedClub.contactPerson.email}</Text>
                     </TouchableOpacity>
                   )}
                   {selectedClub.contactPerson.phone && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => Linking.openURL(`tel:${selectedClub.contactPerson?.phone}`)}
                       style={styles.contactButton}
                     >
                       <Ionicons name="call-outline" size={16} color="#5856d6" />
-                      <Text style={styles.contactButtonText}>
-                        {selectedClub.contactPerson.phone}
-                      </Text>
+                      <Text style={styles.contactButtonText}>{selectedClub.contactPerson.phone}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
               )}
             </View>
-            
+
             {/* Apply Button (Fixed at bottom) */}
             <View style={styles.detailsButtonContainer}>
               <TouchableOpacity
-                style={[
-                  styles.detailsButton, 
-                  (deadlinePassed || !selectedClub.applyUrl) && styles.disabledButton
-                ]}
+                style={[styles.detailsButton, (deadlinePassed || !selectedClub.applyUrl) && styles.disabledButton]}
                 onPress={() => {
                   if (!deadlinePassed && selectedClub.applyUrl) {
                     try {
                       console.log('Opening URL:', selectedClub.applyUrl);
-                      Linking.openURL(selectedClub.applyUrl)
-                        .catch(error => {
-                          console.error('Failed to open URL:', error);
-                          alert('Could not open application URL. Please try again later.');
-                        });
+                      Linking.openURL(selectedClub.applyUrl).catch((error) => {
+                        console.error('Failed to open URL:', error);
+                        alert('Could not open application URL. Please try again later.');
+                      });
                     } catch (error) {
                       console.error('Error processing URL:', error);
                       alert('Could not process application URL. Please try again later.');
@@ -639,29 +606,20 @@ const ClubRecruitment: React.FC = () => {
       </Modal>
     );
   };
-  
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      
+
       {/* Header */}
-      <LinearGradient
-        colors={['#7d7cf9', '#5856d6']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.header}
-      >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          accessibilityLabel="Go back"
-        >
+      <LinearGradient colors={['#7d7cf9', '#5856d6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Club Recruitment</Text>
         <View style={styles.headerRight} />
       </LinearGradient>
-      
+
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -672,11 +630,7 @@ const ClubRecruitment: React.FC = () => {
         <View style={styles.emptyContainer}>
           <Ionicons name="cloud-offline-outline" size={64} color="#ccc" />
           <Text style={styles.emptyText}>Could not load recruitment data</Text>
-          <TouchableOpacity 
-            style={styles.retryButton}
-            onPress={onRefresh}
-            accessibilityLabel="Retry loading"
-          >
+          <TouchableOpacity style={styles.retryButton} onPress={onRefresh} accessibilityLabel="Retry loading">
             <Text style={styles.retryButtonText}>Tap to retry</Text>
           </TouchableOpacity>
         </View>
@@ -688,27 +642,20 @@ const ClubRecruitment: React.FC = () => {
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#7d7cf9"
-              colors={['#7d7cf9']}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7d7cf9" colors={['#7d7cf9']} />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="people" size={64} color="#ccc" />
               <Text style={styles.emptyText}>No club recruitments available</Text>
-              <Text style={styles.emptySubText}>
-                Check back later for new opportunities
-              </Text>
+              <Text style={styles.emptySubText}>Check back later for new opportunities</Text>
             </View>
           }
           initialNumToRender={5}
           windowSize={7}
         />
       )}
-      
+
       {/* Details Modal */}
       {renderDetailsModal()}
     </View>

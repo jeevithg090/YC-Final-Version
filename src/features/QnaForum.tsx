@@ -4,14 +4,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  FlatList,
   TextInput,
   Image,
   ActivityIndicator,
-  RefreshControl,
   Animated,
   Dimensions,
-  Platform,
   SafeAreaView,
   StatusBar,
   Alert,
@@ -29,21 +26,18 @@ import {
   where,
   orderBy,
   limit,
-  startAfter,
   onSnapshot,
   updateDoc,
   doc,
   increment,
   arrayUnion,
   arrayRemove,
-  getDocs,
   getDoc,
   serverTimestamp,
   addDoc,
 } from 'firebase/firestore';
 import { db, auth } from '../services/firebase';
 import QnaPostCard from './QnaPostCard';
-import QnaVoteBar from './QnaVoteBar';
 // 1. Add imports for image picker
 import * as ImagePicker from 'expo-image-picker';
 import QnaProfile from './QnaProfile';
@@ -77,7 +71,7 @@ const QnaForum: React.FC = () => {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  
+
   // Tag color palette for tag chips
   const tagColors = [
     '#FF6B35', // orange
@@ -91,7 +85,7 @@ const QnaForum: React.FC = () => {
     '#06B6D4', // cyan
     '#A21CAF', // deep purple
   ];
-  
+
   // State variables
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +101,7 @@ const QnaForum: React.FC = () => {
   const [popularTags, setPopularTags] = useState<string[]>([]);
   // Update voteStates to be a boolean map (questionId -> hasUpvoted)
   const [voteStates, setVoteStates] = useState<{ [questionId: string]: boolean }>({});
-  
+
   // Add state for create question modal fields
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
@@ -115,7 +109,7 @@ const QnaForum: React.FC = () => {
   const [tagsArray, setTagsArray] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('Other');
   const [pickedImage, setPickedImage] = useState<string | null>(null);
-  
+
   // Animation values
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerOpacity = scrollY.interpolate({
@@ -138,11 +132,18 @@ const QnaForum: React.FC = () => {
 
   // Add state for profile modal
   const [profileModalVisible, setProfileModalVisible] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<{id: string, name: string, isAnonymous: boolean, profileImage?: string} | null>(null);
-  const [authorProfiles, setAuthorProfiles] = useState<{[userId: string]: {profileImage?: string, points?: number}}>({});
+  const [selectedUser, setSelectedUser] = useState<{
+    id: string;
+    name: string;
+    isAnonymous: boolean;
+    profileImage?: string;
+  } | null>(null);
+  const [authorProfiles, setAuthorProfiles] = useState<{
+    [userId: string]: { profileImage?: string; points?: number };
+  }>({});
 
   // Add state for user profile from Firestore
-  const [userProfile, setUserProfile] = useState<{name: string, id: string, avatar?: string} | null>(null);
+  const [userProfile, setUserProfile] = useState<{ name: string; id: string; avatar?: string } | null>(null);
 
   // IMPORTANT: If you see a Firestore index error, open the link in the error and create the index in the Firebase Console.
   useEffect(() => {
@@ -157,14 +158,10 @@ const QnaForum: React.FC = () => {
         baseRef,
         orderBy('lastActivity', 'desc'),
         orderBy('points', 'desc'),
-        limit(50) // Fetch more to allow for client-side filtering
+        limit(50), // Fetch more to allow for client-side filtering
       );
     } else if (activeTab === 'new') {
-      q = query(
-        baseRef,
-        orderBy('timestamp', 'desc'),
-        limit(20)
-      );
+      q = query(baseRef, orderBy('timestamp', 'desc'), limit(20));
     } else if (activeTab === 'top') {
       let timeLimit = undefined;
       const now = new Date();
@@ -181,24 +178,15 @@ const QnaForum: React.FC = () => {
           where('timestamp', '>=', timeLimit),
           orderBy('timestamp', 'desc'),
           orderBy('points', 'desc'),
-          limit(20)
+          limit(20),
         );
       } else {
-        q = query(
-          baseRef,
-          orderBy('points', 'desc'),
-          limit(20)
-        );
+        q = query(baseRef, orderBy('points', 'desc'), limit(20));
       }
     }
     // Filters
     if (showMyQuestionsOnly) {
-      q = query(
-        baseRef,
-        where('authorId', '==', currentUser.id),
-        orderBy('timestamp', 'desc'),
-        limit(20)
-      );
+      q = query(baseRef, where('authorId', '==', currentUser.id), orderBy('timestamp', 'desc'), limit(20));
     }
     if (q) {
       unsubscribe = onSnapshot(q, (snapshot: any) => {
@@ -228,20 +216,21 @@ const QnaForum: React.FC = () => {
         });
         // Client-side filtering
         if (selectedTags.length > 0) {
-          qs = qs.filter(q => selectedTags.every(tag => q.tags.includes(tag)));
+          qs = qs.filter((q) => selectedTags.every((tag) => q.tags.includes(tag)));
         }
         if (searchQuery.trim()) {
           const qstr = searchQuery.trim().toLowerCase();
-          qs = qs.filter(q =>
-            q.title.toLowerCase().includes(qstr) ||
-            q.description.toLowerCase().includes(qstr) ||
-            (q.tags && q.tags.some(tag => tag.toLowerCase().includes(qstr)))
+          qs = qs.filter(
+            (q) =>
+              q.title.toLowerCase().includes(qstr) ||
+              q.description.toLowerCase().includes(qstr) ||
+              (q.tags && q.tags.some((tag) => tag.toLowerCase().includes(qstr))),
           );
         }
         // Hot tab: unread first
         if (activeTab === 'hot') {
-          const unread = qs.filter(q => !(q.viewedBy && q.viewedBy.includes(currentUser.id)));
-          const read = qs.filter(q => q.viewedBy && q.viewedBy.includes(currentUser.id));
+          const unread = qs.filter((q) => !(q.viewedBy && q.viewedBy.includes(currentUser.id)));
+          const read = qs.filter((q) => q.viewedBy && q.viewedBy.includes(currentUser.id));
           // Only show read if no unread left
           setQuestions(unread.length > 0 ? unread : read);
         } else {
@@ -278,9 +267,9 @@ const QnaForum: React.FC = () => {
   // Fetch author profile images and points for visible questions
   useEffect(() => {
     const fetchProfiles = async () => {
-      const ids = Array.from(new Set(questions.filter(q => !q.isAnonymous).map(q => q.authorId)));
+      const ids = Array.from(new Set(questions.filter((q) => !q.isAnonymous).map((q) => q.authorId)));
       if (ids.length === 0) return setAuthorProfiles({});
-      const profiles: {[userId: string]: {profileImage?: string, points?: number}} = {};
+      const profiles: { [userId: string]: { profileImage?: string; points?: number } } = {};
       for (const id of ids) {
         try {
           const docSnap = await getDoc(doc(db, 'users', id));
@@ -336,11 +325,7 @@ const QnaForum: React.FC = () => {
   };
 
   const toggleTag = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) 
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
-    );
+    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   };
 
   const clearFilters = () => {
@@ -352,12 +337,20 @@ const QnaForum: React.FC = () => {
   // 2. Add tag input handler
   const handleTagInput = (text: string) => {
     setNewTags(text);
-    const tags = text.split(',').map(t => t.trim()).filter(Boolean);
+    const tags = text
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
     setTagsArray(tags);
   };
   const removeTag = (tag: string) => {
-    setTagsArray(prev => prev.filter(t => t !== tag));
-    setNewTags(prev => prev.split(',').filter(t => t.trim() !== tag).join(','));
+    setTagsArray((prev) => prev.filter((t) => t !== tag));
+    setNewTags((prev) =>
+      prev
+        .split(',')
+        .filter((t) => t.trim() !== tag)
+        .join(','),
+    );
   };
 
   // 4. Add image picker handler
@@ -405,19 +398,19 @@ const QnaForum: React.FC = () => {
 
   const formatTimestamp = (timestamp: any): string => {
     if (!timestamp) return '';
-    
+
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
+
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
-    
+
     return date.toLocaleDateString();
   };
 
@@ -477,29 +470,25 @@ const QnaForum: React.FC = () => {
       {/* Filter Tags */}
       {popularTags.length > 0 && (
         <View style={styles.popularTagsContainer}>
-          <Text style={[styles.sectionTitle, isDark ? styles.textDark : null]}>
-            Popular Tags
-          </Text>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.tagsScrollView}
-          >
+          <Text style={[styles.sectionTitle, isDark ? styles.textDark : null]}>Popular Tags</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tagsScrollView}>
             {popularTags.map((tag) => (
               <TouchableOpacity
                 key={tag}
                 style={[
                   styles.tagChip,
                   selectedTags.includes(tag) && styles.selectedTagChip,
-                  isDark ? styles.tagChipDark : null
+                  isDark ? styles.tagChipDark : null,
                 ]}
                 onPress={() => toggleTag(tag)}
               >
-                <Text style={[
-                  styles.tagText,
-                  selectedTags.includes(tag) && styles.selectedTagText,
-                  isDark ? styles.textDark : null
-                ]}>
+                <Text
+                  style={[
+                    styles.tagText,
+                    selectedTags.includes(tag) && styles.selectedTagText,
+                    isDark ? styles.textDark : null,
+                  ]}
+                >
                   {tag}
                 </Text>
               </TouchableOpacity>
@@ -507,54 +496,44 @@ const QnaForum: React.FC = () => {
           </ScrollView>
         </View>
       )}
-      
+
       {/* Active Filters */}
       {(selectedTags.length > 0 || searchQuery || showMyQuestionsOnly) && (
         <View style={styles.activeFiltersContainer}>
-          <Text style={[styles.activeFiltersTitle, isDark ? styles.textDark : null]}>
-            Active Filters
-          </Text>
+          <Text style={[styles.activeFiltersTitle, isDark ? styles.textDark : null]}>Active Filters</Text>
           <View style={styles.activeFiltersRow}>
             {selectedTags.map((tag) => (
               <View key={tag} style={[styles.activeFilterChip, isDark ? styles.activeFilterChipDark : null]}>
-                <Text style={[styles.activeFilterText, isDark ? styles.textDark : null]}>
-                  {tag}
-                </Text>
+                <Text style={[styles.activeFilterText, isDark ? styles.textDark : null]}>{tag}</Text>
                 <TouchableOpacity onPress={() => toggleTag(tag)}>
                   <Ionicons name="close" size={16} color={isDark ? '#FFFFFF' : '#1C1C1E'} />
                 </TouchableOpacity>
               </View>
             ))}
-            
+
             {searchQuery && (
               <View style={[styles.activeFilterChip, isDark ? styles.activeFilterChipDark : null]}>
-                <Text style={[styles.activeFilterText, isDark ? styles.textDark : null]}>
-                  Search: {searchQuery}
-                </Text>
+                <Text style={[styles.activeFilterText, isDark ? styles.textDark : null]}>Search: {searchQuery}</Text>
                 <TouchableOpacity onPress={() => setSearchQuery('')}>
                   <Ionicons name="close" size={16} color={isDark ? '#FFFFFF' : '#1C1C1E'} />
                 </TouchableOpacity>
               </View>
             )}
-            
+
             {showMyQuestionsOnly && (
               <View style={[styles.activeFilterChip, isDark ? styles.activeFilterChipDark : null]}>
-                <Text style={[styles.activeFilterText, isDark ? styles.textDark : null]}>
-                  My Questions
-                </Text>
+                <Text style={[styles.activeFilterText, isDark ? styles.textDark : null]}>My Questions</Text>
                 <TouchableOpacity onPress={() => setShowMyQuestionsOnly(false)}>
                   <Ionicons name="close" size={16} color={isDark ? '#FFFFFF' : '#1C1C1E'} />
                 </TouchableOpacity>
               </View>
             )}
-            
+
             <TouchableOpacity
               style={[styles.clearFiltersButton, isDark ? styles.clearFiltersButtonDark : null]}
               onPress={clearFilters}
             >
-              <Text style={[styles.clearFiltersText, isDark ? styles.textDark : null]}>
-                Clear All
-              </Text>
+              <Text style={[styles.clearFiltersText, isDark ? styles.textDark : null]}>Clear All</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -564,58 +543,54 @@ const QnaForum: React.FC = () => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Ionicons
-        name="chatbubbles-outline"
-        size={64}
-        color={isDark ? '#3A3A3C' : '#D1D1D6'}
-      />
-      <Text style={[styles.emptyStateTitle, isDark ? styles.textDark : null]}>
-        No questions found
-      </Text>
+      <Ionicons name="chatbubbles-outline" size={64} color={isDark ? '#3A3A3C' : '#D1D1D6'} />
+      <Text style={[styles.emptyStateTitle, isDark ? styles.textDark : null]}>No questions found</Text>
       <Text style={[styles.emptyStateText, isDark ? styles.textDark : null]}>
         Be the first to ask a question or adjust your filters
       </Text>
-      
+
       {(selectedTags.length > 0 || searchQuery || showMyQuestionsOnly) && (
         <TouchableOpacity
           style={[styles.clearFiltersButtonLarge, isDark ? styles.clearFiltersButtonDark : null]}
           onPress={clearFilters}
         >
-          <Text style={[styles.clearFiltersTextLarge, isDark ? styles.textDark : null]}>
-            Clear Filters
-          </Text>
+          <Text style={[styles.clearFiltersTextLarge, isDark ? styles.textDark : null]}>Clear Filters</Text>
         </TouchableOpacity>
       )}
     </View>
   );
 
   const renderTimeFilterModal = () => (
-    <View style={[
-      styles.timeFilterModal,
-      isDark ? styles.timeFilterModalDark : null,
-      {
-        top: 120,
-        right: 16,
-      }
-    ]}>
+    <View
+      style={[
+        styles.timeFilterModal,
+        isDark ? styles.timeFilterModalDark : null,
+        {
+          top: 120,
+          right: 16,
+        },
+      ]}
+    >
       {['week', 'month', 'year', 'all'].map((filter) => (
         <TouchableOpacity
           key={filter}
           style={[
             styles.timeFilterOption,
             timeFilter === filter && styles.activeTimeFilterOption,
-            isDark ? styles.timeFilterOptionDark : null
+            isDark ? styles.timeFilterOptionDark : null,
           ]}
           onPress={() => {
             setTimeFilter(filter as any);
             setShowTimeFilterModal(false);
           }}
         >
-          <Text style={[
-            styles.timeFilterText,
-            timeFilter === filter && styles.activeTimeFilterText,
-            isDark ? styles.textDark : null
-          ]}>
+          <Text
+            style={[
+              styles.timeFilterText,
+              timeFilter === filter && styles.activeTimeFilterText,
+              isDark ? styles.textDark : null,
+            ]}
+          >
             {filter === 'all' ? 'All Time' : `Past ${filter}`}
           </Text>
         </TouchableOpacity>
@@ -625,21 +600,10 @@ const QnaForum: React.FC = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={[
-        styles.container,
-        isDark ? styles.containerDark : null
-      ]}>
-        <View style={[
-          styles.loadingContainer,
-          isDark ? styles.loadingContainerDark : null
-        ]}>
+      <SafeAreaView style={[styles.container, isDark ? styles.containerDark : null]}>
+        <View style={[styles.loadingContainer, isDark ? styles.loadingContainerDark : null]}>
           <ActivityIndicator size="large" color={isDark ? '#FFFFFF' : '#FF6B35'} />
-          <Text style={[
-            styles.loadingText,
-            isDark ? styles.textDark : null
-          ]}>
-            Loading questions...
-          </Text>
+          <Text style={[styles.loadingText, isDark ? styles.textDark : null]}>Loading questions...</Text>
         </View>
       </SafeAreaView>
     );
@@ -647,19 +611,10 @@ const QnaForum: React.FC = () => {
 
   if (questions.length === 0) {
     return (
-      <SafeAreaView style={[
-        styles.container,
-        isDark ? styles.containerDark : null
-      ]}>
+      <SafeAreaView style={[styles.container, isDark ? styles.containerDark : null]}>
         <View style={styles.emptyState}>
-          <Ionicons
-            name="chatbubbles-outline"
-            size={64}
-            color={isDark ? '#3A3A3C' : '#D1D1D6'}
-          />
-          <Text style={[styles.emptyStateTitle, isDark ? styles.textDark : null]}>
-            No questions found
-          </Text>
+          <Ionicons name="chatbubbles-outline" size={64} color={isDark ? '#3A3A3C' : '#D1D1D6'} />
+          <Text style={[styles.emptyStateTitle, isDark ? styles.textDark : null]}>No questions found</Text>
           <Text style={[styles.emptyStateText, isDark ? styles.textDark : null]}>
             Be the first to ask a question or adjust your filters
           </Text>
@@ -669,46 +624,32 @@ const QnaForum: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={[
-      styles.container,
-      isDark ? styles.containerDark : null,
-      { paddingTop: insets.top, paddingBottom: insets.bottom }
-    ]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      
+    <SafeAreaView
+      style={[
+        styles.container,
+        isDark ? styles.containerDark : null,
+        { paddingTop: insets.top, paddingBottom: insets.bottom },
+      ]}
+    >
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+
       {/* Header */}
-      <Animated.View style={[
-        styles.header,
-        { opacity: headerOpacity },
-        isDark ? styles.headerDark : null
-      ]}>
+      <Animated.View style={[styles.header, { opacity: headerOpacity }, isDark ? styles.headerDark : null]}>
         <View style={styles.headerTop}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons
-              name="arrow-back"
-              size={24}
-              color={isDark ? '#FFFFFF' : '#1C1C1E'}
-            />
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={isDark ? '#FFFFFF' : '#1C1C1E'} />
           </TouchableOpacity>
-          
+
           <View style={styles.headerCenter}>
-            <Text style={[
-              styles.headerTitle,
-              isDark ? styles.textDark : null
-            ]}>
-              Q&A Forum
-            </Text>
+            <Text style={[styles.headerTitle, isDark ? styles.textDark : null]}>Q&A Forum</Text>
           </View>
-          
+
           <View style={styles.headerRight}>
             <TouchableOpacity
               style={[
                 styles.myQuestionsButton,
                 showMyQuestionsOnly && styles.myQuestionsButtonActive,
-                isDark ? styles.myQuestionsButtonDark : null
+                isDark ? styles.myQuestionsButtonDark : null,
               ]}
               onPress={() => setShowMyQuestionsOnly(!showMyQuestionsOnly)}
             >
@@ -720,47 +661,26 @@ const QnaForum: React.FC = () => {
             </TouchableOpacity>
           </View>
         </View>
-        
+
         {/* Search Bar */}
-        <View style={[
-          styles.searchContainer,
-          isDark ? styles.searchContainerDark : null
-        ]}>
-          <Ionicons
-            name="search"
-            size={20}
-            color={isDark ? '#8E8E93' : '#8E8E93'}
-            style={styles.searchIcon}
-          />
+        <View style={[styles.searchContainer, isDark ? styles.searchContainerDark : null]}>
+          <Ionicons name="search" size={20} color={isDark ? '#8E8E93' : '#8E8E93'} style={styles.searchIcon} />
           <TextInput
-            style={[
-              styles.searchInput,
-              isDark ? styles.searchInputDark : null
-            ]}
+            style={[styles.searchInput, isDark ? styles.searchInputDark : null]}
             placeholder="Search questions, tags, or users..."
             placeholderTextColor={isDark ? '#8E8E93' : '#8E8E93'}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery ? (
-            <TouchableOpacity
-              onPress={() => setSearchQuery('')}
-              style={styles.clearSearchButton}
-            >
-              <Ionicons
-                name="close-circle"
-                size={20}
-                color={isDark ? '#8E8E93' : '#8E8E93'}
-              />
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearchButton}>
+              <Ionicons name="close-circle" size={20} color={isDark ? '#8E8E93' : '#8E8E93'} />
             </TouchableOpacity>
           ) : null}
         </View>
-        
+
         {/* Tab Bar */}
-        <View style={[
-          styles.tabBar,
-          isDark ? styles.tabBarDark : null
-        ]}>
+        <View style={[styles.tabBar, isDark ? styles.tabBarDark : null]}>
           {(['hot', 'new', 'top'] as const).map((tab) => (
             <TouchableOpacity
               key={tab}
@@ -768,55 +688,45 @@ const QnaForum: React.FC = () => {
                 styles.tab,
                 activeTab === tab && styles.activeTab,
                 isDark ? styles.tabDark : null,
-                activeTab === tab && isDark && styles.activeTabDark
+                activeTab === tab && isDark && styles.activeTabDark,
               ]}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setActiveTab(tab);
               }}
             >
-              <Text style={[
-                styles.tabText,
-                activeTab === tab && styles.activeTabText,
-                isDark ? styles.textDark : null
-              ]}>
-                {tab === 'hot' ? '🔥 Hot' :
-                 tab === 'new' ? '🆕 New' :
-                 '⭐ Top'}
+              <Text
+                style={[styles.tabText, activeTab === tab && styles.activeTabText, isDark ? styles.textDark : null]}
+              >
+                {tab === 'hot' ? '🔥 Hot' : tab === 'new' ? '🆕 New' : '⭐ Top'}
               </Text>
             </TouchableOpacity>
           ))}
-          
+
           {/* Time filter button for Top tab */}
           {activeTab === 'top' && (
             <TouchableOpacity
-              style={[
-                styles.timeFilterButton,
-                isDark ? styles.timeFilterButtonDark : null
-              ]}
+              style={[styles.timeFilterButton, isDark ? styles.timeFilterButtonDark : null]}
               onPress={() => setShowTimeFilterModal(!showTimeFilterModal)}
             >
-              <Text style={[
-                styles.timeFilterButtonText,
-                isDark ? styles.textDark : null
-              ]}>
-                {timeFilter === 'all' ? 'All Time' : 
-                 timeFilter === 'week' ? 'Week' :
-                 timeFilter === 'month' ? 'Month' : 'Year'}
+              <Text style={[styles.timeFilterButtonText, isDark ? styles.textDark : null]}>
+                {timeFilter === 'all'
+                  ? 'All Time'
+                  : timeFilter === 'week'
+                    ? 'Week'
+                    : timeFilter === 'month'
+                      ? 'Month'
+                      : 'Year'}
               </Text>
-              <Ionicons
-                name="chevron-down"
-                size={16}
-                color={isDark ? '#FFFFFF' : '#1C1C1E'}
-              />
+              <Ionicons name="chevron-down" size={16} color={isDark ? '#FFFFFF' : '#1C1C1E'} />
             </TouchableOpacity>
           )}
         </View>
       </Animated.View>
-      
+
       {/* Time Filter Modal */}
       {showTimeFilterModal && renderTimeFilterModal()}
-      
+
       {/* Question List */}
       <Animated.FlatList
         data={questions}
@@ -825,31 +735,20 @@ const QnaForum: React.FC = () => {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={null}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={
           loadingMore && questions.length >= PAGE_SIZE ? (
             <View style={styles.loadingMoreContainer}>
-              <ActivityIndicator
-                size="small"
-                color={isDark ? '#FFFFFF' : '#FF6B35'}
-              />
-              <Text style={[
-                styles.loadingMoreText,
-                isDark ? styles.textDark : null
-              ]}>
-                Loading more questions...
-              </Text>
+              <ActivityIndicator size="small" color={isDark ? '#FFFFFF' : '#FF6B35'} />
+              <Text style={[styles.loadingMoreText, isDark ? styles.textDark : null]}>Loading more questions...</Text>
             </View>
           ) : null
         }
       />
-      
+
       {/* Floating Action Button */}
       <TouchableOpacity
         style={styles.fab}
@@ -858,70 +757,34 @@ const QnaForum: React.FC = () => {
           setShowCreateModal(true);
         }}
       >
-        <LinearGradient
-          colors={['#FF6B35', '#FF8C66']}
-          style={styles.fabGradient}
-        >
+        <LinearGradient colors={['#FF6B35', '#FF8C66']} style={styles.fabGradient}>
           <Ionicons name="add" size={24} color="#FFFFFF" />
         </LinearGradient>
       </TouchableOpacity>
-      
+
       {/* Create Question Modal */}
       {showCreateModal && (
-        <View style={[
-          styles.modalContainer,
-          isDark ? styles.modalContainerDark : null
-        ]}>
-          <View style={[
-            styles.modalContent,
-            isDark ? styles.modalContentDark : null
-          ]}>
+        <View style={[styles.modalContainer, isDark ? styles.modalContainerDark : null]}>
+          <View style={[styles.modalContent, isDark ? styles.modalContentDark : null]}>
             <View style={styles.modalHeader}>
-              <Text style={[
-                styles.modalTitle,
-                isDark ? styles.textDark : null
-              ]}>
-                Create Question
-              </Text>
-              <TouchableOpacity
-                onPress={() => setShowCreateModal(false)}
-              >
-                <Ionicons
-                  name="close"
-                  size={24}
-                  color={isDark ? '#FFFFFF' : '#1C1C1E'}
-                />
+              <Text style={[styles.modalTitle, isDark ? styles.textDark : null]}>Create Question</Text>
+              <TouchableOpacity onPress={() => setShowCreateModal(false)}>
+                <Ionicons name="close" size={24} color={isDark ? '#FFFFFF' : '#1C1C1E'} />
               </TouchableOpacity>
             </View>
             {/* Create Question Form */}
             <View style={styles.createForm}>
-              <Text style={[
-                styles.formLabel,
-                isDark ? styles.textDark : null
-              ]}>
-                Title
-              </Text>
+              <Text style={[styles.formLabel, isDark ? styles.textDark : null]}>Title</Text>
               <TextInput
-                style={[
-                  styles.formInput,
-                  isDark ? styles.formInputDark : null
-                ]}
+                style={[styles.formInput, isDark ? styles.formInputDark : null]}
                 placeholder="Enter your question title"
                 placeholderTextColor={isDark ? '#8E8E93' : '#8E8E93'}
                 value={newTitle}
                 onChangeText={setNewTitle}
               />
-              <Text style={[
-                styles.formLabel,
-                isDark ? styles.textDark : null
-              ]}>
-                Description
-              </Text>
+              <Text style={[styles.formLabel, isDark ? styles.textDark : null]}>Description</Text>
               <TextInput
-                style={[
-                  styles.formTextArea,
-                  isDark ? styles.formInputDark : null
-                ]}
+                style={[styles.formTextArea, isDark ? styles.formInputDark : null]}
                 placeholder="Provide details about your question"
                 placeholderTextColor={isDark ? '#8E8E93' : '#8E8E93'}
                 multiline
@@ -930,12 +793,7 @@ const QnaForum: React.FC = () => {
                 value={newDescription}
                 onChangeText={setNewDescription}
               />
-              <Text style={[
-                styles.formLabel,
-                isDark ? styles.textDark : null
-              ]}>
-                Tags
-              </Text>
+              <Text style={[styles.formLabel, isDark ? styles.textDark : null]}>Tags</Text>
               <TextInput
                 style={[styles.formInput, isDark ? styles.formInputDark : null]}
                 placeholder="e.g. react-native, firebase"
@@ -948,15 +806,23 @@ const QnaForum: React.FC = () => {
                 {tagsArray.map((tag, idx) => (
                   <View
                     key={tag}
-                    style={[styles.tagChip, isDark ? styles.tagChipDark : null, {
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      marginRight: 8,
-                      marginBottom: 8,
-                      backgroundColor: tagColors[idx % tagColors.length],
-                    }]}
+                    style={[
+                      styles.tagChip,
+                      isDark ? styles.tagChipDark : null,
+                      {
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        marginRight: 8,
+                        marginBottom: 8,
+                        backgroundColor: tagColors[idx % tagColors.length],
+                      },
+                    ]}
                   >
-                    <Text style={[styles.tagText, isDark ? styles.textDark : null, { color: '#fff', fontWeight: '600' }]}>{tag}</Text>
+                    <Text
+                      style={[styles.tagText, isDark ? styles.textDark : null, { color: '#fff', fontWeight: '600' }]}
+                    >
+                      {tag}
+                    </Text>
                     <TouchableOpacity onPress={() => removeTag(tag)}>
                       <Ionicons name="close" size={14} color={'#fff'} style={{ marginLeft: 4 }} />
                     </TouchableOpacity>
@@ -965,11 +831,11 @@ const QnaForum: React.FC = () => {
               </View>
               <Text style={[styles.formLabel, isDark ? styles.textDark : null]}>Category</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-                {['Food', 'Events', 'Hostel Life', 'Meme', 'Nature', 'Academic', 'Other'].map(category => (
+                {['Food', 'Events', 'Hostel Life', 'Meme', 'Nature', 'Academic', 'Other'].map((category) => (
                   <TouchableOpacity
                     key={category}
                     style={{
-                      backgroundColor: selectedCategory === category ? '#FF6B35' : (isDark ? '#3A3A3C' : '#E9ECEF'),
+                      backgroundColor: selectedCategory === category ? '#FF6B35' : isDark ? '#3A3A3C' : '#E9ECEF',
                       borderRadius: 16,
                       paddingHorizontal: 14,
                       paddingVertical: 8,
@@ -977,13 +843,23 @@ const QnaForum: React.FC = () => {
                     }}
                     onPress={() => setSelectedCategory(category)}
                   >
-                    <Text style={{ color: selectedCategory === category ? '#fff' : (isDark ? '#fff' : '#1C1C1E'), fontWeight: '600' }}>{category}</Text>
+                    <Text
+                      style={{
+                        color: selectedCategory === category ? '#fff' : isDark ? '#fff' : '#1C1C1E',
+                        fontWeight: '600',
+                      }}
+                    >
+                      {category}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
               <Text style={[styles.formLabel, isDark ? styles.textDark : null]}>Image (optional)</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                <TouchableOpacity onPress={pickImage} style={{ backgroundColor: '#FF6B35', borderRadius: 8, padding: 10, marginRight: 12 }}>
+                <TouchableOpacity
+                  onPress={pickImage}
+                  style={{ backgroundColor: '#FF6B35', borderRadius: 8, padding: 10, marginRight: 12 }}
+                >
                   <Ionicons name="image" size={20} color="#fff" />
                 </TouchableOpacity>
                 {pickedImage && (
@@ -991,10 +867,7 @@ const QnaForum: React.FC = () => {
                 )}
               </View>
               <TouchableOpacity
-                style={[
-                  styles.submitButton,
-                  isDark ? styles.submitButtonDark : null
-                ]}
+                style={[styles.submitButton, isDark ? styles.submitButtonDark : null]}
                 onPress={async () => {
                   if (!newTitle.trim() || !newDescription.trim()) {
                     Alert.alert('Error', 'Title and description are required.');
@@ -1020,9 +893,7 @@ const QnaForum: React.FC = () => {
                   setSelectedCategory('Other');
                 }}
               >
-                <Text style={styles.submitButtonText}>
-                  Post Question
-                </Text>
+                <Text style={styles.submitButtonText}>Post Question</Text>
               </TouchableOpacity>
             </View>
           </View>

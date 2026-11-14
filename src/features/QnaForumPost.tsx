@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationProp, RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import type { RootStackParamList } from '../types/navigation';
 import * as Haptics from 'expo-haptics';
@@ -29,14 +29,12 @@ import {
   useColorScheme,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import QnaProfile from './QnaProfile';
 import {
   doc,
   getDoc,
   collection,
   query,
-  orderBy,
   onSnapshot,
   addDoc,
   updateDoc,
@@ -45,7 +43,6 @@ import {
   arrayRemove,
   serverTimestamp,
   where,
-  DocumentSnapshot,
 } from 'firebase/firestore';
 import { db, auth } from '../services/firebase';
 import notificationService from '../services/notificationService';
@@ -125,12 +122,7 @@ const QnaForumPost: React.FC = () => {
     opacity: headerOpacity.value,
     transform: [
       {
-        translateY: interpolate(
-          scrollY.value,
-          [0, 50],
-          [0, -10],
-          Extrapolate.CLAMP
-        ),
+        translateY: interpolate(scrollY.value, [0, 50], [0, -10], Extrapolate.CLAMP),
       },
     ],
   }));
@@ -150,10 +142,10 @@ const QnaForumPost: React.FC = () => {
   const [submittingReply, setSubmittingReply] = useState<boolean>(false);
   const fadeAnim = useSharedValue(0);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Profile popup states
   const [profileModalVisible, setProfileModalVisible] = useState<boolean>(false);
-  const [selectedUser, setSelectedUser] = useState<{id: string; name: string; isAnonymous: boolean} | null>(null);
+  const [selectedUser, setSelectedUser] = useState<{ id: string; name: string; isAnonymous: boolean } | null>(null);
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
@@ -196,7 +188,7 @@ const QnaForumPost: React.FC = () => {
       setError('Question ID is missing');
       return;
     }
-    
+
     console.log('QnaForumPost: Component mounted with questionId:', questionId);
     loadQuestionDetails();
     loadAnswers();
@@ -223,17 +215,17 @@ const QnaForumPost: React.FC = () => {
 
       const questionRef = doc(db, 'qna_questions', questionId);
       const questionSnap = await getDoc(questionRef);
-      
+
       if (questionSnap.exists()) {
         const data = questionSnap.data();
         console.log('QnaForumPost: Question data loaded:', data);
-        
+
         // Update view count
         await updateDoc(questionRef, {
           views: increment(1),
-          viewedBy: arrayUnion(currentUser?.id)
+          viewedBy: arrayUnion(currentUser?.id),
         });
-        
+
         setQuestion({
           id: questionSnap.id,
           ...data,
@@ -244,7 +236,7 @@ const QnaForumPost: React.FC = () => {
           points: data.points || 0,
           views: (data.views || 0) + 1, // Increment locally too
           isAnonymous: data.isAnonymous || false,
-          anonymousAvatar: data.anonymousAvatar || generateRandomAvatar()
+          anonymousAvatar: data.anonymousAvatar || generateRandomAvatar(),
         } as Question);
       } else {
         console.error('QnaForumPost: Question not found for ID:', questionId);
@@ -262,90 +254,91 @@ const QnaForumPost: React.FC = () => {
   // Load answers with real-time updates
   const loadAnswers = () => {
     if (!questionId) return;
-    
+
     try {
       const answersRef = collection(db, 'qna_answers');
       // Simplified query to avoid complex indexing requirements
-      const q = query(
-        answersRef,
-        where('questionId', '==', questionId)
-      );
+      const q = query(answersRef, where('questionId', '==', questionId));
 
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const loadedAnswers: Answer[] = [];
-        const answerMap = new Map<string, Answer>();
-        
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          const answer: Answer = {
-            id: doc.id,
-            content: data.content || '',
-            author: data.author || 'Unknown',
-            authorId: data.authorId || '',
-            timestamp: data.timestamp,
-            upvotes: data.upvotes || [],
-            downvotes: data.downvotes || [],
-            isAccepted: data.isAccepted || false,
-            isAnonymous: data.isAnonymous || false,
-            parentId: data.parentId || undefined,
-            replies: [],
-            questionId: data.questionId || questionId,
-            points: data.points || 0,
-            anonymousAvatar: data.anonymousAvatar || generateRandomAvatar()
-          };
-          answerMap.set(doc.id, answer);
-        });
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const loadedAnswers: Answer[] = [];
+          const answerMap = new Map<string, Answer>();
 
-        // Build threaded structure and sort client-side
-        const rootAnswers: Answer[] = [];
-        answerMap.forEach((answer) => {
-          if (answer.parentId) {
-            // This is a reply
-            const parent = answerMap.get(answer.parentId);
-            if (parent) {
-              if (!parent.replies) parent.replies = [];
-              parent.replies.push(answer);
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            const answer: Answer = {
+              id: doc.id,
+              content: data.content || '',
+              author: data.author || 'Unknown',
+              authorId: data.authorId || '',
+              timestamp: data.timestamp,
+              upvotes: data.upvotes || [],
+              downvotes: data.downvotes || [],
+              isAccepted: data.isAccepted || false,
+              isAnonymous: data.isAnonymous || false,
+              parentId: data.parentId || undefined,
+              replies: [],
+              questionId: data.questionId || questionId,
+              points: data.points || 0,
+              anonymousAvatar: data.anonymousAvatar || generateRandomAvatar(),
+            };
+            answerMap.set(doc.id, answer);
+          });
+
+          // Build threaded structure and sort client-side
+          const rootAnswers: Answer[] = [];
+          answerMap.forEach((answer) => {
+            if (answer.parentId) {
+              // This is a reply
+              const parent = answerMap.get(answer.parentId);
+              if (parent) {
+                if (!parent.replies) parent.replies = [];
+                parent.replies.push(answer);
+              }
+            } else {
+              // This is a root answer
+              rootAnswers.push(answer);
             }
-          } else {
-            // This is a root answer
-            rootAnswers.push(answer);
-          }
-        });
+          });
 
-        // Sort root answers by points (descending), then by timestamp (newest first)
-        rootAnswers.sort((a, b) => {
-          if (b.points !== a.points) return b.points - a.points;
-          const aTime = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
-          const bTime = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
-          return bTime - aTime;
-        });
+          // Sort root answers by points (descending), then by timestamp (newest first)
+          rootAnswers.sort((a, b) => {
+            if (b.points !== a.points) return b.points - a.points;
+            const aTime = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
+            const bTime = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
+            return bTime - aTime;
+          });
 
-        // Sort replies for each answer
-        rootAnswers.forEach((answer) => {
-          if (answer.replies && answer.replies.length > 0) {
-            answer.replies.sort((a, b) => {
-              if (b.points !== a.points) return b.points - a.points;
-              const aTime = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
-              const bTime = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
-              return bTime - aTime;
-            });
-          }
-        });
+          // Sort replies for each answer
+          rootAnswers.forEach((answer) => {
+            if (answer.replies && answer.replies.length > 0) {
+              answer.replies.sort((a, b) => {
+                if (b.points !== a.points) return b.points - a.points;
+                const aTime = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
+                const bTime = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
+                return bTime - aTime;
+              });
+            }
+          });
 
-        setAnswers(rootAnswers);
-        
-        // Auto-expand all replies by default
-        const answersWithReplies = new Set<string>();
-        rootAnswers.forEach(answer => {
-          if (answer.replies && answer.replies.length > 0) {
-            answersWithReplies.add(answer.id);
-          }
-        });
-        setExpandedReplies(answersWithReplies);
-      }, (error) => {
-        console.error('Error loading answers:', error);
-        Alert.alert('Error', 'Failed to load answers. Please check your Firebase connection.');
-      });
+          setAnswers(rootAnswers);
+
+          // Auto-expand all replies by default
+          const answersWithReplies = new Set<string>();
+          rootAnswers.forEach((answer) => {
+            if (answer.replies && answer.replies.length > 0) {
+              answersWithReplies.add(answer.id);
+            }
+          });
+          setExpandedReplies(answersWithReplies);
+        },
+        (error) => {
+          console.error('Error loading answers:', error);
+          Alert.alert('Error', 'Failed to load answers. Please check your Firebase connection.');
+        },
+      );
 
       return unsubscribe;
     } catch (error) {
@@ -360,16 +353,16 @@ const QnaForumPost: React.FC = () => {
   // Vote on question with haptic feedback
   const voteQuestion = async (voteType: 'up' | 'down') => {
     if (!question || !questionId) return;
-    
+
     // Trigger haptic feedback
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
+
     // Animate the question card
     questionScale.value = withSpring(0.95, { damping: 10 });
     setTimeout(() => {
       questionScale.value = withSpring(1);
     }, 100);
-    
+
     try {
       if (!currentUser || !currentUser.id) {
         Alert.alert('Not logged in', 'Please log in to vote.');
@@ -427,7 +420,7 @@ const QnaForumPost: React.FC = () => {
           const authorRef = doc(db, 'users', question.authorId);
           await updateDoc(authorRef, {
             reputation: increment(pointsChange),
-            points: increment(pointsChange)
+            points: increment(pointsChange),
           });
         } catch (userError) {
           console.warn('Could not update question author reputation (user document may not exist):', userError);
@@ -436,7 +429,13 @@ const QnaForumPost: React.FC = () => {
       }
 
       // Notify author if upvotes cross 2 (only on upvote)
-      if (voteType === 'up' && !hasUpvoted && !question.isAnonymous && question.authorId !== 'anonymous' && question.authorId !== 'current_user_id') {
+      if (
+        voteType === 'up' &&
+        !hasUpvoted &&
+        !question.isAnonymous &&
+        question.authorId !== 'anonymous' &&
+        question.authorId !== 'current_user_id'
+      ) {
         const updatedSnap = await getDoc(questionRef);
         const updated = updatedSnap.data();
         if (updated && updated.upvotes && updated.upvotes.length === 3) {
@@ -446,34 +445,35 @@ const QnaForumPost: React.FC = () => {
             title: 'Your question is getting popular!',
             body: `Your question "${question.title}" has received 3 upvotes!`,
             icon: 'arrow-up-circle',
-            extra: { questionId: question.id }
+            extra: { questionId: question.id },
           });
         }
       }
 
       // Update local state
-      setQuestion(prev => {
+      setQuestion((prev) => {
         if (!prev) return prev;
-        const newUpvotes = voteType === 'up' 
-          ? (hasUpvoted 
-              ? prev.upvotes.filter(id => id !== currentUser.id)
-              : [...prev.upvotes.filter(id => id !== currentUser.id), currentUser.id])
-          : prev.upvotes.filter(id => id !== currentUser.id);
-        
-        const newDownvotes = voteType === 'down'
-          ? (hasDownvoted
-              ? prev.downvotes.filter(id => id !== currentUser.id)
-              : [...prev.downvotes.filter(id => id !== currentUser.id), currentUser.id])
-          : prev.downvotes.filter(id => id !== currentUser.id);
+        const newUpvotes =
+          voteType === 'up'
+            ? hasUpvoted
+              ? prev.upvotes.filter((id) => id !== currentUser.id)
+              : [...prev.upvotes.filter((id) => id !== currentUser.id), currentUser.id]
+            : prev.upvotes.filter((id) => id !== currentUser.id);
+
+        const newDownvotes =
+          voteType === 'down'
+            ? hasDownvoted
+              ? prev.downvotes.filter((id) => id !== currentUser.id)
+              : [...prev.downvotes.filter((id) => id !== currentUser.id), currentUser.id]
+            : prev.downvotes.filter((id) => id !== currentUser.id);
 
         return {
           ...prev,
           upvotes: newUpvotes,
           downvotes: newDownvotes,
-          points: prev.points + pointsChange
+          points: prev.points + pointsChange,
         };
       });
-
     } catch (error) {
       console.error('Error voting on question:', error);
       Alert.alert('Error', 'Failed to vote. Please try again.');
@@ -485,7 +485,7 @@ const QnaForumPost: React.FC = () => {
   const voteAnswer = async (answerId: string, voteType: 'up' | 'down') => {
     // Trigger haptic feedback
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
+
     try {
       if (!currentUser || !currentUser.id) {
         Alert.alert('Not logged in', 'Please log in to vote.');
@@ -545,15 +545,15 @@ const QnaForumPost: React.FC = () => {
         try {
           const authorRef = doc(db, 'users', answer.authorId);
           let bonusPoints = pointsChange;
-          
+
           // Award bonus points for getting upvotes (2x the vote value)
           if (voteType === 'up' && !hasUpvoted) {
             bonusPoints += 5; // Extra 5 points for getting an upvote
           }
-          
+
           await updateDoc(authorRef, {
             reputation: increment(pointsChange),
-            points: increment(bonusPoints)
+            points: increment(bonusPoints),
           });
         } catch (userError) {
           console.warn('Could not update answer author reputation (user document may not exist):', userError);
@@ -562,7 +562,14 @@ const QnaForumPost: React.FC = () => {
       }
 
       // Notify answer author if upvotes cross 2 (only on upvote)
-      if (voteType === 'up' && !hasUpvoted && answer && !answer.isAnonymous && answer.authorId !== 'anonymous' && answer.authorId !== 'current_user_id') {
+      if (
+        voteType === 'up' &&
+        !hasUpvoted &&
+        answer &&
+        !answer.isAnonymous &&
+        answer.authorId !== 'anonymous' &&
+        answer.authorId !== 'current_user_id'
+      ) {
         const updatedSnap = await getDoc(answerRef);
         const updated = updatedSnap.data();
         if (updated && updated.upvotes && updated.upvotes.length === 3) {
@@ -572,11 +579,10 @@ const QnaForumPost: React.FC = () => {
             title: 'Your answer is getting popular!',
             body: `Your answer on "${question?.title || ''}" has received 3 upvotes!`,
             icon: 'arrow-up-circle',
-            extra: { questionId: questionId, answerId: answer.id }
+            extra: { questionId: questionId, answerId: answer.id },
           });
         }
       }
-
     } catch (error) {
       console.error('Error voting on answer:', error);
       Alert.alert('Error', 'Failed to vote. Please try again.');
@@ -587,7 +593,7 @@ const QnaForumPost: React.FC = () => {
   // Submit reply
   const submitReply = async () => {
     if (!questionId) return;
-    
+
     if (!replyText.trim()) {
       Alert.alert('Error', 'Please enter a reply.');
       return;
@@ -614,7 +620,7 @@ const QnaForumPost: React.FC = () => {
         parentId: replyingTo || null,
         questionId: questionId,
         points: 1,
-        anonymousAvatar: isAnonymous ? generateRandomAvatar() : null
+        anonymousAvatar: isAnonymous ? generateRandomAvatar() : null,
       };
 
       await addDoc(answersRef, replyData);
@@ -634,7 +640,7 @@ const QnaForumPost: React.FC = () => {
             await updateDoc(userRef, {
               points: increment(3), // Increased points for replies
               reputation: increment(1),
-              answersCount: increment(1)
+              answersCount: increment(1),
             });
           }
         } catch (userError) {
@@ -659,32 +665,43 @@ const QnaForumPost: React.FC = () => {
             title: 'New reply to your question',
             body: `"${sneakPeek}..."`,
             icon: 'chatbubble-ellipses',
-            extra: { questionId: question.id }
+            extra: { questionId: question.id },
           });
         }
       }
       // If replying to an answer (threaded reply)
       if (replyingTo) {
         const parentAnswer = findAnswerById(replyingTo);
-        if (parentAnswer && !parentAnswer.isAnonymous && parentAnswer.authorId !== 'anonymous' && parentAnswer.authorId !== currentUser?.id) {
+        if (
+          parentAnswer &&
+          !parentAnswer.isAnonymous &&
+          parentAnswer.authorId !== 'anonymous' &&
+          parentAnswer.authorId !== currentUser?.id
+        ) {
           await notificationService.sendUserAlert({
             userId: parentAnswer.authorId,
             type: 'qna',
             title: 'New reply to your answer',
             body: `"${sneakPeek}..."`,
             icon: 'chatbubble-ellipses',
-            extra: { questionId: questionId, answerId: parentAnswer.id }
+            extra: { questionId: questionId, answerId: parentAnswer.id },
           });
         }
         // Also notify question author if not already notified and not self
-        if (question && question.authorId !== currentUser?.id && question.authorId !== parentAnswer?.authorId && !question.isAnonymous && question.authorId !== 'anonymous') {
+        if (
+          question &&
+          question.authorId !== currentUser?.id &&
+          question.authorId !== parentAnswer?.authorId &&
+          !question.isAnonymous &&
+          question.authorId !== 'anonymous'
+        ) {
           await notificationService.sendUserAlert({
             userId: question.authorId,
             type: 'qna',
             title: 'New reply in your question thread',
             body: `"${sneakPeek}..."`,
             icon: 'chatbubble-ellipses',
-            extra: { questionId: question.id, answerId: parentAnswer?.id }
+            extra: { questionId: question.id, answerId: parentAnswer?.id },
           });
         }
       }
@@ -721,42 +738,42 @@ const QnaForumPost: React.FC = () => {
         Alert.alert('Login Required', 'Please log in to start a chat');
         return;
       }
-      
+
       if (currentUserAuth.uid === userId) {
         Alert.alert('Cannot chat with yourself', 'You cannot start a chat with yourself');
         return;
       }
-      
+
       // Get current user profile
       const currentUserDoc = await getDoc(doc(db, 'users', currentUserAuth.uid));
       if (!currentUserDoc.exists()) {
         Alert.alert('Profile Error', 'Your profile could not be found');
         return;
       }
-      
-      const currentUserProfile = { 
-        id: currentUserAuth.uid, 
+
+      const currentUserProfile = {
+        id: currentUserAuth.uid,
         name: currentUserDoc.data().name || currentUserAuth.displayName || 'User',
-        ...currentUserDoc.data()
+        ...currentUserDoc.data(),
       };
-      
+
       // Get other user profile
       const otherUserDoc = await getDoc(doc(db, 'users', userId));
       if (!otherUserDoc.exists()) {
         Alert.alert('Profile Error', 'User profile could not be found');
         return;
       }
-      
-      const otherUserProfile = { 
-        id: userId, 
+
+      const otherUserProfile = {
+        id: userId,
         name: otherUserDoc.data().name || userName,
-        ...otherUserDoc.data()
+        ...otherUserDoc.data(),
       };
-      
+
       // Navigate to chat
       navigation.navigate('Chat', {
         currentUser: currentUserProfile,
-        selectedUser: otherUserProfile
+        selectedUser: otherUserProfile,
       });
     } catch (error) {
       console.error('Error starting chat:', error);
@@ -769,7 +786,7 @@ const QnaForumPost: React.FC = () => {
     setSelectedUser({
       id: userId,
       name: username,
-      isAnonymous: isAnonymous
+      isAnonymous: isAnonymous,
     });
     setProfileModalVisible(true);
   };
@@ -781,7 +798,7 @@ const QnaForumPost: React.FC = () => {
 
   // Toggle expanded replies
   const toggleReplies = (answerId: string) => {
-    setExpandedReplies(prev => {
+    setExpandedReplies((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(answerId)) {
         newSet.delete(answerId);
@@ -809,20 +826,26 @@ const QnaForumPost: React.FC = () => {
 
   // Render answer with threaded replies
   const renderAnswer = (answer: Answer, isReply: boolean = false) => (
-    <View key={answer.id} style={[
-      styles.answerContainer, 
-      isReply && styles.replyContainer,
-      isDark && styles.answerContainerDark,
-      isReply && isDark && styles.replyContainerDark
-    ]}>
+    <View
+      key={answer.id}
+      style={[
+        styles.answerContainer,
+        isReply && styles.replyContainer,
+        isDark && styles.answerContainerDark,
+        isReply && isDark && styles.replyContainerDark,
+      ]}
+    >
       <View style={styles.answerHeader}>
         <View style={styles.authorInfo}>
-          <Image 
-            source={{ uri: answer.isAnonymous 
-              ? answer.anonymousAvatar || generateRandomAvatar() 
-              : (answer.authorId === currentUser?.id ? currentUser?.avatar : undefined) // fallback to undefined for now
-            }} 
-            style={styles.authorAvatar} 
+          <Image
+            source={{
+              uri: answer.isAnonymous
+                ? answer.anonymousAvatar || generateRandomAvatar()
+                : answer.authorId === currentUser?.id
+                  ? currentUser?.avatar
+                  : undefined, // fallback to undefined for now
+            }}
+            style={styles.authorAvatar}
           />
           <View style={styles.authorDetails}>
             <TouchableOpacity onPress={() => handleOpenProfile(answer.authorId, answer.author, answer.isAnonymous)}>
@@ -830,9 +853,7 @@ const QnaForumPost: React.FC = () => {
                 {answer.isAnonymous ? '🕶️ Anonymous' : answer.author}
               </Text>
             </TouchableOpacity>
-            <Text style={[styles.answerTimestamp, isDark && styles.textDark]}>
-              {formatTimestamp(answer.timestamp)}
-            </Text>
+            <Text style={[styles.answerTimestamp, isDark && styles.textDark]}>{formatTimestamp(answer.timestamp)}</Text>
           </View>
         </View>
       </View>
@@ -841,58 +862,53 @@ const QnaForumPost: React.FC = () => {
 
       <View style={styles.answerFooter}>
         <View style={styles.voteContainer}>
-          <TouchableOpacity 
-            style={[
-              styles.voteButton,
-              safeIncludes(answer.upvotes, currentUser?.id) && styles.upvotedButton
-            ]}
+          <TouchableOpacity
+            style={[styles.voteButton, safeIncludes(answer.upvotes, currentUser?.id) && styles.upvotedButton]}
             onPress={() => voteAnswer(answer.id, 'up')}
           >
-            <Ionicons 
-              name="arrow-up" 
-              size={18} 
-              color={safeIncludes(answer.upvotes, currentUser?.id) ? '#FF6B35' : isDark ? '#8E8E93' : '#6E7B8B'} 
+            <Ionicons
+              name="arrow-up"
+              size={18}
+              color={safeIncludes(answer.upvotes, currentUser?.id) ? '#FF6B35' : isDark ? '#8E8E93' : '#6E7B8B'}
             />
-            <Text style={[
-              styles.voteText,
-              safeIncludes(answer.upvotes, currentUser?.id) && styles.upvotedText,
-              isDark && styles.textDark
-            ]}>
+            <Text
+              style={[
+                styles.voteText,
+                safeIncludes(answer.upvotes, currentUser?.id) && styles.upvotedText,
+                isDark && styles.textDark,
+              ]}
+            >
               {answer.upvotes.length}
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[
-              styles.voteButton,
-              safeIncludes(answer.downvotes, currentUser?.id) && styles.downvotedButton
-            ]}
+          <TouchableOpacity
+            style={[styles.voteButton, safeIncludes(answer.downvotes, currentUser?.id) && styles.downvotedButton]}
             onPress={() => voteAnswer(answer.id, 'down')}
           >
-            <Ionicons 
-              name="arrow-down" 
-              size={18} 
-              color={safeIncludes(answer.downvotes, currentUser?.id) ? '#7C3AED' : isDark ? '#8E8E93' : '#6E7B8B'} 
+            <Ionicons
+              name="arrow-down"
+              size={18}
+              color={safeIncludes(answer.downvotes, currentUser?.id) ? '#7C3AED' : isDark ? '#8E8E93' : '#6E7B8B'}
             />
-            <Text style={[
-              styles.voteText,
-              safeIncludes(answer.downvotes, currentUser?.id) && styles.downvotedText,
-              isDark && styles.textDark
-            ]}>
+            <Text
+              style={[
+                styles.voteText,
+                safeIncludes(answer.downvotes, currentUser?.id) && styles.downvotedText,
+                isDark && styles.textDark,
+              ]}
+            >
               {answer.downvotes.length}
             </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.answerActions}>
-          <TouchableOpacity 
-            style={styles.replyButton}
-            onPress={() => setReplyingTo(answer.id)}
-          >
+          <TouchableOpacity style={styles.replyButton} onPress={() => setReplyingTo(answer.id)}>
             <Ionicons name="chatbubble-outline" size={16} color={isDark ? '#8E8E93' : '#6E7B8B'} />
             <Text style={[styles.replyButtonText, isDark && styles.textDark]}>Reply</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.chatButton}
             onPress={() => {
@@ -904,23 +920,33 @@ const QnaForumPost: React.FC = () => {
             }}
             disabled={answer.isAnonymous}
           >
-            <Ionicons name="chatbubble-ellipses-outline" size={16} color={answer.isAnonymous ? '#C7C7CC' : (isDark ? '#8E8E93' : '#6E7B8B')} />
-            <Text style={[styles.chatButtonText, answer.isAnonymous && styles.chatButtonTextDisabled, isDark && styles.textDark]}>Chat</Text>
+            <Ionicons
+              name="chatbubble-ellipses-outline"
+              size={16}
+              color={answer.isAnonymous ? '#C7C7CC' : isDark ? '#8E8E93' : '#6E7B8B'}
+            />
+            <Text
+              style={[
+                styles.chatButtonText,
+                answer.isAnonymous && styles.chatButtonTextDisabled,
+                isDark && styles.textDark,
+              ]}
+            >
+              Chat
+            </Text>
           </TouchableOpacity>
         </View>
 
         {answer.replies && answer.replies.length > 0 && (
-          <TouchableOpacity 
-            style={styles.showRepliesButton}
-            onPress={() => toggleReplies(answer.id)}
-          >
-            <Ionicons 
-              name={expandedReplies.has(answer.id) ? "chevron-up" : "chevron-down"} 
-              size={16} 
-              color={isDark ? '#8E8E93' : '#6E7B8B'} 
+          <TouchableOpacity style={styles.showRepliesButton} onPress={() => toggleReplies(answer.id)}>
+            <Ionicons
+              name={expandedReplies.has(answer.id) ? 'chevron-up' : 'chevron-down'}
+              size={16}
+              color={isDark ? '#8E8E93' : '#6E7B8B'}
             />
             <Text style={[styles.showRepliesText, isDark && styles.textDark]}>
-              {expandedReplies.has(answer.id) ? 'Hide' : 'Show'} {answer.replies.length} {answer.replies.length === 1 ? 'reply' : 'replies'}
+              {expandedReplies.has(answer.id) ? 'Hide' : 'Show'} {answer.replies.length}{' '}
+              {answer.replies.length === 1 ? 'reply' : 'replies'}
             </Text>
           </TouchableOpacity>
         )}
@@ -928,9 +954,7 @@ const QnaForumPost: React.FC = () => {
 
       {/* Threaded Replies */}
       {answer.replies && answer.replies.length > 0 && expandedReplies.has(answer.id) && (
-        <View style={styles.repliesContainer}>
-          {answer.replies.map(reply => renderAnswer(reply, true))}
-        </View>
+        <View style={styles.repliesContainer}>{answer.replies.map((reply) => renderAnswer(reply, true))}</View>
       )}
     </View>
   );
@@ -954,7 +978,7 @@ const QnaForumPost: React.FC = () => {
       'https://i.pravatar.cc/150?u=anon7',
       'https://i.pravatar.cc/150?u=anon8',
       'https://i.pravatar.cc/150?u=anon9',
-      'https://i.pravatar.cc/150?u=anon10'
+      'https://i.pravatar.cc/150?u=anon10',
     ];
     return avatars[Math.floor(Math.random() * avatars.length)];
   };
@@ -968,17 +992,14 @@ const QnaForumPost: React.FC = () => {
       </SafeAreaView>
     );
   }
-  
+
   if (error || !questionId) {
     return (
       <SafeAreaView style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={64} color="#FF6B35" />
           <Text style={styles.errorText}>{error || 'Question ID is missing'}</Text>
-          <TouchableOpacity 
-            style={styles.backToForumButton}
-            onPress={() => navigation.navigate('QnaForum')}
-          >
+          <TouchableOpacity style={styles.backToForumButton} onPress={() => navigation.navigate('QnaForum')}>
             <Text style={styles.backToForumButtonText}>Back to Forum</Text>
           </TouchableOpacity>
         </View>
@@ -992,10 +1013,7 @@ const QnaForumPost: React.FC = () => {
         <View style={styles.errorContainer}>
           <Ionicons name="help-circle-outline" size={64} color="#FF6B35" />
           <Text style={styles.errorText}>Question not found</Text>
-          <TouchableOpacity 
-            style={styles.backToForumButton}
-            onPress={() => navigation.navigate('QnaForum')}
-          >
+          <TouchableOpacity style={styles.backToForumButton} onPress={() => navigation.navigate('QnaForum')}>
             <Text style={styles.backToForumButtonText}>Back to Forum</Text>
           </TouchableOpacity>
         </View>
@@ -1004,25 +1022,34 @@ const QnaForumPost: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, isDark ? styles.safeAreaDark : styles.safeAreaLight, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={isDark ? "#1C1C1E" : "#FFFFFF"} />
+    <SafeAreaView
+      style={[
+        styles.safeArea,
+        isDark ? styles.safeAreaDark : styles.safeAreaLight,
+        { paddingTop: insets.top, paddingBottom: insets.bottom },
+      ]}
+    >
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={isDark ? '#1C1C1E' : '#FFFFFF'}
+      />
       <View style={[styles.container, isDark && styles.containerDark]}>
         {/* Header */}
         <View style={[styles.header, isDark && styles.headerDark]}>
-          <TouchableOpacity 
-            style={[styles.headerBackButton, isDark && styles.headerBackButtonDark]} 
+          <TouchableOpacity
+            style={[styles.headerBackButton, isDark && styles.headerBackButtonDark]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               navigation.goBack();
             }}
             activeOpacity={0.7}
           >
-            <Ionicons name="chevron-back-sharp" size={24} color={isDark ? "#FFFFFF" : "#FF6B35"} />
+            <Ionicons name="chevron-back-sharp" size={24} color={isDark ? '#FFFFFF' : '#FF6B35'} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={[styles.headerTitle, isDark && styles.textDark]}>Q&A Post</Text>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.headerActionButton, isDark && styles.headerActionButtonDark]}
             onPress={() => {
               // Share functionality
@@ -1030,35 +1057,34 @@ const QnaForumPost: React.FC = () => {
               Alert.alert('Share', 'Sharing functionality will be implemented here.');
             }}
           >
-            <Ionicons name="share-outline" size={24} color={isDark ? "#FFFFFF" : "#FF6B35"} />
+            <Ionicons name="share-outline" size={24} color={isDark ? '#FFFFFF' : '#FF6B35'} />
           </TouchableOpacity>
         </View>
 
         {/* Content */}
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
           {/* Question Card */}
-          <Animated.View style={[
-            styles.questionCard, 
-            questionCardStyle,
-            isDark && styles.questionCardDark
-          ]}>
+          <Animated.View style={[styles.questionCard, questionCardStyle, isDark && styles.questionCardDark]}>
             <View style={styles.questionHeader}>
               <View style={styles.authorInfo}>
-                <Image 
-                  source={{ uri: question.isAnonymous 
-                    ? question.anonymousAvatar || generateRandomAvatar() 
-                    : (question.authorId === currentUser?.id ? currentUser?.avatar : undefined) // fallback to undefined for now
-                  }} 
-                  style={styles.authorAvatar} 
+                <Image
+                  source={{
+                    uri: question.isAnonymous
+                      ? question.anonymousAvatar || generateRandomAvatar()
+                      : question.authorId === currentUser?.id
+                        ? currentUser?.avatar
+                        : undefined, // fallback to undefined for now
+                  }}
+                  style={styles.authorAvatar}
                 />
                 <View style={styles.authorDetails}>
-                  <TouchableOpacity onPress={() => handleOpenProfile(question.authorId, question.author, question.isAnonymous)}>
+                  <TouchableOpacity
+                    onPress={() => handleOpenProfile(question.authorId, question.author, question.isAnonymous)}
+                  >
                     <Text style={[styles.authorName, isDark && styles.textDark]}>
                       {question.isAnonymous ? '🕶️ Anonymous' : question.author}
                     </Text>
@@ -1073,9 +1099,7 @@ const QnaForumPost: React.FC = () => {
             <Text style={[styles.questionTitle, isDark && styles.textDark]}>{question.title}</Text>
             <Text style={[styles.questionDescription, isDark && styles.textDark]}>{question.description}</Text>
 
-            {question.imageUrl && (
-              <Image source={{ uri: question.imageUrl }} style={styles.questionImage} />
-            )}
+            {question.imageUrl && <Image source={{ uri: question.imageUrl }} style={styles.questionImage} />}
 
             {question.tags && question.tags.length > 0 && (
               <View style={styles.tagsContainer}>
@@ -1089,44 +1113,47 @@ const QnaForumPost: React.FC = () => {
 
             <View style={styles.questionFooter}>
               <View style={styles.voteContainer}>
-                <TouchableOpacity 
-                  style={[
-                    styles.voteButton,
-                    safeIncludes(question.upvotes, currentUser?.id) && styles.upvotedButton
-                  ]}
+                <TouchableOpacity
+                  style={[styles.voteButton, safeIncludes(question.upvotes, currentUser?.id) && styles.upvotedButton]}
                   onPress={() => voteQuestion('up')}
                 >
-                  <Ionicons 
-                    name="arrow-up" 
-                    size={18} 
-                    color={safeIncludes(question.upvotes, currentUser?.id) ? '#FF6B35' : isDark ? '#8E8E93' : '#6E7B8B'} 
+                  <Ionicons
+                    name="arrow-up"
+                    size={18}
+                    color={safeIncludes(question.upvotes, currentUser?.id) ? '#FF6B35' : isDark ? '#8E8E93' : '#6E7B8B'}
                   />
-                  <Text style={[
-                    styles.voteText,
-                    safeIncludes(question.upvotes, currentUser?.id) && styles.upvotedText,
-                    isDark && styles.textDark
-                  ]}>
+                  <Text
+                    style={[
+                      styles.voteText,
+                      safeIncludes(question.upvotes, currentUser?.id) && styles.upvotedText,
+                      isDark && styles.textDark,
+                    ]}
+                  >
                     {question.upvotes.length}
                   </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[
                     styles.voteButton,
-                    safeIncludes(question.downvotes, currentUser?.id) && styles.downvotedButton
+                    safeIncludes(question.downvotes, currentUser?.id) && styles.downvotedButton,
                   ]}
                   onPress={() => voteQuestion('down')}
                 >
-                  <Ionicons 
-                    name="arrow-down" 
-                    size={18} 
-                    color={safeIncludes(question.downvotes, currentUser?.id) ? '#7C3AED' : isDark ? '#8E8E93' : '#6E7B8B'} 
+                  <Ionicons
+                    name="arrow-down"
+                    size={18}
+                    color={
+                      safeIncludes(question.downvotes, currentUser?.id) ? '#7C3AED' : isDark ? '#8E8E93' : '#6E7B8B'
+                    }
                   />
-                  <Text style={[
-                    styles.voteText,
-                    safeIncludes(question.downvotes, currentUser?.id) && styles.downvotedText,
-                    isDark && styles.textDark
-                  ]}>
+                  <Text
+                    style={[
+                      styles.voteText,
+                      safeIncludes(question.downvotes, currentUser?.id) && styles.downvotedText,
+                      isDark && styles.textDark,
+                    ]}
+                  >
                     {question.downvotes.length}
                   </Text>
                 </TouchableOpacity>
@@ -1147,10 +1174,8 @@ const QnaForumPost: React.FC = () => {
 
           {/* Answers Section */}
           <View style={styles.answersSection}>
-            <Text style={[styles.answersTitle, isDark && styles.textDark]}>
-              Answers ({answers.length})
-            </Text>
-            
+            <Text style={[styles.answersTitle, isDark && styles.textDark]}>Answers ({answers.length})</Text>
+
             {answers.map((answer) => renderAnswer(answer))}
 
             {answers.length === 0 && (
@@ -1166,7 +1191,7 @@ const QnaForumPost: React.FC = () => {
         </ScrollView>
 
         {/* Reply Input */}
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
@@ -1181,7 +1206,7 @@ const QnaForumPost: React.FC = () => {
                 </TouchableOpacity>
               </View>
             )}
-            
+
             <View style={styles.inputRow}>
               <View style={[styles.inputContainer, isDark && styles.inputContainerDark]}>
                 <TextInput
@@ -1194,23 +1219,20 @@ const QnaForumPost: React.FC = () => {
                   maxLength={1000}
                 />
               </View>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={[styles.anonymousToggle, isAnonymous && styles.anonymousToggleActive]}
                 onPress={() => setIsAnonymous(!isAnonymous)}
               >
-                <Ionicons 
-                  name={isAnonymous ? "eye-off" : "eye"} 
-                  size={20} 
-                  color={isAnonymous ? "#FF6B35" : isDark ? '#FFFFFF' : '#8E8E93'} 
+                <Ionicons
+                  name={isAnonymous ? 'eye-off' : 'eye'}
+                  size={20}
+                  color={isAnonymous ? '#FF6B35' : isDark ? '#FFFFFF' : '#8E8E93'}
                 />
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[
-                  styles.sendButton,
-                  (!replyText.trim() || submittingReply) && styles.sendButtonDisabled
-                ]}
+
+              <TouchableOpacity
+                style={[styles.sendButton, (!replyText.trim() || submittingReply) && styles.sendButtonDisabled]}
                 onPress={submitReply}
                 disabled={!replyText.trim() || submittingReply}
               >
@@ -1263,7 +1285,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 20,
   },
-  
+
   // Header Styles
   header: {
     flexDirection: 'row',
