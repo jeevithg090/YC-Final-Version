@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, useColorScheme } from 'react-native';
 import QnaVoteBar from './QnaVoteBar';
+import { Avatar } from '../components/ui';
 
 interface QnaPostCardProps {
   question: {
@@ -76,10 +77,7 @@ const QnaPostCard: React.FC<QnaPostCardProps> = ({
             </View>
           ) : (
             <TouchableOpacity style={styles.authorInfo} onPress={onAuthorPress} activeOpacity={0.7}>
-              <Image
-                source={{ uri: authorProfileImage || 'https://via.placeholder.com/20' }}
-                style={styles.authorAvatar}
-              />
+              <Avatar uri={authorProfileImage} name={question.authorName} size={20} style={styles.authorAvatar} />
               <Text style={[styles.authorText, isDark && styles.textDark]}>
                 {question.authorName || 'Unknown User'}
               </Text>

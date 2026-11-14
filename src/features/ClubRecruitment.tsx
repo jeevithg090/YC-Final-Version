@@ -132,7 +132,7 @@ const ClubRecruitment: React.FC = () => {
               if (index !== -1) {
                 recruitmentData[index] = {
                   ...recruitmentData[index],
-                  imageUrl: 'https://via.placeholder.com/400x200?text=Club+Image',
+                  imageUrl: 'https://placehold.co/400x200?text=Club+Image',
                   imageLoaded: true,
                 };
               }
@@ -219,7 +219,7 @@ const ClubRecruitment: React.FC = () => {
         // Get club image with timeout
         const imageTimeoutId = setTimeout(() => {
           console.log('Image loading timed out, using placeholder');
-          clubDetails.imageUrl = 'https://via.placeholder.com/400x200?text=Club+Image';
+          clubDetails.imageUrl = 'https://placehold.co/400x200?text=Club+Image';
           clubDetails.imageLoaded = true;
           setSelectedClub(clubDetails);
           setDetailsVisible(true);
@@ -235,7 +235,7 @@ const ClubRecruitment: React.FC = () => {
         } catch (error) {
           clearTimeout(imageTimeoutId);
           console.error(`Failed to load detailed image for ${clubId}:`, error);
-          clubDetails.imageUrl = 'https://via.placeholder.com/400x200?text=Club+Image';
+          clubDetails.imageUrl = 'https://placehold.co/400x200?text=Club+Image';
           clubDetails.imageLoaded = true;
         }
 

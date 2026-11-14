@@ -1138,7 +1138,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     marginHorizontal: 12,
-    tintColor: '#fff',
+    borderRadius: 6,
   },
   headerTitle: {
     fontSize: 18,

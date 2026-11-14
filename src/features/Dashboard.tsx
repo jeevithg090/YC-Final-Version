@@ -2363,7 +2363,7 @@ const styles = StyleSheet.create({
   appLogo: {
     width: 40,
     height: 40,
-    tintColor: '#4E54C8',
+    borderRadius: 10,
     marginRight: 12,
   },
   appName: {
@@ -2834,7 +2834,7 @@ const styles = StyleSheet.create({
     // Subtle gradient fallback for web
     ...Platform.select({
       web: {
-        background: 'linear-gradient(135deg, rgba(255,240,200,0.96) 0%, rgba(255,245,220,0.96) 100%)',
+        backgroundImage: 'linear-gradient(135deg, rgba(255,240,200,0.96) 0%, rgba(255,245,220,0.96) 100%)',
       },
     }),
   },

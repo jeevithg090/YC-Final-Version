@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db, auth } from '../services/firebase';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Avatar } from '../components/ui';
 
 interface QnaProfileProps {
   userId: string;
@@ -434,8 +435,10 @@ const QnaProfile: React.FC<QnaProfileProps> = ({
 
               {/* User Info */}
               <View style={styles.userInfoContainer}>
-                <Image
-                  source={{ uri: userProfile?.avatar || propProfileImage || 'https://via.placeholder.com/100' }}
+                <Avatar
+                  uri={userProfile?.avatar || propProfileImage}
+                  name={userProfile?.name}
+                  size={80}
                   style={styles.userAvatar}
                 />
 

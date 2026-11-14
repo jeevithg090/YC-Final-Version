@@ -49,7 +49,13 @@ class ApiKeysService {
 
       this.initialized = true;
     } catch (error) {
-      console.error('Error initializing API keys service:', error);
+      if ((error as { code?: string })?.code === 'permission-denied') {
+        // Expected before sign-in: the security rules only let signed-in users
+        // read `api_keys`. Not marked initialised, so the next call retries.
+        console.info('API keys are not readable until a user signs in; using environment defaults for now.');
+      } else {
+        console.error('Error initializing API keys service:', error);
+      }
       // Initialize with empty object on error
       this.apiKeys = {};
     } finally {

@@ -213,8 +213,7 @@ const BuyMarketplace: React.FC = () => {
         productsData.map(async (product: any) => {
           try {
             if (!product.images || !Array.isArray(product.images)) {
-              console.warn(`Product ${product.id} has no images array`);
-              product.images = ['product_images/sample.jpg'];
+              product.images = [];
             }
 
             const images = await Promise.all(
@@ -223,14 +222,14 @@ const BuyMarketplace: React.FC = () => {
                   console.log(`Fetching image URL for path: ${imagePath}`);
                   return await getDownloadURL(storageRef(storage, imagePath));
                 } catch (error) {
-                  console.warn(`Image not found in Firebase Storage: ${imagePath}. Using placeholder.`);
-                  return 'https://via.placeholder.com/400'; // Return a placeholder URL
+                  console.warn(`Image not found in Firebase Storage: ${imagePath}.`);
+                  return null; // Listings without a usable photo show a placeholder tile
                 }
               }),
             );
             return {
               ...product,
-              images,
+              images: images.filter(Boolean),
               sellerRating: generateRandomRating(),
               isSeen: seenProducts.has(product.id),
             };
@@ -239,7 +238,7 @@ const BuyMarketplace: React.FC = () => {
             // Return product with placeholder image on error
             return {
               ...product,
-              images: ['https://via.placeholder.com/400'],
+              images: [],
               sellerRating: generateRandomRating(),
               isSeen: seenProducts.has(product.id),
             };
@@ -583,7 +582,13 @@ const BuyMarketplace: React.FC = () => {
         setSeenProducts(newSeen);
       }}
     >
-      <Image source={{ uri: item.images[0] }} style={styles.gridImage} />
+      {item.images[0] ? (
+        <Image source={{ uri: item.images[0] }} style={styles.gridImage} accessibilityLabel={item.title} />
+      ) : (
+        <View style={[styles.gridImage, styles.noPhoto]} accessibilityLabel="No photo">
+          <Ionicons name="image-outline" size={28} color="#9AA0B4" />
+        </View>
+      )}
       <View style={styles.gridInfo}>
         <Text style={styles.gridTitle} numberOfLines={2}>
           {item.title}
@@ -633,10 +638,17 @@ const BuyMarketplace: React.FC = () => {
                     <Image
                       key={index}
                       source={{ uri: img }}
+                      accessibilityLabel={`${currentProduct.title}, photo ${index + 1}`}
                       style={[styles.productImage, { width: `${100 / products[currentProductIndex]?.images.length}%` }]}
                     />
                   ))}
                 </Animated.View>
+                {currentProduct.images.length === 0 ? (
+                  <View style={[StyleSheet.absoluteFill, styles.noPhoto]} accessibilityLabel="No photo">
+                    <Ionicons name="image-outline" size={56} color="#9AA0B4" />
+                    <Text style={styles.noPhotoText}>No photo yet</Text>
+                  </View>
+                ) : null}
               </Animated.View>
             </PanGestureHandler>
             <View style={styles.imageIndicators}>
@@ -657,9 +669,9 @@ const BuyMarketplace: React.FC = () => {
             <View style={styles.productInfo}>
               <Text style={styles.productTitle}>{currentProduct.title}</Text>
               <View style={styles.priceContainer}>
-                <Text style={styles.price}>${currentProduct.price}</Text>
+                <Text style={styles.price}>₹{currentProduct.price}</Text>
                 {currentProduct.originalPrice && (
-                  <Text style={styles.originalPrice}>${currentProduct.originalPrice}</Text>
+                  <Text style={styles.originalPrice}>₹{currentProduct.originalPrice}</Text>
                 )}
                 <TouchableOpacity
                   style={[
@@ -904,6 +916,17 @@ const BuyMarketplace: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  noPhoto: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF0F5',
+  },
+  noPhotoText: {
+    marginTop: 8,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f5f7fa',
