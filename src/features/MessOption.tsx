@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ScrollView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
   SafeAreaView,
   Platform,
   StatusBar,
   Modal,
   Animated,
-  Dimensions
+  Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,7 +40,7 @@ const MessOption: React.FC = () => {
   const [showMessPicker, setShowMessPicker] = useState<boolean>(false);
   const [scaleAnim] = useState(new Animated.Value(1));
   const [fadeAnim] = useState(new Animated.Value(0));
-  
+
   // Animation effect when component mounts
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -57,21 +57,21 @@ const MessOption: React.FC = () => {
       title: 'Daily Menu Updates',
       description: 'Get daily updates about mess menu changes and special items',
       icon: 'restaurant-outline',
-      color: '#FF6B6B'
+      color: '#FF6B6B',
     },
     {
       id: '2',
       title: 'Meal Time Notifications',
       description: 'Receive timely alerts before meal serving hours begin',
       icon: 'time-outline',
-      color: '#4ECDC4'
+      color: '#4ECDC4',
     },
     {
       id: '3',
       title: 'Special Event Meals',
       description: 'Be informed about festival specials and themed food days',
       icon: 'calendar-outline',
-      color: '#45B7D1'
+      color: '#45B7D1',
     },
   ];
 
@@ -79,7 +79,7 @@ const MessOption: React.FC = () => {
   const messOptions = [
     { name: 'Food Court 2', icon: 'restaurant', color: '#FF6B6B' },
     { name: 'Aditya Mess', icon: 'home', color: '#4ECDC4' },
-    { name: 'Apoorva Mess', icon: 'leaf', color: '#45B7D1' }
+    { name: 'Apoorva Mess', icon: 'leaf', color: '#45B7D1' },
   ];
 
   const handleViewMenu = () => {
@@ -100,7 +100,7 @@ const MessOption: React.FC = () => {
     // Navigate to the MessMenu screen with the selected mess and meal type
     navigation.navigate('MessMenu', {
       messName: selectedMess,
-      mealType: mealType
+      mealType: mealType,
     });
   };
 
@@ -128,28 +128,30 @@ const MessOption: React.FC = () => {
               <Ionicons name="restaurant" size={32} color="#fff" />
             </View>
             <Text style={styles.title}>Mess Menu</Text>
-            <Text style={styles.subtitle}>
-              🍽️ Explore your campus dining experience
-            </Text>
+            <Text style={styles.subtitle}>🍽️ Explore your campus dining experience</Text>
           </Animated.View>
 
           {/* Features Section */}
           <View style={styles.featuresContainer}>
             <Animated.Text style={[styles.sectionTitle, { opacity: fadeAnim }]}>✨ Features</Animated.Text>
             {messFeatures.map((feature, index) => (
-              <Animated.View 
-                key={feature.id} 
+              <Animated.View
+                key={feature.id}
                 style={[
                   styles.featureItem,
-                  { 
+                  {
                     opacity: fadeAnim,
-                    transform: [{ translateY: fadeAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [50, 0]
-                    }) }],
+                    transform: [
+                      {
+                        translateY: fadeAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [50, 0],
+                        }),
+                      },
+                    ],
                     borderLeftWidth: 4,
-                    borderLeftColor: feature.color
-                  }
+                    borderLeftColor: feature.color,
+                  },
                 ]}
               >
                 <View style={[styles.featureIconContainer, { backgroundColor: feature.color + '20' }]}>
@@ -166,12 +168,9 @@ const MessOption: React.FC = () => {
           {/* Mess Selection Section */}
           <View style={styles.selectionContainer}>
             <Animated.Text style={[styles.sectionTitle, { opacity: fadeAnim }]}>🏢 Select Your Mess</Animated.Text>
-            
+
             <View style={styles.pickerContainer}>
-              <TouchableOpacity 
-                style={styles.customPicker}
-                onPress={() => setShowMessPicker(true)}
-              >
+              <TouchableOpacity style={styles.customPicker} onPress={() => setShowMessPicker(true)}>
                 <View style={styles.pickerContent}>
                   <View style={styles.pickerIcon}>
                     <Ionicons name="location" size={18} color="#667eea" />
@@ -181,7 +180,7 @@ const MessOption: React.FC = () => {
                 <Ionicons name="chevron-down" size={20} color="#667eea" />
               </TouchableOpacity>
             </View>
-            
+
             {/* Custom Picker Modal */}
             <Modal
               visible={showMessPicker}
@@ -195,10 +194,7 @@ const MessOption: React.FC = () => {
                   {messOptions.map((mess) => (
                     <TouchableOpacity
                       key={mess.name}
-                      style={[
-                        styles.modalOption,
-                        selectedMess === mess.name && styles.modalOptionSelected
-                      ]}
+                      style={[styles.modalOption, selectedMess === mess.name && styles.modalOptionSelected]}
                       onPress={() => {
                         setSelectedMess(mess.name);
                         setShowMessPicker(false);
@@ -208,19 +204,15 @@ const MessOption: React.FC = () => {
                         <View style={[styles.modalOptionIcon, { backgroundColor: mess.color }]}>
                           <Ionicons name={mess.icon as any} size={20} color="#fff" />
                         </View>
-                        <Text style={[
-                          styles.modalOptionText,
-                          selectedMess === mess.name && styles.modalOptionTextSelected
-                        ]}>
+                        <Text
+                          style={[styles.modalOptionText, selectedMess === mess.name && styles.modalOptionTextSelected]}
+                        >
                           {mess.name}
                         </Text>
                       </View>
                     </TouchableOpacity>
                   ))}
-                  <TouchableOpacity
-                    style={styles.closeButton}
-                    onPress={() => setShowMessPicker(false)}
-                  >
+                  <TouchableOpacity style={styles.closeButton} onPress={() => setShowMessPicker(false)}>
                     <Text style={styles.closeButtonText}>Close</Text>
                   </TouchableOpacity>
                 </View>
@@ -231,33 +223,21 @@ const MessOption: React.FC = () => {
             <Animated.Text style={[styles.sectionSubtitle, { opacity: fadeAnim }]}>🥗 Meal Preference</Animated.Text>
             <View style={styles.preferenceContainer}>
               <TouchableOpacity
-                style={[
-                  styles.preferenceButton,
-                  mealType === 'veg' && styles.preferenceButtonActive
-                ]}
+                style={[styles.preferenceButton, mealType === 'veg' && styles.preferenceButtonActive]}
                 onPress={() => setMealType('veg')}
               >
                 <View style={styles.vegIndicator} />
-                <Text style={[
-                  styles.preferenceText,
-                  mealType === 'veg' && styles.preferenceTextActive
-                ]}>
+                <Text style={[styles.preferenceText, mealType === 'veg' && styles.preferenceTextActive]}>
                   Vegetarian
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
-                style={[
-                  styles.preferenceButton,
-                  mealType === 'non-veg' && styles.preferenceButtonActive
-                ]}
+                style={[styles.preferenceButton, mealType === 'non-veg' && styles.preferenceButtonActive]}
                 onPress={() => setMealType('non-veg')}
               >
                 <View style={styles.nonVegIndicator} />
-                <Text style={[
-                  styles.preferenceText,
-                  mealType === 'non-veg' && styles.preferenceTextActive
-                ]}>
+                <Text style={[styles.preferenceText, mealType === 'non-veg' && styles.preferenceTextActive]}>
                   Non-Vegetarian
                 </Text>
               </TouchableOpacity>
@@ -273,7 +253,7 @@ const MessOption: React.FC = () => {
                   end={{ x: 1, y: 1 }}
                 >
                   <Text style={styles.viewMenuButtonText}>Explore Menu</Text>
-                  <Ionicons name="restaurant-outline" size={20} color="#fff" style={{marginLeft: 8}} />
+                  <Ionicons name="restaurant-outline" size={20} color="#fff" style={{ marginLeft: 8 }} />
                 </LinearGradient>
               </TouchableOpacity>
             </Animated.View>

@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Platform, Animated, SafeAreaView, StatusBar } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Platform,
+  Animated,
+  SafeAreaView,
+  StatusBar,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { icasCalendar as icasCalendarData, mitCalendar as mitCalendarData } from '../data/calendars';
@@ -28,7 +38,6 @@ const AcademicCalendar: React.FC = () => {
     loadCalendarData();
   }, [calendarType]); // Reload when calendar type changes
 
-
   const loadCalendarData = () => {
     setLoading(true);
     setError(null);
@@ -46,9 +55,6 @@ const AcademicCalendar: React.FC = () => {
       setLoading(false);
     }
   };
-
-
-
 
   const getDaysRemainingColor = (days: number): string => {
     if (days < 0) {
@@ -86,11 +92,7 @@ const AcademicCalendar: React.FC = () => {
           styles.eventCard,
           {
             borderLeftWidth: 0,
-            backgroundColor: isToday
-              ? '#e3f2fd'
-              : isPast
-              ? '#f7f7fa'
-              : '#fff',
+            backgroundColor: isToday ? '#e3f2fd' : isPast ? '#f7f7fa' : '#fff',
             opacity: isPast ? 0.6 : 1,
             shadowColor: isToday ? '#0984e3' : '#636e72',
             shadowOpacity: isToday ? 0.18 : 0.08,
@@ -150,19 +152,25 @@ const AcademicCalendar: React.FC = () => {
 
   if (loading) {
     return (
-      <View style={styles.centered}><Text>Loading Academic Calendar...</Text></View>
+      <View style={styles.centered}>
+        <Text>Loading Academic Calendar...</Text>
+      </View>
     );
   }
   if (error) {
     return (
-      <View style={styles.centered}><Text>{error}</Text></View>
+      <View style={styles.centered}>
+        <Text>{error}</Text>
+      </View>
     );
   }
 
   // Guard for empty data
   if (!calendarData.length) {
     return (
-      <View style={styles.centered}><Text>No calendar data available.</Text></View>
+      <View style={styles.centered}>
+        <Text>No calendar data available.</Text>
+      </View>
     );
   }
 
@@ -171,8 +179,8 @@ const AcademicCalendar: React.FC = () => {
   // Split events into upcoming/today and past
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const upcomingEvents = currentMonth.events.filter(e => calculateDaysRemaining(e.date, currentMonth.name) >= 0);
-  const pastEvents = currentMonth.events.filter(e => calculateDaysRemaining(e.date, currentMonth.name) < 0);
+  const upcomingEvents = currentMonth.events.filter((e) => calculateDaysRemaining(e.date, currentMonth.name) >= 0);
+  const pastEvents = currentMonth.events.filter((e) => calculateDaysRemaining(e.date, currentMonth.name) < 0);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F4F7FB' }}>
@@ -181,14 +189,16 @@ const AcademicCalendar: React.FC = () => {
         <Text style={styles.header}>Academic Calendar</Text>
       </View>
       <View style={styles.calendarTypeSelector}>
-        <TouchableOpacity 
-          style={[styles.calendarTypeButton, calendarType === 'MIT' && styles.calendarTypeButtonActive]} 
+        <TouchableOpacity
+          style={[styles.calendarTypeButton, calendarType === 'MIT' && styles.calendarTypeButtonActive]}
           onPress={() => setCalendarType('MIT')}
         >
-          <Text style={[styles.calendarTypeText, calendarType === 'MIT' && styles.calendarTypeTextActive]}>MIT Manipal</Text>
+          <Text style={[styles.calendarTypeText, calendarType === 'MIT' && styles.calendarTypeTextActive]}>
+            MIT Manipal
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.calendarTypeButton, calendarType === 'ICAS' && styles.calendarTypeButtonActive]} 
+        <TouchableOpacity
+          style={[styles.calendarTypeButton, calendarType === 'ICAS' && styles.calendarTypeButtonActive]}
           onPress={() => setCalendarType('ICAS')}
         >
           <Text style={[styles.calendarTypeText, calendarType === 'ICAS' && styles.calendarTypeTextActive]}>ICAS</Text>
@@ -197,38 +207,57 @@ const AcademicCalendar: React.FC = () => {
       <View style={styles.monthNavRowModern}>
         <TouchableOpacity
           style={[styles.monthNavButtonModern, currentMonthIndex === 0 && styles.monthNavButtonDisabled]}
-          onPress={() => { setCurrentMonthIndex(i => Math.max(0, i - 1)); setShowPastEvents(false); }}
+          onPress={() => {
+            setCurrentMonthIndex((i) => Math.max(0, i - 1));
+            setShowPastEvents(false);
+          }}
           disabled={currentMonthIndex === 0}
         >
           <Ionicons name="chevron-back" size={24} color={currentMonthIndex === 0 ? '#ccc' : '#00B894'} />
         </TouchableOpacity>
         <Text style={styles.monthNavTextModern}>{currentMonth.name}</Text>
         <TouchableOpacity
-          style={[styles.monthNavButtonModern, currentMonthIndex === calendarData.length - 1 && styles.monthNavButtonDisabled]}
-          onPress={() => { setCurrentMonthIndex(i => Math.min(calendarData.length - 1, i + 1)); setShowPastEvents(false); }}
+          style={[
+            styles.monthNavButtonModern,
+            currentMonthIndex === calendarData.length - 1 && styles.monthNavButtonDisabled,
+          ]}
+          onPress={() => {
+            setCurrentMonthIndex((i) => Math.min(calendarData.length - 1, i + 1));
+            setShowPastEvents(false);
+          }}
           disabled={currentMonthIndex === calendarData.length - 1}
         >
-          <Ionicons name="chevron-forward" size={24} color={currentMonthIndex === calendarData.length - 1 ? '#ccc' : '#00B894'} />
+          <Ionicons
+            name="chevron-forward"
+            size={24}
+            color={currentMonthIndex === calendarData.length - 1 ? '#ccc' : '#00B894'}
+          />
         </TouchableOpacity>
       </View>
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
         <View key={currentMonth.name} style={styles.monthSectionModern}>
-          {upcomingEvents.length > 0 && (
-            <Text style={styles.sectionHeader}>Upcoming Events</Text>
+          {upcomingEvents.length > 0 && <Text style={styles.sectionHeader}>Upcoming Events</Text>}
+          {upcomingEvents.length > 0 ? (
+            upcomingEvents.map((event, i) => renderEvent(event, currentMonth.name, i))
+          ) : (
+            <Text style={styles.noEventsText}>No upcoming events this month.</Text>
           )}
-          {upcomingEvents.length > 0
-            ? upcomingEvents.map((event, i) => renderEvent(event, currentMonth.name, i))
-            : <Text style={styles.noEventsText}>No upcoming events this month.</Text>
-          }
           {pastEvents.length > 0 && (
             <View style={styles.pastEventsSection}>
               <TouchableOpacity
                 style={styles.pastEventsToggle}
-                onPress={() => setShowPastEvents(v => !v)}
-                accessibilityLabel={showPastEvents ? "Hide past events" : "Show past events"}
+                onPress={() => setShowPastEvents((v) => !v)}
+                accessibilityLabel={showPastEvents ? 'Hide past events' : 'Show past events'}
               >
-                <Ionicons name={showPastEvents ? "chevron-down" : "chevron-forward"} size={18} color="#636e72" style={{ marginRight: 6 }} />
-                <Text style={styles.pastEventsToggleText}>{showPastEvents ? "Hide" : "Show"} Past Events ({pastEvents.length})</Text>
+                <Ionicons
+                  name={showPastEvents ? 'chevron-down' : 'chevron-forward'}
+                  size={18}
+                  color="#636e72"
+                  style={{ marginRight: 6 }}
+                />
+                <Text style={styles.pastEventsToggleText}>
+                  {showPastEvents ? 'Hide' : 'Show'} Past Events ({pastEvents.length})
+                </Text>
               </TouchableOpacity>
               {showPastEvents && (
                 <View style={styles.pastEventsList}>

@@ -5,22 +5,20 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Platform,
   Dimensions,
   FlatList,
-  Image,
   RefreshControl,
   StatusBar,
   SafeAreaView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
-import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-// Firebase Console Action: 
+// Firebase Console Action:
 // 1. Create Firestore collection: 'sports_leaderboard'
 // 2. Create composite index:
 //    - Collection: 'sports_leaderboard' | Fields: sport (Ascending), lastUpdated (Descending)
@@ -78,14 +76,14 @@ const BADGES = {
   'Century Club': { icon: 'star', color: '#9D4EDD' },
   '500 Points': { icon: 'star', color: '#FF6B35' },
   '1000 Points': { icon: 'star', color: '#FFD700' },
-  'Rookie': { icon: 'leaf', color: '#4CAF50' },
+  Rookie: { icon: 'leaf', color: '#4CAF50' },
   'Pro Player': { icon: 'medal', color: '#FF8C00' },
-  'Legend': { icon: 'crown', color: '#8B5CF6' },
+  Legend: { icon: 'crown', color: '#8B5CF6' },
 };
 
 const SportsLeaderboard: React.FC = () => {
   const navigation = useNavigation<SportsLeaderboardNavigationProp>();
-  
+
   // State management
   const [selectedSport, setSelectedSport] = useState('basketball');
   const [leaderboards, setLeaderboards] = useState<{ [key: string]: SportLeaderboard }>({});
@@ -100,35 +98,39 @@ const SportsLeaderboard: React.FC = () => {
     // Firebase Console Action: Create composite index for 'sports_leaderboard' collection:
     // Fields: sport (Ascending), lastUpdated (Descending)
     // Or use the provided URL: https://console.firebase.google.com/v1/r/project/yogo-campus/firestore/indexes
-    
+
     const leaderboardQuery = query(collection(db, 'sports_leaderboard'));
-    
-    const unsubscribe = onSnapshot(leaderboardQuery, (snapshot) => {
-      const leaderboardData: { [key: string]: SportLeaderboard } = {};
-      
-      snapshot.docs.forEach(doc => {
-        const data = { id: doc.id, ...doc.data() } as SportLeaderboard;
-        
-        // Sort players by points and assign ranks
-        const sortedPlayers = data.players
-          .sort((a, b) => b.points - a.points)
-          .map((player, index) => ({
-            ...player,
-            rank: index + 1
-          }));
-        
-        leaderboardData[data.sport] = {
-          ...data,
-          players: sortedPlayers
-        };
-      });
-      
-      setLeaderboards(leaderboardData);
-      setLoading(false);
-    }, (error) => {
-      console.error('Error loading leaderboards:', error);
-      setLoading(false);
-    });
+
+    const unsubscribe = onSnapshot(
+      leaderboardQuery,
+      (snapshot) => {
+        const leaderboardData: { [key: string]: SportLeaderboard } = {};
+
+        snapshot.docs.forEach((doc) => {
+          const data = { id: doc.id, ...doc.data() } as SportLeaderboard;
+
+          // Sort players by points and assign ranks
+          const sortedPlayers = data.players
+            .sort((a, b) => b.points - a.points)
+            .map((player, index) => ({
+              ...player,
+              rank: index + 1,
+            }));
+
+          leaderboardData[data.sport] = {
+            ...data,
+            players: sortedPlayers,
+          };
+        });
+
+        setLeaderboards(leaderboardData);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error loading leaderboards:', error);
+        setLoading(false);
+      },
+    );
 
     return unsubscribe;
   };
@@ -153,26 +155,35 @@ const SportsLeaderboard: React.FC = () => {
 
   const getLevelColor = (level: string): string => {
     switch (level) {
-      case 'Legend': return '#8B5CF6';
-      case 'Professional': return '#FF8C00';
-      case 'Intermediate': return '#4CAF50';
-      case 'Amateur': return '#2196F3';
-      default: return '#9E9E9E';
+      case 'Legend':
+        return '#8B5CF6';
+      case 'Professional':
+        return '#FF8C00';
+      case 'Intermediate':
+        return '#4CAF50';
+      case 'Amateur':
+        return '#2196F3';
+      default:
+        return '#9E9E9E';
     }
   };
 
   const getRankIcon = (rank: number): string => {
     switch (rank) {
-      case 1: return '🥇';
-      case 2: return '🥈';
-      case 3: return '🥉';
-      default: return `#${rank}`;
+      case 1:
+        return '🥇';
+      case 2:
+        return '🥈';
+      case 3:
+        return '🥉';
+      default:
+        return `#${rank}`;
     }
   };
 
   const renderSportSelector = () => (
-    <ScrollView 
-      horizontal 
+    <ScrollView
+      horizontal
       showsHorizontalScrollIndicator={false}
       style={styles.sportSelector}
       contentContainerStyle={styles.sportSelectorContent}
@@ -180,25 +191,15 @@ const SportsLeaderboard: React.FC = () => {
       {SPORTS.map((sport) => (
         <TouchableOpacity
           key={sport.id}
-          style={[
-            styles.sportChip,
-            selectedSport === sport.id && styles.selectedSportChip
-          ]}
+          style={[styles.sportChip, selectedSport === sport.id && styles.selectedSportChip]}
           onPress={() => setSelectedSport(sport.id)}
         >
           <LinearGradient
             colors={selectedSport === sport.id ? sport.color : ['#F8F9FA', '#F8F9FA']}
             style={styles.sportChipGradient}
           >
-            <FontAwesome5 
-              name={sport.icon} 
-              size={16} 
-              color={selectedSport === sport.id ? '#FFFFFF' : '#8E8E93'} 
-            />
-            <Text style={[
-              styles.sportChipText,
-              selectedSport === sport.id && styles.selectedSportChipText
-            ]}>
+            <FontAwesome5 name={sport.icon} size={16} color={selectedSport === sport.id ? '#FFFFFF' : '#8E8E93'} />
+            <Text style={[styles.sportChipText, selectedSport === sport.id && styles.selectedSportChipText]}>
               {sport.name}
             </Text>
           </LinearGradient>
@@ -257,16 +258,16 @@ const SportsLeaderboard: React.FC = () => {
   };
 
   const renderPlayerCard = ({ item, index }: { item: LeaderboardPlayer; index: number }) => {
-    const sport = SPORTS.find(s => s.id === selectedSport);
+    const sport = SPORTS.find((s) => s.id === selectedSport);
     const totalMatches = (item.wins || 0) + (item.losses || 0) + (item.draws || 0);
-    const winRate = totalMatches > 0 ? ((item.wins || 0) / totalMatches * 100).toFixed(1) : '0.0';
-    
+    const winRate = totalMatches > 0 ? (((item.wins || 0) / totalMatches) * 100).toFixed(1) : '0.0';
+
     return (
       <View style={styles.playerCard}>
         <View style={styles.playerRank}>
           <Text style={styles.rankText}>{getRankIcon(item.rank || index + 1)}</Text>
         </View>
-        
+
         <View style={styles.playerInfo}>
           <View style={styles.playerAvatar}>
             <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
@@ -295,31 +296,23 @@ const SportsLeaderboard: React.FC = () => {
               <Text style={styles.additionalStatText}>
                 {item.wins || 0}W - {item.losses || 0}L - {item.draws || 0}D
               </Text>
-              {item.averageScore && (
-                <Text style={styles.additionalStatText}>
-                  Avg: {item.averageScore}
-                </Text>
-              )}
+              {item.averageScore && <Text style={styles.additionalStatText}>Avg: {item.averageScore}</Text>}
             </View>
           </View>
         </View>
-        
+
         <View style={styles.playerScore}>
           <Text style={styles.pointsText}>{item.points}</Text>
           <Text style={styles.pointsLabel}>points</Text>
         </View>
-        
+
         {item.badges && item.badges.length > 0 && (
           <View style={styles.badgesContainer}>
             {item.badges.slice(0, 2).map((badge, badgeIndex) => {
               const badgeInfo = BADGES[badge as keyof typeof BADGES];
               return (
                 <View key={badgeIndex} style={[styles.badge, { backgroundColor: badgeInfo?.color + '20' }]}>
-                  <Ionicons 
-                    name={badgeInfo?.icon as any} 
-                    size={12} 
-                    color={badgeInfo?.color} 
-                  />
+                  <Ionicons name={badgeInfo?.icon as any} size={12} color={badgeInfo?.color} />
                 </View>
               );
             })}
@@ -339,24 +332,21 @@ const SportsLeaderboard: React.FC = () => {
       <FontAwesome5 name="trophy" size={64} color="#E5E5EA" />
       <Text style={styles.emptyStateTitle}>No Leaderboard Yet</Text>
       <Text style={styles.emptyStateText}>
-        Start playing {SPORTS.find(s => s.id === selectedSport)?.name} matches to see rankings here!
+        Start playing {SPORTS.find((s) => s.id === selectedSport)?.name} matches to see rankings here!
       </Text>
-      <TouchableOpacity 
-        style={styles.playNowButton}
-        onPress={() => navigation.navigate('SportsPlace')}
-      >
+      <TouchableOpacity style={styles.playNowButton} onPress={() => navigation.navigate('SportsPlace')}>
         <Text style={styles.playNowText}>Find a Game</Text>
       </TouchableOpacity>
     </View>
   );
 
-  const currentSport = SPORTS.find(s => s.id === selectedSport);
+  const currentSport = SPORTS.find((s) => s.id === selectedSport);
   const currentLeaderboard = getCurrentLeaderboard();
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={currentSport?.color[0]} />
-      
+
       {/* Header */}
       <LinearGradient colors={currentSport?.color || ['#667eea', '#764ba2']} style={styles.header}>
         <View style={styles.headerTop}>
@@ -368,7 +358,7 @@ const SportsLeaderboard: React.FC = () => {
             <Ionicons name="filter" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.headerContent}>
           <Text style={styles.headerSubtitle}>Compete, Win, and Climb the Rankings!</Text>
           <View style={styles.headerStats}>
@@ -384,7 +374,7 @@ const SportsLeaderboard: React.FC = () => {
             </View>
             <View style={styles.headerStat}>
               <Text style={styles.headerStatValue}>
-                {Math.max(...currentLeaderboard.map(p => p.bestStreak || 0), 0)}
+                {Math.max(...currentLeaderboard.map((p) => p.bestStreak || 0), 0)}
               </Text>
               <Text style={styles.headerStatLabel}>Best Streak</Text>
             </View>
@@ -396,7 +386,7 @@ const SportsLeaderboard: React.FC = () => {
       {renderSportSelector()}
 
       {/* Content */}
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}

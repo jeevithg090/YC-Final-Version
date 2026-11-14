@@ -30,14 +30,14 @@ class ApiKeysService {
    */
   public async initialize(): Promise<void> {
     if (this.initialized || this.initializing) return;
-    
+
     try {
       this.initializing = true;
       console.log('Initializing API keys service...');
-      
+
       const keysRef = collection(db, this.COLLECTION_NAME);
       const keysDoc = await getDoc(doc(keysRef, 'keys'));
-      
+
       if (keysDoc.exists()) {
         this.apiKeys = keysDoc.data() as Record<string, string>;
         console.log('API keys loaded successfully');
@@ -46,7 +46,7 @@ class ApiKeysService {
         // Initialize with empty object
         this.apiKeys = {};
       }
-      
+
       this.initialized = true;
     } catch (error) {
       console.error('Error initializing API keys service:', error);
@@ -66,7 +66,7 @@ class ApiKeysService {
     if (!this.initialized) {
       await this.initialize();
     }
-    
+
     return this.apiKeys[keyName] || defaultValue;
   }
 
@@ -77,7 +77,7 @@ class ApiKeysService {
     if (!this.initialized) {
       await this.initialize();
     }
-    
+
     return { ...this.apiKeys };
   }
 
@@ -89,7 +89,7 @@ class ApiKeysService {
     if (!this.initialized) {
       await this.initialize();
     }
-    
+
     return keyName in this.apiKeys;
   }
 

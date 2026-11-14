@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
@@ -17,8 +16,16 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { 
-  db, collection, doc, addDoc, onSnapshot, query, orderBy, serverTimestamp, updateDoc, auth
+import {
+  db,
+  collection,
+  doc,
+  addDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  serverTimestamp,
+  updateDoc,
 } from '../services/firebase';
 import { increment } from 'firebase/firestore';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -52,13 +59,13 @@ const CabRideGroupChat: React.FC = () => {
   const insets = useSafeAreaInsets();
   const route = useRoute();
   const { rideId, rideName } = route.params as { rideId: string; rideName?: string };
-  
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const [showQuickMessages, setShowQuickMessages] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
-  
+
   const flatListRef = useRef<FlatList>(null);
   const identity = getCurrentUserIdentity();
   const currentUserId = identity.id ?? 'anonymous';
@@ -148,29 +155,33 @@ const CabRideGroupChat: React.FC = () => {
     try {
       const chatRef = collection(db, 'cab_rides', rideId, 'messages');
       const q = query(chatRef, orderBy('timestamp', 'asc'));
-      
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const messagesList: ChatMessage[] = [];
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          messagesList.push({
-            id: doc.id,
-            ...data,
-          } as ChatMessage);
-        });
-        
-        setMessages(messagesList);
-        setLoading(false);
-        
-        // Scroll to bottom when new message arrives
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
-      }, (error) => {
-        console.error('Error listening to chat messages:', error);
-        Alert.alert('Error', 'Failed to load chat messages');
-        setLoading(false);
-      });
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const messagesList: ChatMessage[] = [];
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            messagesList.push({
+              id: doc.id,
+              ...data,
+            } as ChatMessage);
+          });
+
+          setMessages(messagesList);
+          setLoading(false);
+
+          // Scroll to bottom when new message arrives
+          setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+        },
+        (error) => {
+          console.error('Error listening to chat messages:', error);
+          Alert.alert('Error', 'Failed to load chat messages');
+          setLoading(false);
+        },
+      );
 
       return unsubscribe;
     } catch (error) {
@@ -181,11 +192,11 @@ const CabRideGroupChat: React.FC = () => {
 
   const sendMessage = async (messageText: string, isQuickMessage: boolean = false) => {
     if (!messageText.trim() && !isQuickMessage) return;
-    
+
     setSendingMessage(true);
     try {
       const chatRef = collection(db, 'cab_rides', rideId, 'messages');
-      
+
       const messageData: Omit<ChatMessage, 'id'> = {
         text: messageText.trim(),
         senderId: currentUserId,
@@ -196,7 +207,7 @@ const CabRideGroupChat: React.FC = () => {
       };
 
       await addDoc(chatRef, messageData);
-      
+
       // Update ride document with last message info and increment unread count
       const rideRef = doc(db, 'cab_rides', rideId);
       await updateDoc(rideRef, {
@@ -207,13 +218,12 @@ const CabRideGroupChat: React.FC = () => {
         },
         unreadCount: increment(1),
       });
-      
+
       setInputText('');
       setShowQuickMessages(false);
-      
+
       // Hide keyboard
       Keyboard.dismiss();
-      
     } catch (error) {
       console.error('Error sending message:', error);
       Alert.alert('Error', 'Failed to send message');
@@ -224,23 +234,23 @@ const CabRideGroupChat: React.FC = () => {
 
   const sendQuickMessage = (option: QuickMessageOption) => {
     let messageText = option.text;
-    
+
     // Replace placeholders if any
     if (option.id === 'payment_reminder') {
       // You can calculate the actual amount from ride data
       messageText = messageText.replace('{amount}', '125'); // Example amount
     }
-    
+
     sendMessage(messageText, true);
   };
 
   const formatMessageTime = (timestamp: any) => {
     if (!timestamp) return '';
-    
+
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-    
+
     if (diffInHours < 24) {
       return date.toLocaleTimeString('en-US', {
         hour: 'numeric',
@@ -267,42 +277,36 @@ const CabRideGroupChat: React.FC = () => {
       <View style={[styles.quickMessageIcon, { backgroundColor: item.color + '20' }]}>
         <Ionicons name={item.icon as any} size={20} color={item.color} />
       </View>
-      <Text style={[styles.quickMessageText, { color: item.color }]}>
-        {item.text}
-      </Text>
+      <Text style={[styles.quickMessageText, { color: item.color }]}>{item.text}</Text>
     </TouchableOpacity>
   );
 
   const renderMessage = ({ item, index }: { item: ChatMessage; index: number }) => {
     const isMyMessage = item.senderId === currentUserId;
     const showName = index === 0 || messages[index - 1]?.senderId !== item.senderId;
-    
+
     return (
-      <View style={[
-        styles.messageContainer,
-        isMyMessage ? styles.myMessageContainer : styles.otherMessageContainer
-      ]}>
-        {!isMyMessage && showName && (
-          <Text style={styles.senderName}>{item.senderName}</Text>
-        )}
-        
-        <View style={[
-          styles.messageBubble,
-          isMyMessage ? styles.myMessageBubble : styles.otherMessageBubble,
-          item.isQuickMessage && styles.quickMessageBubble
-        ]}>
-          <Text style={[
-            styles.messageText,
-            isMyMessage ? styles.myMessageText : styles.otherMessageText,
-            item.isQuickMessage && styles.quickMessageTextStyle
-          ]}>
+      <View style={[styles.messageContainer, isMyMessage ? styles.myMessageContainer : styles.otherMessageContainer]}>
+        {!isMyMessage && showName && <Text style={styles.senderName}>{item.senderName}</Text>}
+
+        <View
+          style={[
+            styles.messageBubble,
+            isMyMessage ? styles.myMessageBubble : styles.otherMessageBubble,
+            item.isQuickMessage && styles.quickMessageBubble,
+          ]}
+        >
+          <Text
+            style={[
+              styles.messageText,
+              isMyMessage ? styles.myMessageText : styles.otherMessageText,
+              item.isQuickMessage && styles.quickMessageTextStyle,
+            ]}
+          >
             {item.text}
           </Text>
-          
-          <Text style={[
-            styles.messageTime,
-            isMyMessage ? styles.myMessageTime : styles.otherMessageTime
-          ]}>
+
+          <Text style={[styles.messageTime, isMyMessage ? styles.myMessageTime : styles.otherMessageTime]}>
             {formatMessageTime(item.timestamp)}
           </Text>
         </View>
@@ -313,36 +317,24 @@ const CabRideGroupChat: React.FC = () => {
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-      
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#2c3e50" />
         </TouchableOpacity>
-        
+
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Group Chat</Text>
-          <Text style={styles.headerSubtitle}>
-            {rideName || 'Cab Ride Chat'}
-          </Text>
+          <Text style={styles.headerSubtitle}>{rideName || 'Cab Ride Chat'}</Text>
         </View>
-        
-        <TouchableOpacity
-          style={styles.quickMessageToggle}
-          onPress={() => setShowQuickMessages(!showQuickMessages)}
-        >
-          <Ionicons 
-            name={showQuickMessages ? "chevron-down" : "flash-outline"} 
-            size={24} 
-            color="#007bff" 
-          />
+
+        <TouchableOpacity style={styles.quickMessageToggle} onPress={() => setShowQuickMessages(!showQuickMessages)}>
+          <Ionicons name={showQuickMessages ? 'chevron-down' : 'flash-outline'} size={24} color="#007bff" />
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.content}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
@@ -350,14 +342,11 @@ const CabRideGroupChat: React.FC = () => {
         {/* Quick Messages Section */}
         {showQuickMessages && (
           <View style={styles.quickMessagesContainer}>
-            <LinearGradient
-              colors={['#f8f9fa', '#e9ecef']}
-              style={styles.quickMessagesHeader}
-            >
+            <LinearGradient colors={['#f8f9fa', '#e9ecef']} style={styles.quickMessagesHeader}>
               <Ionicons name="flash" size={20} color="#007bff" />
               <Text style={styles.quickMessagesTitle}>Quick Messages</Text>
             </LinearGradient>
-            
+
             <FlatList
               data={quickMessageOptions}
               renderItem={renderQuickMessageOption}
@@ -383,9 +372,7 @@ const CabRideGroupChat: React.FC = () => {
             <View style={styles.emptyChat}>
               <Ionicons name="chatbubbles-outline" size={64} color="#dee2e6" />
               <Text style={styles.emptyChatText}>Start the conversation!</Text>
-              <Text style={styles.emptyChatSubtext}>
-                Use quick messages or type your own message
-              </Text>
+              <Text style={styles.emptyChatSubtext}>Use quick messages or type your own message</Text>
             </View>
           )}
         />
@@ -402,12 +389,9 @@ const CabRideGroupChat: React.FC = () => {
               multiline
               maxLength={500}
             />
-            
+
             <TouchableOpacity
-              style={[
-                styles.sendButton,
-                (!inputText.trim() || sendingMessage) && styles.sendButtonDisabled
-              ]}
+              style={[styles.sendButton, (!inputText.trim() || sendingMessage) && styles.sendButtonDisabled]}
               onPress={() => sendMessage(inputText)}
               disabled={!inputText.trim() || sendingMessage}
             >

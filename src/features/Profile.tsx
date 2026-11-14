@@ -23,11 +23,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { db } from '../services/firebase';
-import { collection, addDoc, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 import { RootStackParamList } from '../navigation/router';
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { useFocusEffect } from '@react-navigation/native';
 import { auth } from '../services/firebase'; // Add this import
 import { signOut } from 'firebase/auth'; // Add this import
 
@@ -77,10 +76,14 @@ function formatMemberSince(dateString?: string) {
   const daySuffix = (d: number) => {
     if (d > 3 && d < 21) return 'th';
     switch (d % 10) {
-      case 1: return 'st';
-      case 2: return 'nd';
-      case 3: return 'rd';
-      default: return 'th';
+      case 1:
+        return 'st';
+      case 2:
+        return 'nd';
+      case 3:
+        return 'rd';
+      default:
+        return 'th';
     }
   };
   const month = date.toLocaleString('default', { month: 'long' });
@@ -93,30 +96,65 @@ const Profile: React.FC = () => {
   const route = useRoute();
   // @ts-ignore
   const routeUserId = route.params?.userId;
-  
+
   // State management
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [activeModal, setActiveModal] = useState<'profile' | 'settings' | 'feedback' | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState<boolean>(true);
-  
+
   const [userBadges, setUserBadges] = useState<Badge[]>([
-    { id: '1', name: 'Early Bird', description: 'First 100 users', icon: 'star', color: '#FFD700', earnedDate: '15 Jan 2024' },
-    { id: '2', name: 'Social Butterfly', description: '50+ connections', icon: 'people', color: '#FF6B6B', earnedDate: '20 Jan 2024' },
-    { id: '3', name: 'Study Master', description: 'Joined 10 study groups', icon: 'book', color: '#4ECDC4', earnedDate: '25 Jan 2024' },
-    { id: '4', name: 'Event Organizer', description: 'Created 5 events', icon: 'calendar', color: '#45B7D1', earnedDate: '30 Jan 2024' },
-    { id: '5', name: 'Helpful Hero', description: 'Helped 20+ students', icon: 'heart', color: '#96CEB4', earnedDate: '05 Feb 2024' },
+    {
+      id: '1',
+      name: 'Early Bird',
+      description: 'First 100 users',
+      icon: 'star',
+      color: '#FFD700',
+      earnedDate: '15 Jan 2024',
+    },
+    {
+      id: '2',
+      name: 'Social Butterfly',
+      description: '50+ connections',
+      icon: 'people',
+      color: '#FF6B6B',
+      earnedDate: '20 Jan 2024',
+    },
+    {
+      id: '3',
+      name: 'Study Master',
+      description: 'Joined 10 study groups',
+      icon: 'book',
+      color: '#4ECDC4',
+      earnedDate: '25 Jan 2024',
+    },
+    {
+      id: '4',
+      name: 'Event Organizer',
+      description: 'Created 5 events',
+      icon: 'calendar',
+      color: '#45B7D1',
+      earnedDate: '30 Jan 2024',
+    },
+    {
+      id: '5',
+      name: 'Helpful Hero',
+      description: 'Helped 20+ students',
+      icon: 'heart',
+      color: '#96CEB4',
+      earnedDate: '05 Feb 2024',
+    },
   ]);
-  
+
   // Feedback form state
   const [feedbackCategory, setFeedbackCategory] = useState<string>('');
   const [feedbackText, setFeedbackText] = useState<string>('');
   const [feedbackSubmitting, setFeedbackSubmitting] = useState<boolean>(false);
-  
+
   // Edit profile state
   const [editingProfile, setEditingProfile] = useState<UserProfile | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState<boolean>(false);
-  
+
   // Animation values
   const dropdownAnimation = useRef(new Animated.Value(0)).current;
   const modalAnimation = useRef(new Animated.Value(0)).current;
@@ -164,7 +202,7 @@ const Profile: React.FC = () => {
   const toggleDropdown = () => {
     const toValue = showDropdown ? 0 : 1;
     setShowDropdown(!showDropdown);
-    
+
     Animated.spring(dropdownAnimation, {
       toValue,
       useNativeDriver: true,
@@ -176,7 +214,7 @@ const Profile: React.FC = () => {
   const openModal = (modalType: 'profile' | 'settings' | 'feedback') => {
     setShowDropdown(false);
     setActiveModal(modalType);
-    
+
     Animated.spring(modalAnimation, {
       toValue: 1,
       useNativeDriver: true,
@@ -197,29 +235,25 @@ const Profile: React.FC = () => {
 
   // Handle functions
   const handleLogout = () => {
-    Alert.alert(
-      'Log Out',
-      'Are you sure you want to log out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Log Out', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut(auth);
-              // Optionally clear user state here
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Login' }],
-              });
-            } catch (error) {
-              Alert.alert('Logout Error', 'Failed to log out. Please try again.');
-            }
+    Alert.alert('Log Out', 'Are you sure you want to log out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Log Out',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await signOut(auth);
+            // Optionally clear user state here
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
+          } catch (error) {
+            Alert.alert('Logout Error', 'Failed to log out. Please try again.');
           }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleFeedbackSubmit = async () => {
@@ -229,7 +263,7 @@ const Profile: React.FC = () => {
     }
 
     setFeedbackSubmitting(true);
-    
+
     try {
       // Firebase Console Action: Create 'feedback' collection in Firestore
       await addDoc(collection(db, 'feedback'), {
@@ -240,7 +274,7 @@ const Profile: React.FC = () => {
         createdAt: new Date().toISOString(),
         status: 'pending',
       });
-      
+
       Alert.alert('Success', 'Thank you for your feedback! We appreciate your input.');
       setFeedbackText('');
       setFeedbackCategory('');
@@ -271,9 +305,13 @@ const Profile: React.FC = () => {
       if (editingProfile.yearOfStudy !== undefined) {
         updateData.yearOfStudy = editingProfile.yearOfStudy;
       }
-      await setDoc(doc(db, 'users', userProfile?.id || ''), {
-        ...updateData
-      }, { merge: true });
+      await setDoc(
+        doc(db, 'users', userProfile?.id || ''),
+        {
+          ...updateData,
+        },
+        { merge: true },
+      );
       setUserProfile({ ...userProfile!, ...editingProfile, bio: bioToSave });
       setIsEditingProfile(false);
       Alert.alert('Success', 'Profile updated successfully!');
@@ -323,9 +361,13 @@ const Profile: React.FC = () => {
         const storageRef = ref(storage, `profileImages/${userProfile?.id}.jpg`);
         await uploadBytes(storageRef, blob);
         const downloadURL = await getDownloadURL(storageRef);
-        await setDoc(doc(db, 'users', userProfile?.id || ''), {
-          profileImage: downloadURL,
-        }, { merge: true });
+        await setDoc(
+          doc(db, 'users', userProfile?.id || ''),
+          {
+            profileImage: downloadURL,
+          },
+          { merge: true },
+        );
         // Immediately fetch the latest profile from Firestore
         const userDoc = await getDoc(doc(db, 'users', userProfile?.id || ''));
         if (userDoc.exists()) {
@@ -386,10 +428,7 @@ const Profile: React.FC = () => {
           {dropdownOptions.map((option, index) => (
             <TouchableOpacity
               key={option.id}
-              style={[
-                styles.dropdownItem,
-                option.id === 'logout' && styles.logoutItem,
-              ]}
+              style={[styles.dropdownItem, option.id === 'logout' && styles.logoutItem]}
               onPress={() => {
                 option.action();
                 setShowDropdown(false);
@@ -401,14 +440,7 @@ const Profile: React.FC = () => {
                 color={option.id === 'logout' ? '#FF3B30' : '#1C1C1E'}
                 style={styles.dropdownIcon}
               />
-              <Text
-                style={[
-                  styles.dropdownText,
-                  option.id === 'logout' && styles.logoutText,
-                ]}
-              >
-                {option.title}
-              </Text>
+              <Text style={[styles.dropdownText, option.id === 'logout' && styles.logoutText]}>{option.title}</Text>
             </TouchableOpacity>
           ))}
         </BlurView>
@@ -427,29 +459,22 @@ const Profile: React.FC = () => {
         <>
           {/* Profile Header */}
           <View style={styles.profileHeader}>
-            <LinearGradient
-              colors={['#667eea', '#764ba2']}
-              style={styles.profileHeaderGradient}
-            >
+            <LinearGradient colors={['#667eea', '#764ba2']} style={styles.profileHeaderGradient}>
               <View style={styles.profileImageContainer}>
                 <View style={styles.profileImageWrapper}>
                   {userProfile.profileImage ? (
-                    <Image
-                      source={{ uri: userProfile.profileImage }}
-                      style={styles.profileImage}
-                    />
+                    <Image source={{ uri: userProfile.profileImage }} style={styles.profileImage} />
                   ) : (
-                    <LinearGradient
-                      colors={['#4E54C8', '#8B5CF6']}
-                      style={styles.profileImage}
-                    >
-                      <Text style={styles.profileImageText}>
-                        {userProfile.name?.charAt(0) || 'U'}
-                      </Text>
+                    <LinearGradient colors={['#4E54C8', '#8B5CF6']} style={styles.profileImage}>
+                      <Text style={styles.profileImageText}>{userProfile.name?.charAt(0) || 'U'}</Text>
                     </LinearGradient>
                   )}
                 </View>
-                <TouchableOpacity style={styles.editImageButton} onPress={handlePickImage} disabled={uploadingProfileImage}>
+                <TouchableOpacity
+                  style={styles.editImageButton}
+                  onPress={handlePickImage}
+                  disabled={uploadingProfileImage}
+                >
                   {uploadingProfileImage ? (
                     <ActivityIndicator color="#FFF" size={16} />
                   ) : (
@@ -460,17 +485,11 @@ const Profile: React.FC = () => {
               <Text style={styles.profileName}>{userProfile.name}</Text>
               <Text style={styles.profileUsername}>{userProfile.userName ? `@${userProfile.userName}` : ''}</Text>
               <View style={styles.profileActions}>
-                <TouchableOpacity 
-                  style={styles.actionButton}
-                  onPress={handleShareProfile}
-                >
+                <TouchableOpacity style={styles.actionButton} onPress={handleShareProfile}>
                   <Ionicons name="share-outline" size={18} color="#FFFFFF" />
                   <Text style={styles.actionButtonText}>Share</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.editButton]}
-                  onPress={handleEditProfile}
-                >
+                <TouchableOpacity style={[styles.actionButton, styles.editButton]} onPress={handleEditProfile}>
                   <Ionicons name="create-outline" size={18} color="#4E54C8" />
                   <Text style={[styles.actionButtonText, { color: '#4E54C8' }]}>Edit</Text>
                 </TouchableOpacity>
@@ -504,7 +523,7 @@ const Profile: React.FC = () => {
                   style={[styles.bioText, { backgroundColor: '#F2F2F7', borderRadius: 8, padding: 8, minHeight: 60 }]}
                   multiline
                   value={editingProfile?.bio || ''}
-                  onChangeText={text => editingProfile && setEditingProfile({ ...editingProfile, bio: text })}
+                  onChangeText={(text) => editingProfile && setEditingProfile({ ...editingProfile, bio: text })}
                   placeholder={`${userProfile.name || 'This user'} hasn't shared much yet, but we're excited to find out more!`}
                 />
               ) : (
@@ -558,11 +577,7 @@ const Profile: React.FC = () => {
                 >
                   <Text style={styles.submitButtonText}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.submitButton}
-                  onPress={handleUpdateProfile}
-                  disabled={!editingProfile}
-                >
+                <TouchableOpacity style={styles.submitButton} onPress={handleUpdateProfile} disabled={!editingProfile}>
                   <Text style={styles.submitButtonText}>Save</Text>
                 </TouchableOpacity>
               </View>
@@ -577,8 +592,8 @@ const Profile: React.FC = () => {
     <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
       <View style={styles.settingsContainer}>
         <Text style={styles.modalTitle}>Settings</Text>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.settingItem}
           onPress={() => {
             closeModal();
@@ -607,10 +622,7 @@ const Profile: React.FC = () => {
           <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.settingItem}
-          onPress={handleReportIssue}
-        >
+        <TouchableOpacity style={styles.settingItem} onPress={handleReportIssue}>
           <View style={styles.settingIconContainer}>
             <Ionicons name="bug-outline" size={24} color="#FF3B30" />
           </View>
@@ -628,24 +640,16 @@ const Profile: React.FC = () => {
     <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
       <View style={styles.feedbackContainer}>
         <Text style={styles.modalTitle}>Feedback & Support</Text>
-        
+
         <Text style={styles.feedbackLabel}>Category</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
           {feedbackCategories.map((category) => (
             <TouchableOpacity
               key={category}
-              style={[
-                styles.categoryChip,
-                feedbackCategory === category && styles.selectedCategoryChip,
-              ]}
+              style={[styles.categoryChip, feedbackCategory === category && styles.selectedCategoryChip]}
               onPress={() => setFeedbackCategory(category)}
             >
-              <Text
-                style={[
-                  styles.categoryChipText,
-                  feedbackCategory === category && styles.selectedCategoryChipText,
-                ]}
-              >
+              <Text style={[styles.categoryChipText, feedbackCategory === category && styles.selectedCategoryChipText]}>
                 {category}
               </Text>
             </TouchableOpacity>
@@ -669,9 +673,7 @@ const Profile: React.FC = () => {
           onPress={handleFeedbackSubmit}
           disabled={feedbackSubmitting || !feedbackCategory || !feedbackText.trim()}
         >
-          <Text style={styles.submitButtonText}>
-            {feedbackSubmitting ? 'Submitting...' : 'Submit Feedback'}
-          </Text>
+          <Text style={styles.submitButtonText}>{feedbackSubmitting ? 'Submitting...' : 'Submit Feedback'}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -681,19 +683,10 @@ const Profile: React.FC = () => {
     if (!activeModal) return null;
 
     return (
-      <Modal
-        visible={!!activeModal}
-        animationType="none"
-        transparent
-        onRequestClose={closeModal}
-      >
+      <Modal visible={!!activeModal} animationType="none" transparent onRequestClose={closeModal}>
         <View style={styles.modalOverlay}>
-          <TouchableOpacity
-            style={styles.modalBackdrop}
-            activeOpacity={1}
-            onPress={closeModal}
-          />
-          
+          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={closeModal} />
+
           <Animated.View
             style={[
               styles.modalContainer,
@@ -716,7 +709,7 @@ const Profile: React.FC = () => {
                   <Ionicons name="close" size={24} color="#1C1C1E" />
                 </TouchableOpacity>
               </View>
-              
+
               {activeModal === 'profile' && renderProfileModal()}
               {activeModal === 'settings' && renderSettingsModal()}
               {activeModal === 'feedback' && renderFeedbackModal()}
@@ -755,18 +748,15 @@ const Profile: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-      
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="#1C1C1E" />
         </TouchableOpacity>
-        
+
         <Text style={styles.headerTitle}>Profile</Text>
-        
+
         <TouchableOpacity onPress={toggleDropdown} style={styles.menuButton}>
           <Ionicons name="ellipsis-horizontal" size={24} color="#1C1C1E" />
         </TouchableOpacity>
@@ -778,21 +768,13 @@ const Profile: React.FC = () => {
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.profilePreview}>
-          <LinearGradient
-            colors={['#667eea', '#764ba2']}
-            style={styles.previewGradient}
-          >
+          <LinearGradient colors={['#667eea', '#764ba2']} style={styles.previewGradient}>
             <View style={styles.previewImageContainer}>
-              <LinearGradient
-                colors={['#4E54C8', '#8B5CF6']}
-                style={styles.previewImage}
-              >
-                <Text style={styles.previewImageText}>
-                  {userProfile?.name?.charAt(0) || 'U'}
-                </Text>
+              <LinearGradient colors={['#4E54C8', '#8B5CF6']} style={styles.previewImage}>
+                <Text style={styles.previewImageText}>{userProfile?.name?.charAt(0) || 'U'}</Text>
               </LinearGradient>
             </View>
-            
+
             <Text style={styles.previewName}>{userProfile?.name || ''}</Text>
             <Text style={styles.previewUsername}>{userProfile?.userName ? `@${userProfile.userName}` : ''}</Text>
             <Text style={styles.previewBio}>
@@ -818,10 +800,7 @@ const Profile: React.FC = () => {
           </View>
         </View>
 
-        <TouchableOpacity 
-          style={styles.viewFullProfileButton}
-          onPress={() => openModal('profile')}
-        >
+        <TouchableOpacity style={styles.viewFullProfileButton} onPress={() => openModal('profile')}>
           <Text style={styles.viewFullProfileText}>View Full Profile</Text>
           <Ionicons name="arrow-forward" size={20} color="#4E54C8" />
         </TouchableOpacity>
@@ -871,7 +850,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F2F2F7',
   },
-  
+
   // Dropdown styles
   dropdownContainer: {
     position: 'absolute',
@@ -914,7 +893,7 @@ const styles = StyleSheet.create({
   logoutText: {
     color: '#FF3B30',
   },
-  
+
   // Content styles
   content: {
     flex: 1,
@@ -971,7 +950,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Inter',
   },
-  
+
   quickStats: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
@@ -1001,7 +980,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Inter',
   },
-  
+
   viewFullProfileButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1020,7 +999,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Inter',
   },
-  
+
   // Modal styles
   modalOverlay: {
     flex: 1,
@@ -1071,7 +1050,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Inter',
   },
-  
+
   // Profile modal styles
   profileHeader: {
     borderRadius: 20,
@@ -1159,7 +1138,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Inter',
   },
-  
+
   statsContainer: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
@@ -1194,7 +1173,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F7',
     marginHorizontal: 20,
   },
-  
+
   profileInfoContainer: {
     padding: 20,
   },
@@ -1261,7 +1240,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Inter',
   },
-  
+
   badgesScroll: {
     marginTop: 8,
   },
@@ -1292,7 +1271,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Inter',
   },
-  
+
   // Settings modal styles
   settingsContainer: {
     padding: 20,
@@ -1334,7 +1313,7 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Inter',
   },
-  
+
   // Feedback modal styles
   feedbackContainer: {
     padding: 20,

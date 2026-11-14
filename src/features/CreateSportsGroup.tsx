@@ -15,7 +15,7 @@ import {
   Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { db } from '../services/firebase';
 import { collection, addDoc } from 'firebase/firestore';
@@ -62,13 +62,34 @@ interface CreateSportsGroupProps {
 }
 
 const SPORTS: Sport[] = [
-  { id: 'basketball', name: 'Basketball', icon: 'basketball-ball', color: ['#FF6B35', '#F7931E'], maxPlayers: 10, minPlayers: 6 },
-  { id: 'badminton', name: 'Badminton', icon: 'badminton', color: ['#4ECDC4', '#44A08D'], maxPlayers: 4, minPlayers: 2 },
+  {
+    id: 'basketball',
+    name: 'Basketball',
+    icon: 'basketball-ball',
+    color: ['#FF6B35', '#F7931E'],
+    maxPlayers: 10,
+    minPlayers: 6,
+  },
+  {
+    id: 'badminton',
+    name: 'Badminton',
+    icon: 'badminton',
+    color: ['#4ECDC4', '#44A08D'],
+    maxPlayers: 4,
+    minPlayers: 2,
+  },
   { id: 'swimming', name: 'Swimming', icon: 'swimmer', color: ['#667eea', '#764ba2'], maxPlayers: 15, minPlayers: 2 },
   { id: 'tennis', name: 'Tennis', icon: 'table-tennis', color: ['#fdbb2d', '#22c1c3'], maxPlayers: 4, minPlayers: 2 },
   { id: 'football', name: 'Football', icon: 'futbol', color: ['#56ab2f', '#a8e6cf'], maxPlayers: 22, minPlayers: 10 },
   { id: 'hockey', name: 'Hockey', icon: 'hockey-puck', color: ['#e96443', '#904e95'], maxPlayers: 22, minPlayers: 10 },
-  { id: 'cricket', name: 'Cricket', icon: 'baseball-ball', color: ['#FF8008', '#FFC837'], maxPlayers: 22, minPlayers: 6 },
+  {
+    id: 'cricket',
+    name: 'Cricket',
+    icon: 'baseball-ball',
+    color: ['#FF8008', '#FFC837'],
+    maxPlayers: 22,
+    minPlayers: 6,
+  },
 ];
 
 const SKILL_LEVELS = [
@@ -177,7 +198,7 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  const selectedSport = SPORTS.find(s => s.id === form.sport);
+  const selectedSport = SPORTS.find((s) => s.id === form.sport);
   const sportConfig = form.sport ? SPORT_CONFIGS[form.sport as keyof typeof SPORT_CONFIGS] : null;
 
   useEffect(() => {
@@ -198,7 +219,7 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
         notes: '',
       });
       setCurrentStep(0);
-      
+
       // Animate modal in
       Animated.parallel([
         Animated.timing(slideAnim, {
@@ -230,14 +251,14 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
   }, [visible]);
 
   const updateForm = (field: keyof CreateGroupForm, value: CreateGroupForm[keyof CreateGroupForm]) => {
-    setForm(prev => ({ ...prev, [field]: value }));
+    setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSportSelect = (sportId: string) => {
     updateForm('sport', sportId);
-    const sport = SPORTS.find(s => s.id === sportId);
+    const sport = SPORTS.find((s) => s.id === sportId);
     const config = SPORT_CONFIGS[sportId as keyof typeof SPORT_CONFIGS];
-    
+
     // Auto-set defaults based on sport
     if (config && 'matchFormats' in config && config.matchFormats.length > 0) {
       updateForm('matchFormat', config.matchFormats[0].key);
@@ -256,9 +277,9 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
 
   const handleMatchFormatSelect = (formatKey: string) => {
     updateForm('matchFormat', formatKey);
-    
+
     if (sportConfig && 'matchFormats' in sportConfig) {
-      const format = sportConfig.matchFormats.find(f => f.key === formatKey);
+      const format = sportConfig.matchFormats.find((f) => f.key === formatKey);
       if (format) {
         updateForm('playerCount', format.players);
       }
@@ -276,23 +297,31 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
       const groupData = {
         sport: form.sport,
         title: form.title || `${selectedSport?.name} Game`,
-        description: form.notes || `Join us for a ${form.gameType?.toLowerCase() || 'fun'} ${selectedSport?.name} session!`,
+        description:
+          form.notes || `Join us for a ${form.gameType?.toLowerCase() || 'fun'} ${selectedSport?.name} session!`,
         maxPlayers: form.playerCount,
         currentPlayers: 1,
         skillLevel: form.skillLevel,
-        dateTime: new Date(form.date.getFullYear(), form.date.getMonth(), form.date.getDate(), 
-                          form.time.getHours(), form.time.getMinutes()).toISOString(),
+        dateTime: new Date(
+          form.date.getFullYear(),
+          form.date.getMonth(),
+          form.date.getDate(),
+          form.time.getHours(),
+          form.time.getMinutes(),
+        ).toISOString(),
         duration: form.duration,
         location: form.location || 'Sports Center',
         status: 'open',
         createdBy: 'current_user_id', // Replace with actual user ID
         creatorName: 'Current User', // Replace with actual user name
-        players: [{
-          id: 'current_user_id',
-          name: 'Current User',
-          level: form.skillLevel,
-          rating: 1200
-        }],
+        players: [
+          {
+            id: 'current_user_id',
+            name: 'Current User',
+            level: form.skillLevel,
+            rating: 1200,
+          },
+        ],
         createdAt: Date.now(),
         // Sport-specific data
         matchFormat: form.matchFormat,
@@ -307,12 +336,16 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
 
       const docRef = await addDoc(collection(db, 'sports_groups'), groupData);
       console.log('Group created successfully with ID:', docRef.id);
-      
-      Alert.alert(
-        'Success! 🎉',
-        `Your ${selectedSport?.name} group has been created successfully!`,
-        [{ text: 'OK', onPress: () => { onSuccess(); onClose(); } }]
-      );
+
+      Alert.alert('Success! 🎉', `Your ${selectedSport?.name} group has been created successfully!`, [
+        {
+          text: 'OK',
+          onPress: () => {
+            onSuccess();
+            onClose();
+          },
+        },
+      ]);
     } catch (error) {
       console.error('Error creating group:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -324,22 +357,22 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
 
   const renderStepIndicator = () => {
     const totalSteps = form.sport ? 4 : 3;
-    
+
     return (
       <View style={styles.stepIndicator}>
         {Array.from({ length: totalSteps }, (_, index) => (
           <View key={index} style={styles.stepContainer}>
-            <View style={[
-              styles.stepCircle,
-              index <= currentStep && styles.activeStepCircle,
-              index < currentStep && styles.completedStepCircle
-            ]}>
+            <View
+              style={[
+                styles.stepCircle,
+                index <= currentStep && styles.activeStepCircle,
+                index < currentStep && styles.completedStepCircle,
+              ]}
+            >
               {index < currentStep ? (
                 <Ionicons name="checkmark" size={12} color="#FFFFFF" />
               ) : (
-                <Text style={[styles.stepText, index <= currentStep && styles.activeStepText]}>
-                  {index + 1}
-                </Text>
+                <Text style={[styles.stepText, index <= currentStep && styles.activeStepText]}>{index + 1}</Text>
               )}
             </View>
             {index < totalSteps - 1 && (
@@ -355,7 +388,7 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
     <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Choose Your Sport 🏆</Text>
       <Text style={styles.stepSubtitle}>Select the sport you want to organize</Text>
-      
+
       <View style={styles.sportsGrid}>
         {SPORTS.map((sport) => (
           <TouchableOpacity
@@ -379,7 +412,7 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
     <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Basic Details 📝</Text>
       <Text style={styles.stepSubtitle}>Set up your game details</Text>
-      
+
       <View style={styles.formSection}>
         <Text style={styles.fieldLabel}>Group Title</Text>
         <TextInput
@@ -395,13 +428,11 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
         <View style={styles.formHalf}>
           <Text style={styles.fieldLabel}>📅 Date</Text>
           <TouchableOpacity style={styles.dateTimeButton} onPress={() => setShowDatePicker(true)}>
-            <Text style={styles.dateTimeText}>
-              {form.date.toLocaleDateString()}
-            </Text>
+            <Text style={styles.dateTimeText}>{form.date.toLocaleDateString()}</Text>
             <Ionicons name="calendar-outline" size={20} color="#4E54C8" />
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.formHalf}>
           <Text style={styles.fieldLabel}>🕒 Time</Text>
           <TouchableOpacity style={styles.dateTimeButton} onPress={() => setShowTimePicker(true)}>
@@ -416,34 +447,38 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
       <View style={styles.formSection}>
         <Text style={styles.fieldLabel}>⏱ Duration (minutes)</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.durationScroll}>
-          {sportConfig && 'durations' in sportConfig && sportConfig.durations.map((duration) => (
-            <TouchableOpacity
-              key={duration}
-              style={[styles.durationChip, form.duration === duration && styles.selectedDurationChip]}
-              onPress={() => updateForm('duration', duration)}
-            >
-              <Text style={[styles.durationChipText, form.duration === duration && styles.selectedDurationChipText]}>
-                {duration}m
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {sportConfig &&
+            'durations' in sportConfig &&
+            sportConfig.durations.map((duration) => (
+              <TouchableOpacity
+                key={duration}
+                style={[styles.durationChip, form.duration === duration && styles.selectedDurationChip]}
+                onPress={() => updateForm('duration', duration)}
+              >
+                <Text style={[styles.durationChipText, form.duration === duration && styles.selectedDurationChipText]}>
+                  {duration}m
+                </Text>
+              </TouchableOpacity>
+            ))}
         </ScrollView>
       </View>
 
       <View style={styles.formSection}>
         <Text style={styles.fieldLabel}>📍 Location</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.locationScroll}>
-          {sportConfig && 'locations' in sportConfig && sportConfig.locations.map((location) => (
-            <TouchableOpacity
-              key={location}
-              style={[styles.locationChip, form.location === location && styles.selectedLocationChip]}
-              onPress={() => updateForm('location', location)}
-            >
-              <Text style={[styles.locationChipText, form.location === location && styles.selectedLocationChipText]}>
-                {location}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {sportConfig &&
+            'locations' in sportConfig &&
+            sportConfig.locations.map((location) => (
+              <TouchableOpacity
+                key={location}
+                style={[styles.locationChip, form.location === location && styles.selectedLocationChip]}
+                onPress={() => updateForm('location', location)}
+              >
+                <Text style={[styles.locationChipText, form.location === location && styles.selectedLocationChipText]}>
+                  {location}
+                </Text>
+              </TouchableOpacity>
+            ))}
         </ScrollView>
       </View>
 
@@ -547,7 +582,7 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
     <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Game Setup ⚡</Text>
       <Text style={styles.stepSubtitle}>Configure sport-specific options</Text>
-      
+
       {/* Match Format */}
       {sportConfig && 'matchFormats' in sportConfig && (
         <View style={styles.formSection}>
@@ -559,11 +594,15 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
                 style={[styles.formatCard, form.matchFormat === format.key && styles.selectedFormatCard]}
                 onPress={() => handleMatchFormatSelect(format.key)}
               >
-                <Text style={[styles.formatCardTitle, form.matchFormat === format.key && styles.selectedFormatCardTitle]}>
+                <Text
+                  style={[styles.formatCardTitle, form.matchFormat === format.key && styles.selectedFormatCardTitle]}
+                >
                   {format.label}
                 </Text>
-                <View style={[styles.playersIndicator, form.matchFormat === format.key && styles.selectedPlayersIndicator]}>
-                  <Ionicons name="people" size={16} color={form.matchFormat === format.key ? "#FFFFFF" : "#4E54C8"} />
+                <View
+                  style={[styles.playersIndicator, form.matchFormat === format.key && styles.selectedPlayersIndicator]}
+                >
+                  <Ionicons name="people" size={16} color={form.matchFormat === format.key ? '#FFFFFF' : '#4E54C8'} />
                   <Text style={[styles.playersText, form.matchFormat === format.key && styles.selectedPlayersText]}>
                     {format.players} players
                   </Text>
@@ -707,8 +746,13 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
               style={[styles.skillCard, form.skillLevel === skill.key && styles.selectedSkillCard]}
               onPress={() => updateForm('skillLevel', skill.key)}
             >
-              <View style={[styles.skillIcon, { backgroundColor: skill.color }, 
-                form.skillLevel === skill.key && styles.selectedSkillIcon]}>
+              <View
+                style={[
+                  styles.skillIcon,
+                  { backgroundColor: skill.color },
+                  form.skillLevel === skill.key && styles.selectedSkillIcon,
+                ]}
+              >
                 <FontAwesome5 name={skill.icon} size={16} color="#FFFFFF" />
               </View>
               <Text style={[styles.skillCardText, form.skillLevel === skill.key && styles.selectedSkillCardText]}>
@@ -725,7 +769,7 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
     <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Final Touch ✨</Text>
       <Text style={styles.stepSubtitle}>Add notes and preferences</Text>
-      
+
       <View style={styles.formSection}>
         <View style={styles.toggleContainer}>
           <View style={styles.toggleInfo}>
@@ -764,7 +808,8 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Date & Time:</Text>
           <Text style={styles.summaryValue}>
-            {form.date.toLocaleDateString()} at {form.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {form.date.toLocaleDateString()} at{' '}
+            {form.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
         </View>
         <View style={styles.summaryRow}>
@@ -828,39 +873,39 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
 
   const getStepTitle = () => {
     switch (currentStep) {
-      case 0: return 'Select Sport';
-      case 1: return 'Basic Details';
-      case 2: return form.sport ? 'Game Setup' : 'Final Details';
-      case 3: return 'Final Details';
-      default: return 'Create Group';
+      case 0:
+        return 'Select Sport';
+      case 1:
+        return 'Basic Details';
+      case 2:
+        return form.sport ? 'Game Setup' : 'Final Details';
+      case 3:
+        return 'Final Details';
+      default:
+        return 'Create Group';
     }
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="none"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <Animated.View 
+    <Modal visible={visible} animationType="none" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <Animated.View
         style={[
           styles.modalContainer,
           {
             opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }]
-          }
+            transform: [{ translateY: slideAnim }],
+          },
         ]}
       >
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        
+
         {/* Header */}
         <SafeAreaView style={styles.header}>
           <View style={styles.headerContent}>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color="#1C1C1E" />
             </TouchableOpacity>
-            
+
             <View style={styles.headerCenter}>
               <Text style={styles.headerTitle}>{getStepTitle()}</Text>
               {selectedSport && (
@@ -869,8 +914,8 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
                 </LinearGradient>
               )}
             </View>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               onPress={currentStep === (form.sport ? 3 : 2) ? createGroup : nextStep}
               style={[styles.actionButton, !canProceed() && styles.disabledButton]}
               disabled={!canProceed() || loading}
@@ -880,14 +925,12 @@ const CreateSportsGroup: React.FC<CreateSportsGroupProps> = ({
               </Text>
             </TouchableOpacity>
           </View>
-          
+
           {renderStepIndicator()}
         </SafeAreaView>
 
         {/* Content */}
-        <View style={styles.content}>
-          {renderStepContent()}
-        </View>
+        <View style={styles.content}>{renderStepContent()}</View>
 
         {/* Bottom Navigation */}
         {currentStep > 0 && (

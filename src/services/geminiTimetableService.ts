@@ -8,14 +8,14 @@ export class GeminiTimetableService {
 
   constructor() {
     this.genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
   }
 
   async processTimetableImage(imageUri: string): Promise<TimetableData | null> {
     try {
       console.log('Starting timetable image processing...');
       const base64Image = await this.convertImageToBase64(imageUri);
-      
+
       const prompt = `This is a timetable image. Please extract the schedule information and return it as a JSON object with the following structure:
 {
   "days": [
@@ -49,8 +49,8 @@ Important instructions:
       const imagePart = {
         inlineData: {
           data: base64Image,
-          mimeType: "image/jpeg"
-        }
+          mimeType: 'image/jpeg',
+        },
       };
 
       const result = await this.model.generateContent([prompt, imagePart]);
@@ -64,14 +64,13 @@ Important instructions:
       }
 
       const timetableData: TimetableData = JSON.parse(jsonMatch);
-      
+
       if (!this.validateTimetableData(timetableData)) {
         throw new Error('Invalid timetable data structure');
       }
 
       console.log('Successfully extracted timetable data:', timetableData);
       return timetableData;
-
     } catch (error) {
       console.error('Error processing timetable image:', error);
       return null;
@@ -82,7 +81,7 @@ Important instructions:
     try {
       const response = await fetch(imageUri);
       const blob = await response.blob();
-      
+
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => {

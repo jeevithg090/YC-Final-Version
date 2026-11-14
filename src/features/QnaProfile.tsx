@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Modal,
-  Platform,
   Alert,
   Image,
   ActivityIndicator,
@@ -15,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { doc, getDoc, collection, query, where, getDocs, orderBy, limit, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db, auth } from '../services/firebase';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -57,13 +56,13 @@ const QnaProfile: React.FC<QnaProfileProps> = ({
   isAnonymous,
   isVisible,
   onClose,
-  profileImage: propProfileImage
+  profileImage: propProfileImage,
 }) => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  
+
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userActivity, setUserActivity] = useState<UserActivity[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -99,12 +98,13 @@ const QnaProfile: React.FC<QnaProfileProps> = ({
           email: userData.email,
           points: userData.points || 0,
           reputation: userData.reputation || 0,
-          avatar: userData.profileImage || userData.avatar || propProfileImage || 'https://i.pravatar.cc/150?u=' + userId,
+          avatar:
+            userData.profileImage || userData.avatar || propProfileImage || 'https://i.pravatar.cc/150?u=' + userId,
           joinDate: userData.joinDate,
           questionsCount: userData.questionsCount || 0,
           answersCount: userData.answersCount || 0,
           acceptedAnswers: userData.acceptedAnswers || 0,
-          badges: userData.badges || []
+          badges: userData.badges || [],
         });
       } else {
         setUserProfile({
@@ -112,7 +112,7 @@ const QnaProfile: React.FC<QnaProfileProps> = ({
           name: username,
           points: 0,
           reputation: 0,
-          avatar: propProfileImage || 'https://i.pravatar.cc/150?u=' + userId
+          avatar: propProfileImage || 'https://i.pravatar.cc/150?u=' + userId,
         });
       }
       setLoading(false);
@@ -129,43 +129,43 @@ const QnaProfile: React.FC<QnaProfileProps> = ({
         collection(db, 'qna_questions'),
         where('authorId', '==', userId),
         orderBy('timestamp', 'desc'),
-        limit(5)
+        limit(5),
       );
-      
+
       const questionsSnapshot = await getDocs(questionsQuery);
-      const questions = questionsSnapshot.docs.map(doc => ({
+      const questions = questionsSnapshot.docs.map((doc) => ({
         id: doc.id,
         type: 'question' as const,
         title: doc.data().title,
         timestamp: doc.data().timestamp,
-        points: doc.data().points || 0
+        points: doc.data().points || 0,
       }));
-      
+
       // Get user's answers
       const answersQuery = query(
         collection(db, 'qna_answers'),
         where('authorId', '==', userId),
         orderBy('timestamp', 'desc'),
-        limit(5)
+        limit(5),
       );
-      
+
       const answersSnapshot = await getDocs(answersQuery);
-      const answers = answersSnapshot.docs.map(doc => ({
+      const answers = answersSnapshot.docs.map((doc) => ({
         id: doc.id,
         type: 'answer' as const,
         title: doc.data().content.substring(0, 50) + '...',
         timestamp: doc.data().timestamp,
         points: doc.data().points || 0,
-        isAccepted: doc.data().isAccepted || false
+        isAccepted: doc.data().isAccepted || false,
       }));
-      
+
       // Combine and sort by timestamp
       const combined = [...questions, ...answers].sort((a, b) => {
         const aTime = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
         const bTime = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
         return bTime - aTime;
       });
-      
+
       setUserActivity(combined);
     } catch (error) {
       console.error('Error loading user activity:', error);
@@ -182,28 +182,24 @@ const QnaProfile: React.FC<QnaProfileProps> = ({
   };
 
   const handleReportUser = () => {
-    Alert.alert(
-      'Report User',
-      'Why are you reporting this user?',
-      [
-        {
-          text: 'Inappropriate Content',
-          onPress: () => reportUser('inappropriate_content')
-        },
-        {
-          text: 'Harassment',
-          onPress: () => reportUser('harassment')
-        },
-        {
-          text: 'Spam',
-          onPress: () => reportUser('spam')
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel'
-        },
-      ]
-    );
+    Alert.alert('Report User', 'Why are you reporting this user?', [
+      {
+        text: 'Inappropriate Content',
+        onPress: () => reportUser('inappropriate_content'),
+      },
+      {
+        text: 'Harassment',
+        onPress: () => reportUser('harassment'),
+      },
+      {
+        text: 'Spam',
+        onPress: () => reportUser('spam'),
+      },
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+    ]);
     onClose();
   };
 
@@ -212,7 +208,7 @@ const QnaProfile: React.FC<QnaProfileProps> = ({
     console.log(`Reporting user ${userId} for reason: ${reason}`);
     Alert.alert(
       'Report Submitted',
-      'Thank you for helping to keep our community safe. We will review this report soon.'
+      'Thank you for helping to keep our community safe. We will review this report soon.',
     );
   };
 
@@ -221,7 +217,7 @@ const QnaProfile: React.FC<QnaProfileProps> = ({
       Alert.alert('Anonymous User', 'Cannot chat with anonymous users');
       return;
     }
-    
+
     (async () => {
       try {
         const currentUser = auth.currentUser;
@@ -229,42 +225,42 @@ const QnaProfile: React.FC<QnaProfileProps> = ({
           Alert.alert('Login Required', 'Please log in to start a chat');
           return;
         }
-        
+
         if (currentUser.uid === userId) {
           Alert.alert('Cannot chat with yourself', 'You cannot start a chat with yourself');
           return;
         }
-        
+
         // Get current user profile
         const currentUserDoc = await getDoc(doc(db, 'users', currentUser.uid));
         if (!currentUserDoc.exists()) {
           Alert.alert('Profile Error', 'Your profile could not be found');
           return;
         }
-        
-        const currentUserProfile = { 
-          id: currentUser.uid, 
+
+        const currentUserProfile = {
+          id: currentUser.uid,
           name: currentUserDoc.data().name || currentUser.displayName || 'User',
-          ...currentUserDoc.data()
+          ...currentUserDoc.data(),
         };
-        
+
         // Get other user profile
         const otherUserDoc = await getDoc(doc(db, 'users', userId));
         if (!otherUserDoc.exists()) {
           Alert.alert('Profile Error', 'User profile could not be found');
           return;
         }
-        
-        const otherUserProfile = { 
-          id: userId, 
+
+        const otherUserProfile = {
+          id: userId,
           name: otherUserDoc.data().name || username,
-          ...otherUserDoc.data()
+          ...otherUserDoc.data(),
         };
-        
+
         // Navigate to chat
         navigation.navigate('Chat', {
           currentUser: currentUserProfile,
-          selectedUser: otherUserProfile
+          selectedUser: otherUserProfile,
         });
         onClose();
       } catch (error) {
@@ -280,98 +276,76 @@ const QnaProfile: React.FC<QnaProfileProps> = ({
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
   const formatTimestamp = (timestamp: any) => {
     if (!timestamp) return 'Just now';
-    
+
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
+
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
-    
+
     return date.toLocaleDateString();
   };
 
   const renderOverviewTab = () => {
     if (!userProfile) return null;
-    
+
     return (
       <ScrollView style={styles.tabContent}>
         {/* Stats Section */}
         <View style={[styles.statsSection, isDark ? styles.sectionDark : null]}>
-          <Text style={[styles.sectionTitle, isDark ? styles.textDark : null]}>
-            Stats
-          </Text>
-          
+          <Text style={[styles.sectionTitle, isDark ? styles.textDark : null]}>Stats</Text>
+
           <View style={styles.statsGrid}>
             <View style={[styles.statItem, isDark ? styles.statItemDark : null]}>
-              <Text style={[styles.statValue, isDark ? styles.textDark : null]}>
-                {userProfile.reputation || 0}
-              </Text>
-              <Text style={[styles.statLabel, isDark ? styles.textDark : null]}>
-                Reputation
-              </Text>
+              <Text style={[styles.statValue, isDark ? styles.textDark : null]}>{userProfile.reputation || 0}</Text>
+              <Text style={[styles.statLabel, isDark ? styles.textDark : null]}>Reputation</Text>
             </View>
-            
+
             <View style={[styles.statItem, isDark ? styles.statItemDark : null]}>
-              <Text style={[styles.statValue, isDark ? styles.textDark : null]}>
-                {userProfile.points || 0}
-              </Text>
-              <Text style={[styles.statLabel, isDark ? styles.textDark : null]}>
-                Points
-              </Text>
+              <Text style={[styles.statValue, isDark ? styles.textDark : null]}>{userProfile.points || 0}</Text>
+              <Text style={[styles.statLabel, isDark ? styles.textDark : null]}>Points</Text>
             </View>
-            
+
             <View style={[styles.statItem, isDark ? styles.statItemDark : null]}>
-              <Text style={[styles.statValue, isDark ? styles.textDark : null]}>
-                {userProfile.questionsCount || 0}
-              </Text>
-              <Text style={[styles.statLabel, isDark ? styles.textDark : null]}>
-                Questions
-              </Text>
+              <Text style={[styles.statValue, isDark ? styles.textDark : null]}>{userProfile.questionsCount || 0}</Text>
+              <Text style={[styles.statLabel, isDark ? styles.textDark : null]}>Questions</Text>
             </View>
-            
+
             <View style={[styles.statItem, isDark ? styles.statItemDark : null]}>
-              <Text style={[styles.statValue, isDark ? styles.textDark : null]}>
-                {userProfile.answersCount || 0}
-              </Text>
-              <Text style={[styles.statLabel, isDark ? styles.textDark : null]}>
-                Answers
-              </Text>
+              <Text style={[styles.statValue, isDark ? styles.textDark : null]}>{userProfile.answersCount || 0}</Text>
+              <Text style={[styles.statLabel, isDark ? styles.textDark : null]}>Answers</Text>
             </View>
           </View>
         </View>
-        
+
         {/* Badges Section */}
         {userProfile.badges && userProfile.badges.length > 0 && (
           <View style={[styles.badgesSection, isDark ? styles.sectionDark : null]}>
-            <Text style={[styles.sectionTitle, isDark ? styles.textDark : null]}>
-              Badges
-            </Text>
-            
+            <Text style={[styles.sectionTitle, isDark ? styles.textDark : null]}>Badges</Text>
+
             <View style={styles.badgesGrid}>
               {userProfile.badges.map((badge, index) => (
                 <View key={index} style={[styles.badgeItem, isDark ? styles.badgeItemDark : null]}>
                   <Ionicons name="ribbon" size={20} color="#FFD700" />
-                  <Text style={[styles.badgeText, isDark ? styles.textDark : null]}>
-                    {badge}
-                  </Text>
+                  <Text style={[styles.badgeText, isDark ? styles.textDark : null]}>{badge}</Text>
                 </View>
               ))}
             </View>
           </View>
         )}
-        
+
         {/* Join Date */}
         {userProfile.joinDate && (
           <View style={[styles.joinDateSection, isDark ? styles.sectionDark : null]}>
@@ -389,21 +363,12 @@ const QnaProfile: React.FC<QnaProfileProps> = ({
       <ScrollView style={styles.tabContent}>
         {userActivity.length === 0 ? (
           <View style={styles.emptyActivity}>
-            <Ionicons
-              name="document-text-outline"
-              size={48}
-              color={isDark ? '#3A3A3C' : '#D1D1D6'}
-            />
-            <Text style={[styles.emptyActivityText, isDark ? styles.textDark : null]}>
-              No activity yet
-            </Text>
+            <Ionicons name="document-text-outline" size={48} color={isDark ? '#3A3A3C' : '#D1D1D6'} />
+            <Text style={[styles.emptyActivityText, isDark ? styles.textDark : null]}>No activity yet</Text>
           </View>
         ) : (
           userActivity.map((activity, index) => (
-            <View
-              key={index}
-              style={[styles.activityItem, isDark ? styles.activityItemDark : null]}
-            >
+            <View key={index} style={[styles.activityItem, isDark ? styles.activityItemDark : null]}>
               <View style={styles.activityHeader}>
                 <View style={styles.activityTypeContainer}>
                   <Ionicons
@@ -411,23 +376,18 @@ const QnaProfile: React.FC<QnaProfileProps> = ({
                     size={16}
                     color={activity.type === 'question' ? '#FF6B35' : '#4E54C8'}
                   />
-                  <Text style={[
-                    styles.activityType,
-                    { color: activity.type === 'question' ? '#FF6B35' : '#4E54C8' }
-                  ]}>
+                  <Text style={[styles.activityType, { color: activity.type === 'question' ? '#FF6B35' : '#4E54C8' }]}>
                     {activity.type === 'question' ? 'Question' : 'Answer'}
                   </Text>
                 </View>
-                
+
                 <Text style={[styles.activityTime, isDark ? styles.textDark : null]}>
                   {formatTimestamp(activity.timestamp)}
                 </Text>
               </View>
-              
-              <Text style={[styles.activityTitle, isDark ? styles.textDark : null]}>
-                {activity.title}
-              </Text>
-              
+
+              <Text style={[styles.activityTitle, isDark ? styles.textDark : null]}>{activity.title}</Text>
+
               <View style={styles.activityFooter}>
                 <View style={styles.activityPoints}>
                   <Ionicons
@@ -435,14 +395,11 @@ const QnaProfile: React.FC<QnaProfileProps> = ({
                     size={14}
                     color={activity.points >= 0 ? '#10B981' : '#EF4444'}
                   />
-                  <Text style={[
-                    styles.pointsText,
-                    { color: activity.points >= 0 ? '#10B981' : '#EF4444' }
-                  ]}>
+                  <Text style={[styles.pointsText, { color: activity.points >= 0 ? '#10B981' : '#EF4444' }]}>
                     {Math.abs(activity.points)} points
                   </Text>
                 </View>
-                
+
                 {activity.type === 'answer' && activity.isAccepted && (
                   <View style={styles.acceptedBadge}>
                     <Ionicons name="checkmark-circle" size={14} color="#10B981" />
@@ -458,65 +415,43 @@ const QnaProfile: React.FC<QnaProfileProps> = ({
   };
 
   return (
-    <Modal
-      visible={isVisible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <View style={[
-        styles.overlay,
-        isDark ? styles.overlayDark : null
-      ]}>
-        <View style={[
-          styles.profileCard,
-          isDark ? styles.profileCardDark : null
-        ]}>
+    <Modal visible={isVisible} transparent={true} animationType="fade" onRequestClose={onClose}>
+      <View style={[styles.overlay, isDark ? styles.overlayDark : null]}>
+        <View style={[styles.profileCard, isDark ? styles.profileCardDark : null]}>
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#FF6B35" />
-              <Text style={[styles.loadingText, isDark ? styles.textDark : null]}>
-                Loading profile...
-              </Text>
+              <Text style={[styles.loadingText, isDark ? styles.textDark : null]}>Loading profile...</Text>
             </View>
           ) : (
             <>
               {/* Profile Header */}
               <View style={styles.header}>
                 <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                  <Ionicons
-                    name="close"
-                    size={24}
-                    color={isDark ? '#FFFFFF' : '#1C1C1E'}
-                  />
+                  <Ionicons name="close" size={24} color={isDark ? '#FFFFFF' : '#1C1C1E'} />
                 </TouchableOpacity>
               </View>
-              
+
               {/* User Info */}
               <View style={styles.userInfoContainer}>
                 <Image
                   source={{ uri: userProfile?.avatar || propProfileImage || 'https://via.placeholder.com/100' }}
                   style={styles.userAvatar}
                 />
-                
+
                 <Text style={[styles.userName, isDark ? styles.textDark : null]}>
                   {isAnonymous ? '🕶️ Anonymous User' : userProfile?.name}
                 </Text>
-                
+
                 {!isAnonymous && (
                   <View style={styles.userStats}>
-                    <LinearGradient
-                      colors={['#FF6B35', '#FF8C66']}
-                      style={styles.pointsBadge}
-                    >
-                      <Text style={styles.pointsBadgeText}>
-                        {userProfile?.points || 0} points
-                      </Text>
+                    <LinearGradient colors={['#FF6B35', '#FF8C66']} style={styles.pointsBadge}>
+                      <Text style={styles.pointsBadgeText}>{userProfile?.points || 0} points</Text>
                     </LinearGradient>
                   </View>
                 )}
               </View>
-              
+
               {/* Tab Bar */}
               {!isAnonymous && (
                 <View style={[styles.tabBar, isDark ? styles.tabBarDark : null]}>
@@ -525,46 +460,50 @@ const QnaProfile: React.FC<QnaProfileProps> = ({
                       styles.tab,
                       activeTab === 'overview' && styles.activeTab,
                       isDark ? styles.tabDark : null,
-                      activeTab === 'overview' && isDark && styles.activeTabDark
+                      activeTab === 'overview' && isDark && styles.activeTabDark,
                     ]}
                     onPress={() => setActiveTab('overview')}
                   >
-                    <Text style={[
-                      styles.tabText,
-                      activeTab === 'overview' && styles.activeTabText,
-                      isDark ? styles.textDark : null
-                    ]}>
+                    <Text
+                      style={[
+                        styles.tabText,
+                        activeTab === 'overview' && styles.activeTabText,
+                        isDark ? styles.textDark : null,
+                      ]}
+                    >
                       Overview
                     </Text>
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity
                     style={[
                       styles.tab,
                       activeTab === 'activity' && styles.activeTab,
                       isDark ? styles.tabDark : null,
-                      activeTab === 'activity' && isDark && styles.activeTabDark
+                      activeTab === 'activity' && isDark && styles.activeTabDark,
                     ]}
                     onPress={() => setActiveTab('activity')}
                   >
-                    <Text style={[
-                      styles.tabText,
-                      activeTab === 'activity' && styles.activeTabText,
-                      isDark ? styles.textDark : null
-                    ]}>
+                    <Text
+                      style={[
+                        styles.tabText,
+                        activeTab === 'activity' && styles.activeTabText,
+                        isDark ? styles.textDark : null,
+                      ]}
+                    >
                       Activity
                     </Text>
                   </TouchableOpacity>
                 </View>
               )}
-              
+
               {/* Tab Content */}
               {!isAnonymous && (
                 <View style={styles.tabContentContainer}>
                   {activeTab === 'overview' ? renderOverviewTab() : renderActivityTab()}
                 </View>
               )}
-              
+
               {/* Action Buttons */}
               <View style={styles.actionButtons}>
                 {!isAnonymous && (
@@ -578,40 +517,21 @@ const QnaProfile: React.FC<QnaProfileProps> = ({
                       color={isDark ? '#FFFFFF' : '#1C1C1E'}
                       style={styles.actionIcon}
                     />
-                    <Text style={[styles.actionText, isDark ? styles.textDark : null]}>
-                      View Full Profile
-                    </Text>
+                    <Text style={[styles.actionText, isDark ? styles.textDark : null]}>View Full Profile</Text>
                   </TouchableOpacity>
                 )}
-                
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.chatButton]}
-                  onPress={handleStartChat}
-                >
-                  <Ionicons
-                    name="chatbubble"
-                    size={20}
-                    color="#FFFFFF"
-                    style={styles.actionIcon}
-                  />
-                  <Text style={styles.chatButtonText}>
-                    Start Chatting
-                  </Text>
+
+                <TouchableOpacity style={[styles.actionButton, styles.chatButton]} onPress={handleStartChat}>
+                  <Ionicons name="chatbubble" size={20} color="#FFFFFF" style={styles.actionIcon} />
+                  <Text style={styles.chatButtonText}>Start Chatting</Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={[styles.actionButton, styles.reportButton, isDark ? styles.reportButtonDark : null]}
                   onPress={handleReportUser}
                 >
-                  <Ionicons
-                    name="flag"
-                    size={20}
-                    color="#EF4444"
-                    style={styles.actionIcon}
-                  />
-                  <Text style={styles.reportButtonText}>
-                    Report User
-                  </Text>
+                  <Ionicons name="flag" size={20} color="#EF4444" style={styles.actionIcon} />
+                  <Text style={styles.reportButtonText}>Report User</Text>
                 </TouchableOpacity>
               </View>
             </>

@@ -12,24 +12,12 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
-  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { db } from '../services/firebase';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  addDoc,
-  doc,
-  setDoc,
-  getDoc,
-  getDocs,
-  serverTimestamp,
-} from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, doc, setDoc, getDoc, getDocs } from 'firebase/firestore';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/router';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -71,8 +59,12 @@ const Chat: React.FC = () => {
   const params = (route as any).params || {};
   console.log('Chat screen received params:', params);
   // Only set currentUser/selectedUser if params are present and valid
-  const [currentUser, setCurrentUser] = useState<any>(params.currentUser && params.currentUser.id ? params.currentUser : null);
-  const [selectedUser, setSelectedUser] = useState<any>(params.selectedUser && params.selectedUser.id ? params.selectedUser : null);
+  const [currentUser, setCurrentUser] = useState<any>(
+    params.currentUser && params.currentUser.id ? params.currentUser : null,
+  );
+  const [selectedUser, setSelectedUser] = useState<any>(
+    params.selectedUser && params.selectedUser.id ? params.selectedUser : null,
+  );
 
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
@@ -96,8 +88,8 @@ const Chat: React.FC = () => {
         const usersRef = collection(db, 'users');
         const snapshot = await getDocs(usersRef);
         const userList: UserProfile[] = snapshot.docs
-          .map(doc => ({ id: doc.id, ...doc.data() } as UserProfile))
-          .filter(u => currentUser && u.id !== currentUser.id);
+          .map((doc) => ({ id: doc.id, ...doc.data() }) as UserProfile)
+          .filter((u) => currentUser && u.id !== currentUser.id);
         setUsers(userList);
       } catch (error) {
         console.error('Error fetching users:', error);
@@ -116,17 +108,21 @@ const Chat: React.FC = () => {
     const chatId = getChatId(currentUser.id, selectedUser.id);
     const messagesRef = collection(db, 'direct_chats', chatId, 'messages');
     const q = query(messagesRef, orderBy('createdAt', 'asc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs: DMMessage[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DMMessage));
-      setMessages(msgs);
-      setLoadingMessages(false);
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }, (error) => {
-      console.error('Error loading messages:', error);
-      setLoadingMessages(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const msgs: DMMessage[] = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as DMMessage);
+        setMessages(msgs);
+        setLoadingMessages(false);
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      },
+      (error) => {
+        console.error('Error loading messages:', error);
+        setLoadingMessages(false);
+      },
+    );
     return () => unsubscribe();
   }, [currentUser, selectedUser]);
 
@@ -177,9 +173,10 @@ const Chat: React.FC = () => {
   };
 
   // UI: User search and list
-  const filteredUsers = users.filter(u =>
-    (u.name && u.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (u.username && u.username.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredUsers = users.filter(
+    (u) =>
+      (u.name && u.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (u.username && u.username.toLowerCase().includes(searchQuery.toLowerCase())),
   );
 
   // UI: Message bubble
@@ -198,7 +195,9 @@ const Chat: React.FC = () => {
         )}
         <View style={[styles.messageBubble, isOwn ? styles.ownMessageBubble : styles.themMessageBubble]}>
           {!isOwn && <Text style={styles.messageUserName}>{item.senderName}</Text>}
-          <Text style={[styles.messageText, isOwn ? styles.ownMessageText : styles.themMessageText]}>{item.content}</Text>
+          <Text style={[styles.messageText, isOwn ? styles.ownMessageText : styles.themMessageText]}>
+            {item.content}
+          </Text>
           <Text style={styles.messageTime}>{formatTimeAgo(item.createdAt)}</Text>
         </View>
       </View>
@@ -224,7 +223,7 @@ const Chat: React.FC = () => {
     return (
       <View style={styles.container}>
         <LinearGradient
-          colors={["#4E54C8", "#8B5CF6"]}
+          colors={['#4E54C8', '#8B5CF6']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.header}
@@ -249,7 +248,7 @@ const Chat: React.FC = () => {
     return (
       <View style={styles.container}>
         <LinearGradient
-          colors={["#4E54C8", "#8B5CF6"]}
+          colors={['#4E54C8', '#8B5CF6']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.header}
@@ -275,13 +274,11 @@ const Chat: React.FC = () => {
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       {/* Header */}
-      <LinearGradient
-        colors={["#4E54C8", "#8B5CF6"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.header}
-      >
-        <TouchableOpacity onPress={() => selectedUser ? setSelectedUser(null) : navigation.goBack()} style={styles.backButton}>
+      <LinearGradient colors={['#4E54C8', '#8B5CF6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
+        <TouchableOpacity
+          onPress={() => (selectedUser ? setSelectedUser(null) : navigation.goBack())}
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back" size={26} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{selectedUser ? selectedUser.name : 'Direct Messages'}</Text>
@@ -306,7 +303,7 @@ const Chat: React.FC = () => {
           ) : (
             <FlatList
               data={filteredUsers}
-              keyExtractor={item => item.id}
+              keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity style={styles.userCard} onPress={() => handleSelectUser(item)}>
                   {item.profileImage ? (
@@ -343,7 +340,7 @@ const Chat: React.FC = () => {
               ref={flatListRef}
               data={messages}
               renderItem={renderMessage}
-              keyExtractor={item => item.id}
+              keyExtractor={(item) => item.id}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.chatContainer}
               onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
@@ -370,7 +367,7 @@ const Chat: React.FC = () => {
                 onPress={handleSendMessage}
                 disabled={!newMessage.trim() || sending}
               >
-                <Ionicons name="send" size={22} color={newMessage.trim() ? "#4E54C8" : "#C7C7CC"} />
+                <Ionicons name="send" size={22} color={newMessage.trim() ? '#4E54C8' : '#C7C7CC'} />
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
@@ -596,4 +593,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Chat; 
+export default Chat;

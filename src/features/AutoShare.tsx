@@ -1,18 +1,8 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Image,
-  StatusBar,
-  Alert,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, StatusBar, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auth } from '../services/firebase';
 
 // Import the RootStackParamList type from router
@@ -28,28 +18,28 @@ const AutoShare: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
-  
+
   const features = [
     {
       icon: '🛺',
       title: 'Share Ride Costs',
-      description: 'Split auto fares with fellow students and save money on transportation.'
+      description: 'Split auto fares with fellow students and save money on transportation.',
     },
     {
       icon: '📍',
       title: 'Campus & City Routes',
-      description: 'Find rides to popular destinations around campus and the city.'
+      description: 'Find rides to popular destinations around campus and the city.',
     },
     {
       icon: '⏰',
       title: 'Flexible Timing',
-      description: 'Schedule rides according to your convenience and class timings.'
+      description: 'Schedule rides according to your convenience and class timings.',
     },
     {
       icon: '👥',
       title: 'Connect with Students',
-      description: 'Travel safely with verified students from your campus community.'
-    }
+      description: 'Travel safely with verified students from your campus community.',
+    },
   ];
 
   const handleFindAuto = async () => {
@@ -61,7 +51,7 @@ const AutoShare: React.FC = () => {
         Alert.alert('Login Required', 'Please log in to find an auto share');
         return;
       }
-      
+
       // Navigate to FindAnAutoShare screen
       navigation.navigate('FindAnAutoShare');
     } catch (error) {
@@ -80,7 +70,7 @@ const AutoShare: React.FC = () => {
         Alert.alert('Login Required', 'Please log in to publish an auto share');
         return;
       }
-      
+
       // Navigate to PublishAnAutoShare screen
       navigation.navigate('PublishAnAutoShare');
     } catch (error) {
@@ -95,18 +85,11 @@ const AutoShare: React.FC = () => {
       <StatusBar barStyle="dark-content" />
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Image 
-            source={require('../../assets/images/campus-life.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <Image source={require('../../assets/images/campus-life.png')} style={styles.logo} resizeMode="contain" />
           <Text style={styles.appName}>YOGO Campus</Text>
         </View>
         <View style={styles.headerRight} />
@@ -116,9 +99,7 @@ const AutoShare: React.FC = () => {
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <Text style={styles.title}>🛺 Auto Share</Text>
-          <Text style={styles.subtitle}>
-            Share rides, split costs, and connect with your campus community
-          </Text>
+          <Text style={styles.subtitle}>Share rides, split costs, and connect with your campus community</Text>
         </View>
 
         {/* Features Section */}

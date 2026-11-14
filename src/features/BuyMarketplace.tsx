@@ -17,27 +17,26 @@ import {
 import { State, PanGestureHandler } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/router';
-import { 
-  db, 
+import {
+  db,
   storage,
-  collection, 
-  getDocs, 
-  query, 
-  orderBy, 
-  onSnapshot, 
-  Timestamp, 
-  addDoc, 
-  doc, 
-  setDoc, 
+  collection,
+  getDocs,
+  query,
+  orderBy,
+  onSnapshot,
+  Timestamp,
+  addDoc,
+  doc,
+  setDoc,
   limit,
   storageRef,
   getDownloadURL,
   auth,
-  getDoc
+  getDoc,
 } from '../services/firebase';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -93,7 +92,7 @@ const BuyMarketplace: React.FC = () => {
       try {
         setIsLoading(true);
         console.log('BuyMarketplace: Initializing data...');
-        
+
         // Check if Firebase is properly initialized
         if (!db) {
           console.error('Firebase db is not initialized!');
@@ -101,53 +100,57 @@ const BuyMarketplace: React.FC = () => {
           setIsLoading(false);
           return;
         }
-        
+
         console.log('Firebase db object status:', db ? 'Connected' : 'Not connected');
         console.log('Firebase storage object status:', storage ? 'Connected' : 'Not connected');
-        
+
         // Test Firebase connection before proceeding
         const isConnected = await checkFirebaseConnection();
-        
+
         if (!isConnected) {
           Alert.alert(
             'Connection Error',
-            'Failed to connect to Firebase. Please check your internet connection and try again.'
+            'Failed to connect to Firebase. Please check your internet connection and try again.',
           );
           setIsLoading(false);
           return;
         }
-        
+
         await addSampleDataIfNeeded();
         await fetchProductsFromFirebase();
       } catch (error) {
         console.error('Fatal error during BuyMarketplace initialization:', error);
         Alert.alert(
           'Connection Error',
-          'Failed to initialize the marketplace. Please check your internet connection and try again.'
+          'Failed to initialize the marketplace. Please check your internet connection and try again.',
         );
         setIsLoading(false);
       }
     };
-    
+
     initializeData();
-    
+
     // Set up a real-time listener for updates
     try {
       const productsCollection = collection(db, 'products');
       const q = query(productsCollection, orderBy('timestamp', 'desc'));
-      
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        console.log('Real-time update received from Firestore');
-        if (!snapshot.empty) {
-          // Only process updates if we're not currently loading
-          if (!isLoading) {
-            fetchProductsFromFirebase();
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          console.log('Real-time update received from Firestore');
+          if (!snapshot.empty) {
+            // Only process updates if we're not currently loading
+            if (!isLoading) {
+              fetchProductsFromFirebase();
+            }
           }
-        }
-      }, (error) => {
-        console.error('Error in Firestore real-time listener:', error);
-      });
-      
+        },
+        (error) => {
+          console.error('Error in Firestore real-time listener:', error);
+        },
+      );
+
       // Cleanup function to unsubscribe when component unmounts
       return () => {
         console.log('Unsubscribing from Firestore listener');
@@ -161,7 +164,7 @@ const BuyMarketplace: React.FC = () => {
   const fetchProductsFromFirebase = async () => {
     try {
       console.log('Starting to fetch products from Firestore...');
-      
+
       // Verify db connection
       if (!db) {
         console.error('Firebase db object is undefined or null');
@@ -169,12 +172,12 @@ const BuyMarketplace: React.FC = () => {
         setIsLoading(false);
         return;
       }
-      
+
       const productsCollection = collection(db, 'products');
       console.log('Fetching products collection...');
-      
+
       const productsQuery = query(productsCollection, orderBy('timestamp', 'desc'));
-      
+
       // Add more detailed error handling for Firestore query
       let snapshot;
       try {
@@ -182,22 +185,19 @@ const BuyMarketplace: React.FC = () => {
         console.log(`Fetched ${snapshot.docs.length} products from Firestore`);
       } catch (queryError) {
         console.error('Error querying Firestore:', queryError);
-        Alert.alert(
-          'Database Error', 
-          'Failed to query the marketplace data. Please try again later.'
-        );
+        Alert.alert('Database Error', 'Failed to query the marketplace data. Please try again later.');
         setIsLoading(false);
         return;
       }
-      
+
       if (snapshot.empty) {
         console.warn('No products found in the collection');
         setProducts([]);
         setIsLoading(false);
         return;
       }
-      
-      const productsData = snapshot.docs.map(doc => {
+
+      const productsData = snapshot.docs.map((doc) => {
         const data = doc.data();
         console.log(`Product ID: ${doc.id}, Title: ${data.title}`);
         return {
@@ -205,10 +205,10 @@ const BuyMarketplace: React.FC = () => {
           ...data,
         };
       });
-  
+
       // Use the already imported storage instance
       console.log('Getting product images from Firebase Storage...');
-      
+
       const productsWithImageUrls = await Promise.all(
         productsData.map(async (product: any) => {
           try {
@@ -216,7 +216,7 @@ const BuyMarketplace: React.FC = () => {
               console.warn(`Product ${product.id} has no images array`);
               product.images = ['product_images/sample.jpg'];
             }
-            
+
             const images = await Promise.all(
               product.images.map(async (imagePath: string) => {
                 try {
@@ -226,7 +226,7 @@ const BuyMarketplace: React.FC = () => {
                   console.warn(`Image not found in Firebase Storage: ${imagePath}. Using placeholder.`);
                   return 'https://via.placeholder.com/400'; // Return a placeholder URL
                 }
-              })
+              }),
             );
             return {
               ...product,
@@ -244,17 +244,17 @@ const BuyMarketplace: React.FC = () => {
               isSeen: seenProducts.has(product.id),
             };
           }
-        })
+        }),
       );
-  
+
       console.log('Successfully processed all products with images');
       setProducts(productsWithImageUrls);
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching products:', error);
       Alert.alert(
-        'Error Loading Marketplace', 
-        'There was a problem fetching marketplace items. Please check your connection and try again.'
+        'Error Loading Marketplace',
+        'There was a problem fetching marketplace items. Please check your connection and try again.',
       );
       setIsLoading(false);
     }
@@ -264,12 +264,12 @@ const BuyMarketplace: React.FC = () => {
   const addSampleDataIfNeeded = async () => {
     try {
       console.log('Checking if sample data needs to be added...');
-      
+
       if (!db) {
         console.error('Firebase db object is undefined or null');
         return;
       }
-      
+
       const productsCollection = collection(db, 'products');
       const snapshot = await getDocs(productsCollection);
 
@@ -312,11 +312,11 @@ const BuyMarketplace: React.FC = () => {
             condition: 'Used - Good',
             tags: ['Pickup Only'],
             timestamp: Timestamp.now(),
-          }
+          },
         ];
 
         console.log(`Adding ${sampleProducts.length} sample products to Firestore...`);
-        
+
         for (const product of sampleProducts) {
           try {
             const docRef = await addDoc(productsCollection, product);
@@ -326,7 +326,7 @@ const BuyMarketplace: React.FC = () => {
           }
         }
         console.log('Sample data added successfully.');
-        
+
         // Verify data was added
         const verifySnapshot = await getDocs(productsCollection);
         console.log(`After adding samples, collection has ${verifySnapshot.docs.length} documents`);
@@ -335,30 +335,27 @@ const BuyMarketplace: React.FC = () => {
       }
     } catch (error) {
       console.error('Error in addSampleDataIfNeeded:', error);
-      Alert.alert(
-        'Setup Error', 
-        'There was a problem setting up the marketplace data. Please restart the app.'
-      );
+      Alert.alert('Setup Error', 'There was a problem setting up the marketplace data. Please restart the app.');
     }
   };
 
   const handleRefresh = async () => {
     setRefreshing(true);
     setIsLoading(true);
-    
+
     // Check Firebase connection first
     const isConnected = await checkFirebaseConnection();
-    
+
     if (isConnected) {
       // Fetch fresh data from Firebase
       await fetchProductsFromFirebase();
     } else {
       Alert.alert(
         'Connection Issue',
-        'Could not connect to the marketplace. Please check your internet connection and try again.'
+        'Could not connect to the marketplace. Please check your internet connection and try again.',
       );
     }
-    
+
     setRefreshing(false);
     setIsLoading(false);
   };
@@ -386,19 +383,27 @@ const BuyMarketplace: React.FC = () => {
         Alert.alert('Profile Error', 'Your profile could not be found.');
         return;
       }
-      const currentUserProfile = { id: currentUser.uid, name: (currentUserDoc.data() && currentUserDoc.data().name) || '', ...(currentUserDoc.data() || {}) };
+      const currentUserProfile = {
+        id: currentUser.uid,
+        name: (currentUserDoc.data() && currentUserDoc.data().name) || '',
+        ...(currentUserDoc.data() || {}),
+      };
       // Fetch seller profile
       let sellerProfile = null;
       if (product.sellerId) {
         const sellerDoc = await getDoc(doc(db, 'users', product.sellerId));
         if (sellerDoc.exists()) {
-          sellerProfile = { id: product.sellerId, name: (sellerDoc.data() && sellerDoc.data().name) || '', ...(sellerDoc.data() || {}) };
+          sellerProfile = {
+            id: product.sellerId,
+            name: (sellerDoc.data() && sellerDoc.data().name) || '',
+            ...(sellerDoc.data() || {}),
+          };
         }
       }
       if (!sellerProfile) {
         // fallback: search by seller name
         const usersSnapshot = await getDocs(collection(db, 'users'));
-        usersSnapshot.forEach(docSnap => {
+        usersSnapshot.forEach((docSnap) => {
           const data = docSnap.data();
           if (data.name === product.seller) {
             sellerProfile = { id: docSnap.id, name: data.name || '', ...data };
@@ -442,16 +447,14 @@ const BuyMarketplace: React.FC = () => {
   };
 
   const getNextUnseenProductIndex = (isForward: boolean) => {
-    const unseenIndices = products
-      .map((p, i) => (seenProducts.has(p.id) ? -1 : i))
-      .filter(i => i !== -1);
+    const unseenIndices = products.map((p, i) => (seenProducts.has(p.id) ? -1 : i)).filter((i) => i !== -1);
 
     if (unseenIndices.length > 0) {
       return unseenIndices[0];
     }
     // If all seen, cycle through all products
     if (isForward) {
-        return (currentProductIndex + 1) % products.length;
+      return (currentProductIndex + 1) % products.length;
     }
     return (currentProductIndex - 1 + products.length) % products.length;
   };
@@ -522,10 +525,10 @@ const BuyMarketplace: React.FC = () => {
 
   const handleSwipeGesture = (event: any) => {
     const { translationY, velocityY, state } = event.nativeEvent;
-    
+
     // Debug logging
     console.log('Swipe gesture:', { translationY, velocityY, state });
-    
+
     if (state === State.END) {
       if (translationY < -50 || velocityY < -500) {
         nextProduct();
@@ -537,10 +540,10 @@ const BuyMarketplace: React.FC = () => {
 
   const handleImageSwipe = (event: any) => {
     const { translationX, velocityX, state } = event.nativeEvent;
-    
+
     // Debug logging
     console.log('Image swipe:', { translationX, velocityX, state });
-    
+
     if (state === State.END) {
       // More lenient thresholds for better responsiveness
       if (translationX < -30 || velocityX < -300) {
@@ -573,7 +576,7 @@ const BuyMarketplace: React.FC = () => {
     <TouchableOpacity
       style={styles.gridItem}
       onPress={() => {
-        setCurrentProductIndex(products.findIndex(p => p.id === item.id));
+        setCurrentProductIndex(products.findIndex((p) => p.id === item.id));
         setIsGridView(false);
         const newSeen = new Set(seenProducts);
         newSeen.add(item.id);
@@ -582,7 +585,9 @@ const BuyMarketplace: React.FC = () => {
     >
       <Image source={{ uri: item.images[0] }} style={styles.gridImage} />
       <View style={styles.gridInfo}>
-        <Text style={styles.gridTitle} numberOfLines={2}>{item.title}</Text>
+        <Text style={styles.gridTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
         <Text style={styles.gridPrice}>₹{item.price}</Text>
         {item.tags.includes('Brand New') && (
           <View style={styles.gridTag}>
@@ -595,17 +600,12 @@ const BuyMarketplace: React.FC = () => {
 
   const renderCardView = () => {
     if (products.length === 0) return null;
-    
+
     const currentProduct = products[currentProductIndex];
-    
+
     return (
       <PanGestureHandler onGestureEvent={handleSwipeGesture}>
-        <Animated.View 
-          style={[
-            styles.cardContainer,
-            { transform: [{ translateY: slideAnim }] }
-          ]}
-        >
+        <Animated.View style={[styles.cardContainer, { transform: [{ translateY: slideAnim }] }]}>
           {/* Touch zones for product navigation */}
           <TouchableOpacity
             style={[styles.topTouchZone, { height: '15%' }]}
@@ -633,10 +633,7 @@ const BuyMarketplace: React.FC = () => {
                     <Image
                       key={index}
                       source={{ uri: img }}
-                      style={[
-                        styles.productImage,
-                        { width: `${100 / products[currentProductIndex]?.images.length}%` },
-                      ]}
+                      style={[styles.productImage, { width: `${100 / products[currentProductIndex]?.images.length}%` }]}
                     />
                   ))}
                 </Animated.View>
@@ -644,29 +641,17 @@ const BuyMarketplace: React.FC = () => {
             </PanGestureHandler>
             <View style={styles.imageIndicators}>
               {products[currentProductIndex]?.images.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.indicator,
-                    index === currentImageIndex && styles.activeIndicator,
-                  ]}
-                />
+                <View key={index} style={[styles.indicator, index === currentImageIndex && styles.activeIndicator]} />
               ))}
             </View>
-            <TouchableOpacity
-              style={styles.bookmarkButton}
-              onPress={() => toggleBookmark(currentProduct.id)}
-            >
+            <TouchableOpacity style={styles.bookmarkButton} onPress={() => toggleBookmark(currentProduct.id)}>
               <Ionicons
                 name={bookmarkedItems.has(currentProduct.id) ? 'bookmark' : 'bookmark-outline'}
                 size={24}
                 color="#fff"
               />
             </TouchableOpacity>
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.6)']}
-              style={styles.gradientOverlay}
-            />
+            <LinearGradient colors={['transparent', 'rgba(0,0,0,0.6)']} style={styles.gradientOverlay} />
           </View>
           <View style={styles.infoSection}>
             <View style={styles.productInfo}>
@@ -674,12 +659,13 @@ const BuyMarketplace: React.FC = () => {
               <View style={styles.priceContainer}>
                 <Text style={styles.price}>${currentProduct.price}</Text>
                 {currentProduct.originalPrice && (
-                  <Text style={styles.originalPrice}>
-                    ${currentProduct.originalPrice}
-                  </Text>
+                  <Text style={styles.originalPrice}>${currentProduct.originalPrice}</Text>
                 )}
                 <TouchableOpacity
-                  style={[styles.chatButton, { marginLeft: 12, paddingVertical: 4, paddingHorizontal: 10, minWidth: 0, height: 32 }]}
+                  style={[
+                    styles.chatButton,
+                    { marginLeft: 12, paddingVertical: 4, paddingHorizontal: 10, minWidth: 0, height: 32 },
+                  ]}
                   onPress={() => handleChatWithSeller(currentProduct)}
                 >
                   <Ionicons name="chatbubble-ellipses-outline" size={16} color="#fff" />
@@ -688,18 +674,14 @@ const BuyMarketplace: React.FC = () => {
               </View>
               <View style={styles.metaInfo}>
                 <View style={styles.categoryTag}>
-                  <Text style={styles.categoryText}>
-                    {mapCategoryToDepartment(currentProduct.category)}
-                  </Text>
+                  <Text style={styles.categoryText}>{mapCategoryToDepartment(currentProduct.category)}</Text>
                 </View>
                 <Text style={styles.condition}>{currentProduct.condition}</Text>
               </View>
               <View style={styles.locationInfo}>
                 <Ionicons name="location-outline" size={14} color="#666" />
                 <Text style={styles.location}>{currentProduct.location}</Text>
-                <Text style={styles.posted}>
-                  {formatTimestamp(currentProduct.timestamp)}
-                </Text>
+                <Text style={styles.posted}>{formatTimestamp(currentProduct.timestamp)}</Text>
               </View>
               <Text style={styles.description} numberOfLines={2}>
                 {currentProduct.description}
@@ -728,20 +710,9 @@ const BuyMarketplace: React.FC = () => {
               </View>
             </View>
             <View style={styles.productNavigation}>
-               <TouchableOpacity
-                style={styles.productNavButton}
-                onPress={previousProduct}
-              >
-                <Ionicons
-                  name="arrow-back"
-                  size={18}
-                  color={'#4E54C8'}
-                />
-                <Text
-                  style={styles.navButtonText}
-                >
-                  Prev
-                </Text>
+              <TouchableOpacity style={styles.productNavButton} onPress={previousProduct}>
+                <Ionicons name="arrow-back" size={18} color={'#4E54C8'} />
+                <Text style={styles.navButtonText}>Prev</Text>
               </TouchableOpacity>
               <View style={styles.productCounter}>
                 <Text style={styles.counterText}>
@@ -749,31 +720,19 @@ const BuyMarketplace: React.FC = () => {
                 </Text>
               </View>
               <TouchableOpacity
-                style={[
-                  styles.productNavButton,
-                  currentProductIndex === products.length - 1 &&
-                    styles.disabledButton,
-                ]}
+                style={[styles.productNavButton, currentProductIndex === products.length - 1 && styles.disabledButton]}
                 onPress={nextProduct}
                 disabled={currentProductIndex === products.length - 1}
               >
                 <Text
-                  style={[
-                    styles.navButtonText,
-                    currentProductIndex === products.length - 1 &&
-                      styles.disabledText,
-                  ]}
+                  style={[styles.navButtonText, currentProductIndex === products.length - 1 && styles.disabledText]}
                 >
                   Next
                 </Text>
                 <Ionicons
                   name="arrow-forward"
                   size={18}
-                  color={
-                    currentProductIndex === products.length - 1
-                      ? '#adb5bd'
-                      : '#4E54C8'
-                  }
+                  color={currentProductIndex === products.length - 1 ? '#adb5bd' : '#4E54C8'}
                 />
               </TouchableOpacity>
             </View>
@@ -786,9 +745,9 @@ const BuyMarketplace: React.FC = () => {
   // Helper functions to map Firebase data to Product interface
   const formatTimestamp = (timestamp: any): string => {
     if (!timestamp) return 'Recently';
-    
+
     let timestampMs: number;
-    
+
     // Handle Firestore Timestamp objects
     if (timestamp && typeof timestamp.toDate === 'function') {
       timestampMs = timestamp.toDate().getTime();
@@ -799,12 +758,12 @@ const BuyMarketplace: React.FC = () => {
     } else {
       return 'Recently';
     }
-    
+
     const now = Date.now();
     const diff = now - timestampMs;
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(hours / 24);
-    
+
     if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
     if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
     return 'Just now';
@@ -820,14 +779,14 @@ const BuyMarketplace: React.FC = () => {
 
   const mapCategoryToDepartment = (category: string): string => {
     const mapping: { [key: string]: string } = {
-      'electronics': 'Computer Science',
-      'books': 'Computer Science',
-      'furniture': 'Design',
-      'clothing': 'Fashion Design',
-      'vehicles': 'Mechanical Engineering',
-      'bags': 'Design',
-      'hostel': 'General',
-      'others': 'General'
+      electronics: 'Computer Science',
+      books: 'Computer Science',
+      furniture: 'Design',
+      clothing: 'Fashion Design',
+      vehicles: 'Mechanical Engineering',
+      bags: 'Design',
+      hostel: 'General',
+      others: 'General',
     };
     return mapping[category] || 'General';
   };
@@ -844,7 +803,7 @@ const BuyMarketplace: React.FC = () => {
         console.error('Firebase db object is not initialized');
         return false;
       }
-      
+
       // Try a simple query to check connection
       const testRef = collection(db, 'products');
       await getDocs(query(testRef, orderBy('timestamp', 'desc'), limit(1)));
@@ -856,16 +815,16 @@ const BuyMarketplace: React.FC = () => {
     }
   };
 
-  const categories = [...new Set(products.map(p => p.category))];
+  const categories = [...new Set(products.map((p) => p.category))];
 
   const filteredProducts = showBookmarked
-    ? products.filter(p => bookmarkedItems.has(p.id))
+    ? products.filter((p) => bookmarkedItems.has(p.id))
     : filteredCategory
-    ? products.filter(p => p.category === filteredCategory)
-    : products;
+      ? products.filter((p) => p.category === filteredCategory)
+      : products;
 
   const displayedProducts = () => {
-    const unseen = filteredProducts.filter(p => !seenProducts.has(p.id));
+    const unseen = filteredProducts.filter((p) => !seenProducts.has(p.id));
     if (unseen.length > 0) {
       return unseen;
     }
@@ -875,69 +834,42 @@ const BuyMarketplace: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#4E54C8" />
-      
+
       {/* Top Bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        
+
         <View style={styles.logoContainer}>
-          <Image 
-            source={require('../../assets/images/campus-life.png')} 
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <Image source={require('../../assets/images/campus-life.png')} style={styles.logo} resizeMode="contain" />
           <Text style={styles.appTitle}>YOGO Campus</Text>
         </View>
-        
+
         <View style={styles.topBarActions}>
-          <TouchableOpacity
-            style={styles.viewToggle}
-            onPress={() => setShowBookmarked(!showBookmarked)}
-          >
-            <Ionicons
-              name={showBookmarked ? 'bookmark' : 'bookmark-outline'}
-              size={24}
-              color="#fff"
-            />
+          <TouchableOpacity style={styles.viewToggle} onPress={() => setShowBookmarked(!showBookmarked)}>
+            <Ionicons name={showBookmarked ? 'bookmark' : 'bookmark-outline'} size={24} color="#fff" />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.viewToggle}
-            onPress={() => setIsGridView(!isGridView)}
-          >
-            <Ionicons
-              name={isGridView ? 'card' : 'grid'}
-              size={24}
-              color="#fff"
-            />
+          <TouchableOpacity style={styles.viewToggle} onPress={() => setIsGridView(!isGridView)}>
+            <Ionicons name={isGridView ? 'card' : 'grid'} size={24} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
-      
+
       {/* Filter Bar */}
       {(!isGridView || showBookmarked) && (
         <View style={styles.filterContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <TouchableOpacity
-              style={[
-                styles.filterButton,
-                !filteredCategory && styles.activeFilter,
-              ]}
+              style={[styles.filterButton, !filteredCategory && styles.activeFilter]}
               onPress={() => setFilteredCategory(null)}
             >
               <Text style={styles.filterText}>All</Text>
             </TouchableOpacity>
-            {categories.map(category => (
+            {categories.map((category) => (
               <TouchableOpacity
                 key={category}
-                style={[
-                  styles.filterButton,
-                  filteredCategory === category && styles.activeFilter,
-                ]}
+                style={[styles.filterButton, filteredCategory === category && styles.activeFilter]}
                 onPress={() => setFilteredCategory(category)}
               >
                 <Text style={styles.filterText}>{category}</Text>
@@ -955,16 +887,12 @@ const BuyMarketplace: React.FC = () => {
           keyExtractor={(item) => item.id}
           numColumns={2}
           contentContainerStyle={styles.gridContainer}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         />
       ) : (
-        <View style={styles.cardViewContainer}>
-          {renderCardView()}
-        </View>
+        <View style={styles.cardViewContainer}>{renderCardView()}</View>
       )}
-      
+
       {/* Loading Indicator */}
       {isLoading && (
         <View style={styles.loadingContainer}>

@@ -17,16 +17,27 @@ import {
   Animated,
   ActivityIndicator,
   SafeAreaView,
-  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { db, auth } from '../services/firebase';
-import { collection, onSnapshot, addDoc, serverTimestamp, query, orderBy, doc, updateDoc, arrayUnion, increment, getDocs, where, QuerySnapshot, DocumentData, getDoc, limit } from 'firebase/firestore';
+import {
+  collection,
+  onSnapshot,
+  addDoc,
+  query,
+  orderBy,
+  doc,
+  updateDoc,
+  arrayUnion,
+  getDocs,
+  where,
+  getDoc,
+  limit,
+} from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/router';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Chat from './Chat';
 import GroupChat from './GroupChat';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -133,7 +144,7 @@ const StudyGroups: React.FC = () => {
   const [generalChatMessages, setGeneralChatMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
-  
+
   // Posts state
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<'All' | Post['category']>('All');
@@ -143,7 +154,7 @@ const StudyGroups: React.FC = () => {
     content: '',
     imageUrl: '',
     location: '',
-    category: 'Other'
+    category: 'Other',
   });
 
   // Groups/Chat state
@@ -155,12 +166,12 @@ const StudyGroups: React.FC = () => {
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [hotTopic, setHotTopic] = useState<HotTopic | null>(null);
   const [showHotTopic, setShowHotTopic] = useState<boolean>(false);
-  
+
   // General Chat state (move to top-level scope)
   const [newGeneralMessage, setNewGeneralMessage] = useState<string>('');
   const [replyingToGeneral, setReplyingToGeneral] = useState<ChatMessage | null>(null);
   const generalChatScrollRef = useRef<FlatList>(null);
-  
+
   const scrollViewRef = useRef<FlatList>(null);
   const chatScrollRef = useRef<FlatList>(null);
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -181,15 +192,18 @@ const StudyGroups: React.FC = () => {
     if (activeTab === 'posts') {
       const postsRef = collection(db, 'social_posts');
       const q = query(postsRef, orderBy('createdAt', 'desc'));
-      
+
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
           try {
-            const postsArray = snapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data()
-            } as Post));
+            const postsArray = snapshot.docs.map(
+              (doc) =>
+                ({
+                  id: doc.id,
+                  ...doc.data(),
+                }) as Post,
+            );
             setPosts(postsArray);
           } catch (error) {
             console.error('Error parsing posts data:', error);
@@ -201,7 +215,7 @@ const StudyGroups: React.FC = () => {
           console.error('Firebase connection failed:', error);
           Alert.alert('Connection Error', 'Failed to connect to Firebase. Please check your internet connection.');
           setLoading(false);
-        }
+        },
       );
 
       return () => unsubscribe();
@@ -209,7 +223,7 @@ const StudyGroups: React.FC = () => {
       const groupsRef = collection(db, 'groups');
       const q = query(groupsRef, orderBy('createdAt', 'desc'));
       const unsubscribe = onSnapshot(q, (snapshot) => {
-        const groupArr: Group[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group));
+        const groupArr: Group[] = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Group);
         setGroups(groupArr);
       });
       return () => unsubscribe();
@@ -217,13 +231,17 @@ const StudyGroups: React.FC = () => {
       // Listen to general chat messages
       const chatRef = collection(db, 'study_groups_general_chat');
       const q = query(chatRef, orderBy('createdAt', 'asc'));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const msgs: ChatMessage[] = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as ChatMessage));
-        setGeneralChatMessages(msgs);
-      }, (error) => {
-        console.error('Firebase connection failed (general chat):', error);
-        Alert.alert('Error', 'Failed to connect to general chat. Please check your Firebase setup.');
-      });
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const msgs: ChatMessage[] = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as ChatMessage);
+          setGeneralChatMessages(msgs);
+        },
+        (error) => {
+          console.error('Firebase connection failed (general chat):', error);
+          Alert.alert('Error', 'Failed to connect to general chat. Please check your Firebase setup.');
+        },
+      );
       return () => unsubscribe();
     }
   }, [activeTab]);
@@ -232,53 +250,65 @@ const StudyGroups: React.FC = () => {
   const fetchHotTopic = async () => {
     try {
       const topics = [
-        'campus life', 'student struggles', 'food adventures', 'exam stress', 
-        'friendship moments', 'hostel life', 'academic achievements', 'tech trends',
-        'weekend plans', 'career anxiety', 'social media', 'mental health',
-        'sports events', 'cultural festivals', 'study tips', 'relationship advice'
+        'campus life',
+        'student struggles',
+        'food adventures',
+        'exam stress',
+        'friendship moments',
+        'hostel life',
+        'academic achievements',
+        'tech trends',
+        'weekend plans',
+        'career anxiety',
+        'social media',
+        'mental health',
+        'sports events',
+        'cultural festivals',
+        'study tips',
+        'relationship advice',
       ];
-      
+
       const randomTopic = topics[Math.floor(Math.random() * topics.length)];
-      
+
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer YOUR_OPENROUTER_API_KEY', // Replace with your API key
+          Authorization: 'Bearer YOUR_OPENROUTER_API_KEY', // Replace with your API key
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://yogo-campus.app',
-          'X-Title': 'YOGO Campus'
+          'X-Title': 'YOGO Campus',
         },
         body: JSON.stringify({
           model: 'meta-llama/llama-3.2-3b-instruct:free',
           messages: [
             {
               role: 'user',
-              content: `Generate a fun, engaging discussion headline about ${randomTopic} for college students. Make it relatable, catchy, and thought-provoking. Include a relevant emoji. Format: "emoji Headline" (max 60 characters). Examples: "🍕 What's your weirdest midnight snack combo?" or "📚 Should AI tools be allowed in exams?"`
-            }
+              content: `Generate a fun, engaging discussion headline about ${randomTopic} for college students. Make it relatable, catchy, and thought-provoking. Include a relevant emoji. Format: "emoji Headline" (max 60 characters). Examples: "🍕 What's your weirdest midnight snack combo?" or "📚 Should AI tools be allowed in exams?"`,
+            },
           ],
           max_tokens: 100,
-          temperature: 0.8
-        })
+          temperature: 0.8,
+        }),
       });
 
       if (response.ok) {
         const data = await response.json();
         const fullResponse = data.choices[0].message.content.trim();
-        
+
         // Extract emoji and headline
         const emojiMatch = fullResponse.match(/^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/u);
         const emoji = emojiMatch ? emojiMatch[0] : '💬';
         const headline = fullResponse.replace(/^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)\s*/u, '').trim();
-        
+
         const newHotTopic: HotTopic = {
-          headline: headline || 'What\'s on your mind today?',
+          headline: headline || "What's on your mind today?",
           category: randomTopic,
-          emoji: emoji
+          emoji: emoji,
         };
-        
+
         setHotTopic(newHotTopic);
         setShowHotTopic(true);
-        
+
         // Animate the hot topic in
         Animated.sequence([
           Animated.timing(hotTopicAnim, {
@@ -291,23 +321,22 @@ const StudyGroups: React.FC = () => {
             toValue: -100,
             duration: 300,
             useNativeDriver: true,
-          })
+          }),
         ]).start(() => setShowHotTopic(false));
-        
       } else {
         // Fallback to local suggestions if API fails
         const fallbackTopics = [
-          { headline: "What's your biggest campus pet peeve?", category: "campus life", emoji: "😤" },
-          { headline: "Best study spot on campus?", category: "academic", emoji: "📚" },
-          { headline: "Weirdest thing in your hostel room?", category: "hostel life", emoji: "🏠" },
-          { headline: "Most overrated campus food?", category: "food", emoji: "🍔" },
-          { headline: "Dream weekend plan vs reality?", category: "weekend", emoji: "😴" }
+          { headline: "What's your biggest campus pet peeve?", category: 'campus life', emoji: '😤' },
+          { headline: 'Best study spot on campus?', category: 'academic', emoji: '📚' },
+          { headline: 'Weirdest thing in your hostel room?', category: 'hostel life', emoji: '🏠' },
+          { headline: 'Most overrated campus food?', category: 'food', emoji: '🍔' },
+          { headline: 'Dream weekend plan vs reality?', category: 'weekend', emoji: '😴' },
         ];
-        
+
         const randomFallback = fallbackTopics[Math.floor(Math.random() * fallbackTopics.length)];
         setHotTopic(randomFallback);
         setShowHotTopic(true);
-        
+
         // Animate fallback topic
         Animated.sequence([
           Animated.timing(hotTopicAnim, {
@@ -320,22 +349,22 @@ const StudyGroups: React.FC = () => {
             toValue: -100,
             duration: 300,
             useNativeDriver: true,
-          })
+          }),
         ]).start(() => setShowHotTopic(false));
       }
     } catch (error) {
       console.error('Error fetching hot topic:', error);
       // Use fallback topic on error
       const fallbackTopics = [
-        { headline: "What's your biggest campus pet peeve?", category: "campus life", emoji: "😤" },
-        { headline: "Best study spot on campus?", category: "academic", emoji: "📚" },
-        { headline: "Weirdest thing in your hostel room?", category: "hostel life", emoji: "🏠" }
+        { headline: "What's your biggest campus pet peeve?", category: 'campus life', emoji: '😤' },
+        { headline: 'Best study spot on campus?', category: 'academic', emoji: '📚' },
+        { headline: 'Weirdest thing in your hostel room?', category: 'hostel life', emoji: '🏠' },
       ];
-      
+
       const randomFallback = fallbackTopics[Math.floor(Math.random() * fallbackTopics.length)];
       setHotTopic(randomFallback);
       setShowHotTopic(true);
-      
+
       Animated.sequence([
         Animated.timing(hotTopicAnim, {
           toValue: 0,
@@ -347,7 +376,7 @@ const StudyGroups: React.FC = () => {
           toValue: -100,
           duration: 300,
           useNativeDriver: true,
-        })
+        }),
       ]).start(() => setShowHotTopic(false));
     }
   };
@@ -358,7 +387,7 @@ const StudyGroups: React.FC = () => {
       const timer = setTimeout(() => {
         fetchHotTopic();
       }, 2000); // Wait 2 seconds after switching to lounge
-      
+
       return () => clearTimeout(timer);
     }
   }, [activeTab, selectedGroupObj]);
@@ -380,20 +409,21 @@ const StudyGroups: React.FC = () => {
 
   // Filter and sort posts
   const filteredPosts = posts
-    .filter(post => {
-      const matchesSearch = post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           post.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           (post.location && post.location.toLowerCase().includes(searchQuery.toLowerCase()));
-      
+    .filter((post) => {
+      const matchesSearch =
+        post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (post.location && post.location.toLowerCase().includes(searchQuery.toLowerCase()));
+
       const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory;
-      
+
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
       if (sortBy === 'newest') {
         return b.createdAt - a.createdAt;
       } else {
-        return (b.likes.length + b.comments.length + b.shares) - (a.likes.length + a.comments.length + a.shares);
+        return b.likes.length + b.comments.length + b.shares - (a.likes.length + a.comments.length + a.shares);
       }
     });
 
@@ -411,12 +441,12 @@ const StudyGroups: React.FC = () => {
 
     try {
       const postsRef = collection(db, 'social_posts');
-      
+
       // Get user data from Firestore if available
       let userName = auth.currentUser.displayName || 'Anonymous User';
       let userYear = '1st Year';
       let userBranch = 'Undeclared';
-      
+
       try {
         const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
         if (userDoc.exists()) {
@@ -428,7 +458,7 @@ const StudyGroups: React.FC = () => {
       } catch (userError) {
         console.error('Error fetching user data:', userError);
       }
-      
+
       const newPost: Omit<Post, 'id'> = {
         content: newPostForm.content.trim(),
         imageUrl: newPostForm.imageUrl || undefined,
@@ -443,20 +473,20 @@ const StudyGroups: React.FC = () => {
         comments: [],
         shares: 0,
         views: 0,
-        isPublic: true
+        isPublic: true,
       };
 
       await addDoc(postsRef, newPost);
-      
+
       // Reset form and close modal
       setNewPostForm({
         content: '',
         imageUrl: '',
         location: '',
-        category: 'Other'
+        category: 'Other',
       });
       setShowCreatePost(false);
-      
+
       Alert.alert('Success', 'Post created successfully!');
     } catch (error) {
       console.error('Error creating post:', error);
@@ -470,19 +500,19 @@ const StudyGroups: React.FC = () => {
       Alert.alert('Login Required', 'Please log in to like posts');
       return;
     }
-    
+
     const userId = auth.currentUser.uid;
     const isLiked = currentLikes.includes(userId);
-    
+
     try {
       const postRef = doc(db, 'social_posts', postId);
       if (isLiked) {
         await updateDoc(postRef, {
-          likes: currentLikes.filter(id => id !== userId)
+          likes: currentLikes.filter((id) => id !== userId),
         });
       } else {
         await updateDoc(postRef, {
-          likes: arrayUnion(userId)
+          likes: arrayUnion(userId),
         });
       }
     } catch (error) {
@@ -494,7 +524,7 @@ const StudyGroups: React.FC = () => {
   // Handle send message in group chat
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
-    
+
     if (!auth.currentUser) {
       Alert.alert('Login Required', 'Please log in to send messages');
       return;
@@ -502,10 +532,10 @@ const StudyGroups: React.FC = () => {
 
     try {
       const chatRef = collection(db, selectedGroupObj?.id || 'academic_talk_chat'); // Use selectedGroupObj.id or a default
-      
+
       // Get user name from auth or Firestore
       let userName = auth.currentUser.displayName || 'Anonymous User';
-      
+
       try {
         const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
         if (userDoc.exists()) {
@@ -515,7 +545,7 @@ const StudyGroups: React.FC = () => {
       } catch (userError) {
         console.error('Error fetching user data:', userError);
       }
-      
+
       const message: Omit<ChatMessage, 'id'> = {
         userId: auth.currentUser.uid,
         userName: userName,
@@ -523,7 +553,7 @@ const StudyGroups: React.FC = () => {
         createdAt: Date.now(),
         type: replyingTo ? 'reply' : 'text',
         replyTo: replyingTo?.id,
-        reactions: {}
+        reactions: {},
       };
 
       await addDoc(chatRef, message);
@@ -538,18 +568,18 @@ const StudyGroups: React.FC = () => {
   // Handle send message in general chat
   const handleSendGeneralMessage = async () => {
     if (!newGeneralMessage.trim()) return;
-    
+
     if (!auth.currentUser) {
       Alert.alert('Login Required', 'Please log in to send messages');
       return;
     }
-    
+
     try {
       const chatRef = collection(db, 'study_groups_general_chat');
-      
+
       // Get user name from auth or Firestore
       let userName = auth.currentUser.displayName || 'Anonymous User';
-      
+
       try {
         const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
         if (userDoc.exists()) {
@@ -559,7 +589,7 @@ const StudyGroups: React.FC = () => {
       } catch (userError) {
         console.error('Error fetching user data:', userError);
       }
-      
+
       const message: Omit<ChatMessage, 'id'> = {
         userId: auth.currentUser.uid,
         userName: userName,
@@ -567,7 +597,7 @@ const StudyGroups: React.FC = () => {
         createdAt: Date.now(),
         type: replyingToGeneral ? 'reply' : 'text',
         replyTo: replyingToGeneral?.id,
-        reactions: {}
+        reactions: {},
       };
       await addDoc(chatRef, message);
       setNewGeneralMessage('');
@@ -615,7 +645,7 @@ const StudyGroups: React.FC = () => {
     const currentUserId = auth.currentUser?.uid || 'anonymous';
     const isLiked = item.likes.includes(currentUserId);
     const timeAgo = formatTimeAgo(item.createdAt);
-    
+
     return (
       <View style={styles.postCard}>
         {/* Post Header */}
@@ -631,7 +661,9 @@ const StudyGroups: React.FC = () => {
             <View style={styles.userDetails}>
               <Text style={styles.userName}>{item.userName}</Text>
               <View style={styles.userMeta}>
-                <Text style={styles.userYear}>{item.userYear} • {item.userBranch}</Text>
+                <Text style={styles.userYear}>
+                  {item.userYear} • {item.userBranch}
+                </Text>
                 <Text style={styles.timeStamp}> • {timeAgo}</Text>
               </View>
             </View>
@@ -643,7 +675,7 @@ const StudyGroups: React.FC = () => {
 
         {/* Post Content */}
         <Text style={styles.postContent}>{item.content}</Text>
-        
+
         {/* Location */}
         {item.location && (
           <View style={styles.locationContainer}>
@@ -653,9 +685,7 @@ const StudyGroups: React.FC = () => {
         )}
 
         {/* Post Image */}
-        {item.imageUrl && (
-          <Image source={{ uri: item.imageUrl }} style={styles.postImage} />
-        )}
+        {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={styles.postImage} />}
 
         {/* Category Tag */}
         <View style={styles.categoryContainer}>
@@ -673,28 +703,21 @@ const StudyGroups: React.FC = () => {
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => handleLikePost(item.id, item.likes)}
-          >
-            <Ionicons
-              name={isLiked ? "heart" : "heart-outline"}
-              size={22}
-              color={isLiked ? "#FF3B30" : "#8E8E93"}
-            />
+          <TouchableOpacity style={styles.actionButton} onPress={() => handleLikePost(item.id, item.likes)}>
+            <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={22} color={isLiked ? '#FF3B30' : '#8E8E93'} />
             <Text style={[styles.actionText, isLiked && styles.likedText]}>Like</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.actionButton}>
             <Ionicons name="chatbubble-outline" size={22} color="#8E8E93" />
             <Text style={styles.actionText}>Comment</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.actionButton}>
             <Ionicons name="share-outline" size={22} color="#8E8E93" />
             <Text style={styles.actionText}>Share</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.actionButton}>
             <Ionicons name="bookmark-outline" size={22} color="#8E8E93" />
             <Text style={styles.actionText}>Save</Text>
@@ -707,13 +730,26 @@ const StudyGroups: React.FC = () => {
   // Render group list
   const renderGroupItem = ({ item }: { item: Group }) => (
     <TouchableOpacity
-      style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 }}
+      style={{
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+      }}
       onPress={() => setSelectedGroupObj(item)}
     >
       <Text style={{ fontSize: 17, fontWeight: 'bold', color: '#4E54C8' }}>{item.name}</Text>
       <Text style={{ color: '#8E8E93', marginTop: 4 }}>{item.description}</Text>
       <View style={{ flexDirection: 'row', marginTop: 8, alignItems: 'center' }}>
-        <Ionicons name={item.isPublic ? 'earth' : 'lock-closed'} size={16} color={item.isPublic ? '#4E54C8' : '#8E8E93'} />
+        <Ionicons
+          name={item.isPublic ? 'earth' : 'lock-closed'}
+          size={16}
+          color={item.isPublic ? '#4E54C8' : '#8E8E93'}
+        />
         <Text style={{ marginLeft: 6, color: '#8E8E93', fontSize: 13 }}>{item.isPublic ? 'Public' : 'Private'}</Text>
         <TouchableOpacity
           style={{ marginLeft: 16 }}
@@ -732,7 +768,7 @@ const StudyGroups: React.FC = () => {
   const renderChatMessage = ({ item }: { item: ChatMessage }) => {
     const isOwnMessage = item.userId === 'current_user'; // Replace with actual user ID
     const timeAgo = formatTimeAgo(item.createdAt);
-    
+
     return (
       <View style={[styles.messageContainer, isOwnMessage && styles.ownMessage]}>
         {!isOwnMessage && (
@@ -744,22 +780,18 @@ const StudyGroups: React.FC = () => {
             )}
           </View>
         )}
-        
+
         <View style={[styles.messageBubble, isOwnMessage && styles.ownMessageBubble]}>
-          {!isOwnMessage && (
-            <Text style={styles.messageUserName}>{item.userName}</Text>
-          )}
-          
+          {!isOwnMessage && <Text style={styles.messageUserName}>{item.userName}</Text>}
+
           {item.type === 'reply' && item.replyTo && (
             <View style={styles.replyPreview}>
               <Text style={styles.replyText}>Replying to message...</Text>
             </View>
           )}
-          
-          <Text style={[styles.messageText, isOwnMessage && styles.ownMessageText]}>
-            {item.content}
-          </Text>
-          
+
+          <Text style={[styles.messageText, isOwnMessage && styles.ownMessageText]}>{item.content}</Text>
+
           <View style={styles.messageFooter}>
             <Text style={styles.messageTime}>{timeAgo}</Text>
             {Object.keys(item.reactions).length > 0 && (
@@ -774,11 +806,8 @@ const StudyGroups: React.FC = () => {
             )}
           </View>
         </View>
-        
-        <TouchableOpacity
-          style={styles.replyButton}
-          onPress={() => setReplyingTo(item)}
-        >
+
+        <TouchableOpacity style={styles.replyButton} onPress={() => setReplyingTo(item)}>
           <Ionicons name="arrow-undo-outline" size={16} color="#8E8E93" />
         </TouchableOpacity>
       </View>
@@ -789,7 +818,7 @@ const StudyGroups: React.FC = () => {
   const renderGeneralChatMessage = ({ item }: { item: ChatMessage }) => {
     const isOwnMessage = item.userId === 'current_user'; // Replace with actual user ID
     const timeAgo = formatTimeAgo(item.createdAt);
-    
+
     return (
       <View style={[styles.messageContainer, isOwnMessage && styles.ownMessage]}>
         {!isOwnMessage && (
@@ -801,7 +830,7 @@ const StudyGroups: React.FC = () => {
             )}
           </View>
         )}
-        
+
         <View style={[styles.messageBubble, isOwnMessage && styles.ownMessageBubble]}>
           {/* Username and message */}
           <Text style={[styles.messageUserName, isOwnMessage && styles.activeGroupTabText]}>{item.userName}</Text>
@@ -810,11 +839,8 @@ const StudyGroups: React.FC = () => {
             <Text style={styles.messageTime}>{timeAgo}</Text>
           </View>
         </View>
-        
-        <TouchableOpacity
-          style={styles.replyButton}
-          onPress={() => setReplyingToGeneral(item)}
-        >
+
+        <TouchableOpacity style={styles.replyButton} onPress={() => setReplyingToGeneral(item)}>
           <Ionicons name="arrow-undo-outline" size={16} color="#8E8E93" />
         </TouchableOpacity>
       </View>
@@ -823,31 +849,18 @@ const StudyGroups: React.FC = () => {
 
   // Render create post modal
   const renderCreatePostModal = () => (
-    <Modal
-      visible={showCreatePost}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
-      <KeyboardAvoidingView 
-        style={styles.modalContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+    <Modal visible={showCreatePost} animationType="slide" presentationStyle="pageSheet">
+      <KeyboardAvoidingView style={styles.modalContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.modalHeader}>
-          <TouchableOpacity
-            onPress={() => setShowCreatePost(false)}
-            style={styles.modalCloseButton}
-          >
+          <TouchableOpacity onPress={() => setShowCreatePost(false)} style={styles.modalCloseButton}>
             <Text style={styles.modalCloseText}>Cancel</Text>
           </TouchableOpacity>
           <Text style={styles.modalTitle}>Create Post</Text>
-          <TouchableOpacity
-            onPress={handleCreatePost}
-            style={styles.modalSaveButton}
-          >
+          <TouchableOpacity onPress={handleCreatePost} style={styles.modalSaveButton}>
             <Text style={styles.modalSaveText}>Post</Text>
           </TouchableOpacity>
         </View>
-        
+
         <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
           {/* Photo/Video Upload - Top Priority */}
           <TouchableOpacity style={styles.mediaButton}>
@@ -861,7 +874,7 @@ const StudyGroups: React.FC = () => {
             <TextInput
               style={styles.postTextInput}
               value={newPostForm.content}
-              onChangeText={(text) => setNewPostForm({...newPostForm, content: text})}
+              onChangeText={(text) => setNewPostForm({ ...newPostForm, content: text })}
               placeholder="What's happening on campus?"
               placeholderTextColor="#8E8E93"
               multiline
@@ -873,33 +886,34 @@ const StudyGroups: React.FC = () => {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Category Tag</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categorySelector}>
-              {(['Food', 'Events', 'Hostel Life', 'Meme', 'Nature', 'Academic', 'Other'] as Post['category'][]).map((category) => (
-                <TouchableOpacity
-                  key={category}
-                  style={[
-                    styles.categoryOption,
-                    newPostForm.category === category && styles.selectedCategoryOption
-                  ]}
-                  onPress={() => setNewPostForm({...newPostForm, category})}
-                >
-                  <Text style={[
-                    styles.categoryOptionText,
-                    newPostForm.category === category && styles.selectedCategoryOptionText
-                  ]}>
-                    {category}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {(['Food', 'Events', 'Hostel Life', 'Meme', 'Nature', 'Academic', 'Other'] as Post['category'][]).map(
+                (category) => (
+                  <TouchableOpacity
+                    key={category}
+                    style={[styles.categoryOption, newPostForm.category === category && styles.selectedCategoryOption]}
+                    onPress={() => setNewPostForm({ ...newPostForm, category })}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryOptionText,
+                        newPostForm.category === category && styles.selectedCategoryOptionText,
+                      ]}
+                    >
+                      {category}
+                    </Text>
+                  </TouchableOpacity>
+                ),
+              )}
             </ScrollView>
           </View>
-          
+
           {/* Location */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Location (Optional)</Text>
             <TextInput
               style={styles.textInput}
               value={newPostForm.location}
-              onChangeText={(text) => setNewPostForm({...newPostForm, location: text})}
+              onChangeText={(text) => setNewPostForm({ ...newPostForm, location: text })}
               placeholder="MIT Canteen, Innovation Centre..."
               placeholderTextColor="#8E8E93"
             />
@@ -912,19 +926,38 @@ const StudyGroups: React.FC = () => {
   // Render create group modal
   const renderCreateGroupModal = () => (
     <Modal visible={showCreateGroup} animationType="slide" onRequestClose={() => setShowCreateGroup(false)}>
-      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#F8F9FA', padding: 24 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: '#F8F9FA', padding: 24 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#4E54C8', marginBottom: 24 }}>Create Group</Text>
         <TextInput
-          style={{ backgroundColor: '#fff', borderRadius: 8, padding: 14, fontSize: 16, marginBottom: 16, borderWidth: 1, borderColor: '#F2F2F7' }}
+          style={{
+            backgroundColor: '#fff',
+            borderRadius: 8,
+            padding: 14,
+            fontSize: 16,
+            marginBottom: 16,
+            borderWidth: 1,
+            borderColor: '#F2F2F7',
+          }}
           placeholder="Group Name"
           value={newGroup.name}
-          onChangeText={t => setNewGroup({ ...newGroup, name: t })}
+          onChangeText={(t) => setNewGroup({ ...newGroup, name: t })}
         />
         <TextInput
-          style={{ backgroundColor: '#fff', borderRadius: 8, padding: 14, fontSize: 16, marginBottom: 16, borderWidth: 1, borderColor: '#F2F2F7' }}
+          style={{
+            backgroundColor: '#fff',
+            borderRadius: 8,
+            padding: 14,
+            fontSize: 16,
+            marginBottom: 16,
+            borderWidth: 1,
+            borderColor: '#F2F2F7',
+          }}
           placeholder="Description"
           value={newGroup.description}
-          onChangeText={t => setNewGroup({ ...newGroup, description: t })}
+          onChangeText={(t) => setNewGroup({ ...newGroup, description: t })}
           multiline
         />
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
@@ -963,7 +996,7 @@ const StudyGroups: React.FC = () => {
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
-    
+
     if (days > 0) return `${days}d`;
     if (hours > 0) return `${hours}h`;
     if (minutes > 0) return `${minutes}m`;
@@ -972,13 +1005,13 @@ const StudyGroups: React.FC = () => {
 
   const getCategoryColor = (category: Post['category']) => {
     const colors = {
-      'Food': 'rgba(255, 149, 0, 0.1)',
-      'Events': 'rgba(52, 199, 89, 0.1)',
+      Food: 'rgba(255, 149, 0, 0.1)',
+      Events: 'rgba(52, 199, 89, 0.1)',
       'Hostel Life': 'rgba(255, 59, 48, 0.1)',
-      'Meme': 'rgba(255, 204, 0, 0.1)',
-      'Nature': 'rgba(50, 215, 75, 0.1)',
-      'Academic': 'rgba(0, 122, 255, 0.1)',
-      'Other': 'rgba(142, 142, 147, 0.1)'
+      Meme: 'rgba(255, 204, 0, 0.1)',
+      Nature: 'rgba(50, 215, 75, 0.1)',
+      Academic: 'rgba(0, 122, 255, 0.1)',
+      Other: 'rgba(142, 142, 147, 0.1)',
     };
     return colors[category];
   };
@@ -996,52 +1029,56 @@ const StudyGroups: React.FC = () => {
     }
     const userId = user.uid;
     const threadsRef = collection(db, 'direct_chats');
-    unsubscribe = onSnapshot(threadsRef, async (snapshot) => {
-      const threads: ChatThread[] = [];
-      for (const docSnap of snapshot.docs) {
-        const data = docSnap.data();
-        if (!data.users || !Array.isArray(data.users) || !data.users.includes(userId)) continue;
-        // Find the other user
-        const otherUserId = data.users.find((id: string) => id !== userId);
-        if (!otherUserId) continue;
-        // Fetch other user's profile
-        const otherUserDoc = await getDoc(doc(db, 'users', otherUserId));
-        if (!otherUserDoc.exists()) continue;
-        const otherUserData = otherUserDoc.data();
-        const otherUser: UserProfile = {
-          id: otherUserId,
-          name: otherUserData?.name || 'Unknown',
-          profileImage: otherUserData?.profileImage || undefined,
-        };
-        // Get last message
-        const messagesRef = collection(db, 'direct_chats', docSnap.id, 'messages');
-        const messagesSnap = await getDocs(query(messagesRef, orderBy('createdAt', 'desc'), limit(1)));
-        let lastMessage = '';
-        let lastMessageTime = 0;
-        let lastMessageSenderId = '';
-        if (!messagesSnap.empty) {
-          const msg = messagesSnap.docs[0].data();
-          lastMessage = msg.content || '';
-          lastMessageTime = msg.createdAt || 0;
-          lastMessageSenderId = msg.senderId || '';
+    unsubscribe = onSnapshot(
+      threadsRef,
+      async (snapshot) => {
+        const threads: ChatThread[] = [];
+        for (const docSnap of snapshot.docs) {
+          const data = docSnap.data();
+          if (!data.users || !Array.isArray(data.users) || !data.users.includes(userId)) continue;
+          // Find the other user
+          const otherUserId = data.users.find((id: string) => id !== userId);
+          if (!otherUserId) continue;
+          // Fetch other user's profile
+          const otherUserDoc = await getDoc(doc(db, 'users', otherUserId));
+          if (!otherUserDoc.exists()) continue;
+          const otherUserData = otherUserDoc.data();
+          const otherUser: UserProfile = {
+            id: otherUserId,
+            name: otherUserData?.name || 'Unknown',
+            profileImage: otherUserData?.profileImage || undefined,
+          };
+          // Get last message
+          const messagesRef = collection(db, 'direct_chats', docSnap.id, 'messages');
+          const messagesSnap = await getDocs(query(messagesRef, orderBy('createdAt', 'desc'), limit(1)));
+          let lastMessage = '';
+          let lastMessageTime = 0;
+          let lastMessageSenderId = '';
+          if (!messagesSnap.empty) {
+            const msg = messagesSnap.docs[0].data();
+            lastMessage = msg.content || '';
+            lastMessageTime = msg.createdAt || 0;
+            lastMessageSenderId = msg.senderId || '';
+          }
+          threads.push({
+            chatId: docSnap.id,
+            otherUser,
+            lastMessage,
+            lastMessageTime,
+            lastMessageSenderId,
+          });
         }
-        threads.push({
-          chatId: docSnap.id,
-          otherUser,
-          lastMessage,
-          lastMessageTime,
-          lastMessageSenderId,
-        });
-      }
-      // Sort by last message time desc
-      threads.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
-      setChatThreads(threads);
-      setLoadingThreads(false);
-    }, (error) => {
-      console.error('Error fetching chat threads:', error);
-      setChatThreads([]);
-      setLoadingThreads(false);
-    });
+        // Sort by last message time desc
+        threads.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
+        setChatThreads(threads);
+        setLoadingThreads(false);
+      },
+      (error) => {
+        console.error('Error fetching chat threads:', error);
+        setChatThreads([]);
+        setLoadingThreads(false);
+      },
+    );
     return () => {
       if (typeof unsubscribe === 'function') unsubscribe();
     };
@@ -1056,15 +1093,28 @@ const StudyGroups: React.FC = () => {
         <View style={{ alignItems: 'center', marginTop: 60 }}>
           <Ionicons name="chatbubble-ellipses-outline" size={64} color="#C7C7CC" />
           <Text style={{ color: '#8E8E93', fontSize: 18, marginTop: 16 }}>No conversations yet</Text>
-          <Text style={{ color: '#8E8E93', fontSize: 14, marginTop: 4 }}>Start a chat from the marketplace or user profile</Text>
+          <Text style={{ color: '#8E8E93', fontSize: 14, marginTop: 4 }}>
+            Start a chat from the marketplace or user profile
+          </Text>
         </View>
       ) : (
         <FlatList
           data={chatThreads}
-          keyExtractor={item => item.chatId}
+          keyExtractor={(item) => item.chatId}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#fff',
+                borderRadius: 12,
+                padding: 14,
+                marginBottom: 12,
+                shadowColor: '#000',
+                shadowOpacity: 0.06,
+                shadowRadius: 4,
+                elevation: 2,
+              }}
               onPress={() => {
                 navigation.navigate('Chat', {
                   currentUser: { id: auth.currentUser?.uid, name: auth.currentUser?.displayName },
@@ -1073,15 +1123,22 @@ const StudyGroups: React.FC = () => {
               }}
             >
               {item.otherUser.profileImage ? (
-                <Image source={{ uri: item.otherUser.profileImage }} style={{ width: 44, height: 44, borderRadius: 22, marginRight: 12, backgroundColor: '#F2F2F7' }} />
+                <Image
+                  source={{ uri: item.otherUser.profileImage }}
+                  style={{ width: 44, height: 44, borderRadius: 22, marginRight: 12, backgroundColor: '#F2F2F7' }}
+                />
               ) : (
                 <Ionicons name="person-circle" size={44} color="#C7C7CC" style={{ marginRight: 12 }} />
               )}
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 16, fontWeight: '700', color: '#1C1C1E' }}>{item.otherUser.name}</Text>
-                <Text style={{ fontSize: 14, color: '#8E8E93', marginTop: 2 }} numberOfLines={1}>{item.lastMessage}</Text>
+                <Text style={{ fontSize: 14, color: '#8E8E93', marginTop: 2 }} numberOfLines={1}>
+                  {item.lastMessage}
+                </Text>
               </View>
-              <Text style={{ fontSize: 12, color: '#8E8E93', marginLeft: 8 }}>{formatTimeAgo(item.lastMessageTime)}</Text>
+              <Text style={{ fontSize: 12, color: '#8E8E93', marginLeft: 8 }}>
+                {formatTimeAgo(item.lastMessageTime)}
+              </Text>
             </TouchableOpacity>
           )}
           contentContainerStyle={{ paddingBottom: 40 }}
@@ -1153,7 +1210,9 @@ const StudyGroups: React.FC = () => {
     // Optionally: set up onSnapshot for real-time updates
     // (for simplicity, polling with fetchChats for now)
     if (typeof unsubscribe !== 'function') unsubscribe = () => {};
-    return () => { unsubscribe && unsubscribe(); };
+    return () => {
+      unsubscribe && unsubscribe();
+    };
   }, [activeTab]);
 
   // Render product chat list in Chat tab
@@ -1170,39 +1229,57 @@ const StudyGroups: React.FC = () => {
       ) : (
         <FlatList
           data={productChats}
-          keyExtractor={item => item.chatId}
+          keyExtractor={(item) => item.chatId}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#fff',
+                borderRadius: 12,
+                padding: 14,
+                marginBottom: 12,
+                shadowColor: '#000',
+                shadowOpacity: 0.06,
+                shadowRadius: 4,
+                elevation: 2,
+              }}
               onPress={() => {
                 navigation.navigate('ProductChat', {
                   chatId: item.chatId,
                   product: {
                     id: item.productId,
                     title: item.productTitle,
-                    image: item.productImage
+                    image: item.productImage,
                   },
                   buyer: {
                     id: item.buyerId,
-                    name: item.buyerName
+                    name: item.buyerName,
                   },
                   seller: {
                     id: item.sellerId,
-                    name: item.sellerName
-                  }
+                    name: item.sellerName,
+                  },
                 });
               }}
             >
               {item.productImage ? (
-                <Image source={{ uri: item.productImage }} style={{ width: 44, height: 44, borderRadius: 8, marginRight: 12, backgroundColor: '#F2F2F7' }} />
+                <Image
+                  source={{ uri: item.productImage }}
+                  style={{ width: 44, height: 44, borderRadius: 8, marginRight: 12, backgroundColor: '#F2F2F7' }}
+                />
               ) : (
                 <Ionicons name="cube-outline" size={44} color="#C7C7CC" style={{ marginRight: 12 }} />
               )}
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 16, fontWeight: '700', color: '#1C1C1E' }}>{item.productTitle}</Text>
-                <Text style={{ fontSize: 14, color: '#8E8E93', marginTop: 2 }} numberOfLines={1}>{item.otherUser.name}: {item.lastMessage}</Text>
+                <Text style={{ fontSize: 14, color: '#8E8E93', marginTop: 2 }} numberOfLines={1}>
+                  {item.otherUser.name}: {item.lastMessage}
+                </Text>
               </View>
-              <Text style={{ fontSize: 12, color: '#8E8E93', marginLeft: 8 }}>{formatTimeAgo(item.lastMessageTime)}</Text>
+              <Text style={{ fontSize: 12, color: '#8E8E93', marginLeft: 8 }}>
+                {formatTimeAgo(item.lastMessageTime)}
+              </Text>
             </TouchableOpacity>
           )}
           contentContainerStyle={{ paddingBottom: 40 }}
@@ -1215,7 +1292,7 @@ const StudyGroups: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {/* Enhanced Social Hub Navigation Bar */}
       <LinearGradient
-        colors={["#4E54C8", "#8B5CF6"]}
+        colors={['#4E54C8', '#8B5CF6']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={{
@@ -1234,12 +1311,12 @@ const StudyGroups: React.FC = () => {
           zIndex: 20,
         }}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => {
             // If coming from bottom tab in Dashboard, navigate to Dashboard
             // This ensures we don't end up on a blank screen
             navigation.navigate('Dashboard');
-          }} 
+          }}
           style={{ marginRight: 12, padding: 6, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)' }}
         >
           <Ionicons name="arrow-back" size={26} color="#fff" />
@@ -1251,10 +1328,7 @@ const StudyGroups: React.FC = () => {
         {/* Spacer to balance the back button */}
         <View style={{ width: 38 }} />
       </LinearGradient>
-      <LinearGradient
-        colors={['#4E54C8', '#8B5CF6']}
-        style={styles.headerGradient}
-      >
+      <LinearGradient colors={['#4E54C8', '#8B5CF6']} style={styles.headerGradient}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Campus Social</Text>
           <Text style={styles.headerSubtitle}>Connect, Share, Chat</Text>
@@ -1296,28 +1370,24 @@ const StudyGroups: React.FC = () => {
                   onChangeText={setSearchQuery}
                 />
               </View>
-              
+
               {/* Category Filter */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryFilter}>
-                {(['All', 'Food', 'Events', 'Hostel Life', 'Meme', 'Nature', 'Academic', 'Other'] as const).map((category) => (
-                  <TouchableOpacity
-                    key={category}
-                    style={[
-                      styles.filterChip,
-                      selectedCategory === category && styles.activeFilterChip
-                    ]}
-                    onPress={() => setSelectedCategory(category)}
-                  >
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        selectedCategory === category && styles.activeFilterChipText
-                      ]}
+                {(['All', 'Food', 'Events', 'Hostel Life', 'Meme', 'Nature', 'Academic', 'Other'] as const).map(
+                  (category) => (
+                    <TouchableOpacity
+                      key={category}
+                      style={[styles.filterChip, selectedCategory === category && styles.activeFilterChip]}
+                      onPress={() => setSelectedCategory(category)}
                     >
-                      {category}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        style={[styles.filterChipText, selectedCategory === category && styles.activeFilterChipText]}
+                      >
+                        {category}
+                      </Text>
+                    </TouchableOpacity>
+                  ),
+                )}
               </ScrollView>
 
               {/* Sort Options */}
@@ -1326,17 +1396,13 @@ const StudyGroups: React.FC = () => {
                   style={[styles.sortButton, sortBy === 'newest' && styles.activeSortButton]}
                   onPress={() => setSortBy('newest')}
                 >
-                  <Text style={[styles.sortText, sortBy === 'newest' && styles.activeSortText]}>
-                    Newest
-                  </Text>
+                  <Text style={[styles.sortText, sortBy === 'newest' && styles.activeSortText]}>Newest</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.sortButton, sortBy === 'popular' && styles.activeSortButton]}
                   onPress={() => setSortBy('popular')}
                 >
-                  <Text style={[styles.sortText, sortBy === 'popular' && styles.activeSortText]}>
-                    Popular
-                  </Text>
+                  <Text style={[styles.sortText, sortBy === 'popular' && styles.activeSortText]}>Popular</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1348,9 +1414,7 @@ const StudyGroups: React.FC = () => {
               renderItem={renderPostCard}
               keyExtractor={(item) => item.id}
               showsVerticalScrollIndicator={false}
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-              }
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
               contentContainerStyle={styles.postsContainer}
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
@@ -1369,10 +1433,7 @@ const StudyGroups: React.FC = () => {
               onPress={() => setShowCreatePost(true)}
               activeOpacity={0.8}
             >
-              <LinearGradient
-                colors={['#4E54C8', '#8B5CF6']}
-                style={styles.createPostGradient}
-              >
+              <LinearGradient colors={['#4E54C8', '#8B5CF6']} style={styles.createPostGradient}>
                 <Ionicons name="add" size={24} color="#FFFFFF" />
               </LinearGradient>
             </TouchableOpacity>
@@ -1387,14 +1448,32 @@ const StudyGroups: React.FC = () => {
           ) : (
             <>
               <FlatList
-                data={groups.filter(g => g.isPublic || g.createdBy === 'current_user')}
+                data={groups.filter((g) => g.isPublic || g.createdBy === 'current_user')}
                 renderItem={renderGroupItem}
-                keyExtractor={item => item.id}
+                keyExtractor={(item) => item.id}
                 contentContainerStyle={{ paddingVertical: 20 }}
-                ListEmptyComponent={<Text style={{ color: '#8E8E93', textAlign: 'center', marginTop: 40 }}>No groups found. Create one!</Text>}
+                ListEmptyComponent={
+                  <Text style={{ color: '#8E8E93', textAlign: 'center', marginTop: 40 }}>
+                    No groups found. Create one!
+                  </Text>
+                }
               />
               <TouchableOpacity
-                style={{ position: 'absolute', bottom: 24, right: 0, width: 56, height: 56, borderRadius: 28, backgroundColor: '#4E54C8', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 }}
+                style={{
+                  position: 'absolute',
+                  bottom: 24,
+                  right: 0,
+                  width: 56,
+                  height: 56,
+                  borderRadius: 28,
+                  backgroundColor: '#4E54C8',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  shadowColor: '#000',
+                  shadowOpacity: 0.2,
+                  shadowRadius: 8,
+                  elevation: 8,
+                }}
                 onPress={() => setShowCreateGroup(true)}
               >
                 <Ionicons name="add" size={28} color="#fff" />
@@ -1446,7 +1525,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 20,
   },
-  
+
   // Tab Container
   tabContainer: {
     flexDirection: 'row',
@@ -1475,12 +1554,12 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: '#4E54C8',
   },
-  
+
   content: {
     flex: 1,
     paddingHorizontal: 20,
   },
-  
+
   // Posts Section
   searchSection: {
     marginVertical: 20,
@@ -1508,7 +1587,7 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Inter',
   },
-  
+
   categoryFilter: {
     marginBottom: 12,
   },
@@ -1536,7 +1615,7 @@ const styles = StyleSheet.create({
   activeFilterChipText: {
     color: '#FFFFFF',
   },
-  
+
   sortContainer: {
     flexDirection: 'row',
     gap: 8,
@@ -1568,7 +1647,7 @@ const styles = StyleSheet.create({
   postsContainer: {
     paddingBottom: 100,
   },
-  
+
   // Post Card Styles
   postCard: {
     backgroundColor: '#FFFFFF',
@@ -1635,7 +1714,7 @@ const styles = StyleSheet.create({
   moreButton: {
     padding: 4,
   },
-  
+
   postContent: {
     fontSize: 15,
     color: '#1C1C1E',
@@ -1644,7 +1723,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Inter',
   },
-  
+
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1658,13 +1737,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Inter',
   },
-  
+
   postImage: {
     width: '100%',
     height: 300,
     marginBottom: 12,
   },
-  
+
   categoryContainer: {
     paddingHorizontal: 16,
     marginBottom: 12,
@@ -1681,7 +1760,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Inter',
   },
-  
+
   engagementStats: {
     paddingHorizontal: 16,
     marginBottom: 12,
@@ -1692,7 +1771,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Inter',
   },
-  
+
   actionButtons: {
     flexDirection: 'row',
     borderTopWidth: 1,
@@ -1718,7 +1797,7 @@ const styles = StyleSheet.create({
   likedText: {
     color: '#FF3B30',
   },
-  
+
   createPostButton: {
     position: 'absolute',
     bottom: 20,
@@ -1990,7 +2069,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
   },
-  
+
   inputGroup: {
     marginBottom: 20,
   },
@@ -2025,7 +2104,7 @@ const styles = StyleSheet.create({
     minHeight: 120,
     textAlignVertical: 'top',
   },
-  
+
   categorySelector: {
     marginTop: 8,
   },
@@ -2051,7 +2130,7 @@ const styles = StyleSheet.create({
   selectedCategoryOptionText: {
     color: '#FFFFFF',
   },
-  
+
   mediaButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2070,7 +2149,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Inter',
   },
-  
+
   // Empty States
   emptyContainer: {
     alignItems: 'center',

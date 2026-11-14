@@ -27,7 +27,17 @@ interface QnaPostCardProps {
   authorPoints?: number;
 }
 
-const QnaPostCard: React.FC<QnaPostCardProps> = ({ question, upvotes, downvotes, currentUserId, onVoteChange, onPress, onAuthorPress, authorProfileImage, authorPoints }) => {
+const QnaPostCard: React.FC<QnaPostCardProps> = ({
+  question,
+  upvotes,
+  downvotes,
+  currentUserId,
+  onVoteChange,
+  onPress,
+  onAuthorPress,
+  authorProfileImage,
+  authorPoints,
+}) => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const formatTimestamp = (timestamp: any): string => {
@@ -46,11 +56,7 @@ const QnaPostCard: React.FC<QnaPostCardProps> = ({ question, upvotes, downvotes,
   };
   return (
     <TouchableOpacity
-      style={[
-        styles.card,
-        isDark && styles.cardDark,
-        { flexDirection: 'row', alignItems: 'stretch' }
-      ]}
+      style={[styles.card, isDark && styles.cardDark, { flexDirection: 'row', alignItems: 'stretch' }]}
       onPress={onPress}
       activeOpacity={0.95}
     >
@@ -70,10 +76,17 @@ const QnaPostCard: React.FC<QnaPostCardProps> = ({ question, upvotes, downvotes,
             </View>
           ) : (
             <TouchableOpacity style={styles.authorInfo} onPress={onAuthorPress} activeOpacity={0.7}>
-              <Image source={{ uri: authorProfileImage || 'https://via.placeholder.com/20' }} style={styles.authorAvatar} />
-              <Text style={[styles.authorText, isDark && styles.textDark]}>{question.authorName || 'Unknown User'}</Text>
+              <Image
+                source={{ uri: authorProfileImage || 'https://via.placeholder.com/20' }}
+                style={styles.authorAvatar}
+              />
+              <Text style={[styles.authorText, isDark && styles.textDark]}>
+                {question.authorName || 'Unknown User'}
+              </Text>
               {typeof authorPoints === 'number' && (
-                <Text style={[styles.authorText, { marginLeft: 8, color: '#FF6B35', fontWeight: 'bold' }]}>• {authorPoints} pts</Text>
+                <Text style={[styles.authorText, { marginLeft: 8, color: '#FF6B35', fontWeight: 'bold' }]}>
+                  • {authorPoints} pts
+                </Text>
               )}
             </TouchableOpacity>
           )}
@@ -82,11 +95,11 @@ const QnaPostCard: React.FC<QnaPostCardProps> = ({ question, upvotes, downvotes,
         {/* Title */}
         <Text style={[styles.title, isDark && styles.textDark]}>{question.title}</Text>
         {/* Description */}
-        <Text style={[styles.description, isDark && styles.textDark]} numberOfLines={2}>{question.description}</Text>
+        <Text style={[styles.description, isDark && styles.textDark]} numberOfLines={2}>
+          {question.description}
+        </Text>
         {/* Image */}
-        {question.imageUrl && (
-          <Image source={{ uri: question.imageUrl }} style={styles.previewImage} />
-        )}
+        {question.imageUrl && <Image source={{ uri: question.imageUrl }} style={styles.previewImage} />}
         {/* Tags */}
         <View style={styles.tagsRow}>
           {question.tags.slice(0, 3).map((tag, idx) => (
@@ -219,4 +232,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default QnaPostCard; 
+export default QnaPostCard;

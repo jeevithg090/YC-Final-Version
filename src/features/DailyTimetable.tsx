@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -12,7 +11,6 @@ import {
   Switch,
   Animated,
   StatusBar,
-  Platform,
   Dimensions,
   Image,
 } from 'react-native';
@@ -22,17 +20,17 @@ import { ThemedText } from '../components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
 import notificationService from '../services/notificationService';
 import { db, auth } from '../services/firebase';
-import { 
-  collection, 
-  doc, 
-  updateDoc, 
-  getDocs, 
+import {
+  collection,
+  doc,
+  updateDoc,
+  getDocs,
   query,
   where,
   orderBy,
   Timestamp,
   getDoc,
-  setDoc
+  setDoc,
 } from 'firebase/firestore';
 import { TimetableData, ExtractedTimetable, ClassEntry, DaySchedule } from '../types/timetable';
 
@@ -66,8 +64,12 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
   const [timetableData, setTimetableData] = useState<TimetableData | null>(null);
   const [extractedTimetables, setExtractedTimetables] = useState<ExtractedTimetable[]>([]);
   const [selectedDay, setSelectedDay] = useState<string>('');
-  const [editingClass, setEditingClass] = useState<{ dayIndex: number; classIndex: number; classData: ClassEntry } | null>(null);
-  
+  const [editingClass, setEditingClass] = useState<{
+    dayIndex: number;
+    classIndex: number;
+    classData: ClassEntry;
+  } | null>(null);
+
   // Edit modal state
   const [editSubject, setEditSubject] = useState<string>('');
   const [editStartTime, setEditStartTime] = useState<string>('');
@@ -78,7 +80,7 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
   // Alarm settings state
   const [alarmSettings, setAlarmSettings] = useState<AlarmSettings>({
     enabled: false,
-    reminderMinutes: 15
+    reminderMinutes: 15,
   });
   const [showAlarmModal, setShowAlarmModal] = useState<boolean>(false);
   const [classReminders, setClassReminders] = useState<{ [key: string]: boolean }>({});
@@ -88,7 +90,7 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
   const [toastVisible, setToastVisible] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string>('');
   const [toastType, setToastType] = useState<'success' | 'info' | 'warning'>('success');
-  
+
   // Custom class state
   const [showAddClassModal, setShowAddClassModal] = useState<boolean>(false);
   const [newSubject, setNewSubject] = useState<string>('');
@@ -113,29 +115,31 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
 
     const currentDayOfWeek = getCurrentDayOfWeek();
     console.log('Today is:', currentDayOfWeek);
-    console.log('Available days in timetable:', timetableData.days.map(d => d.day));
-    
+    console.log(
+      'Available days in timetable:',
+      timetableData.days.map((d) => d.day),
+    );
+
     // Create a mapping of full day names to common abbreviations
     const dayMappings: { [key: string]: string[] } = {
-      'Sunday': ['SUN', 'SUNDAY'],
-      'Monday': ['MON', 'MONDAY'],
-      'Tuesday': ['TUE', 'TUESDAY', 'TUES'],
-      'Wednesday': ['WED', 'WEDNESDAY'],
-      'Thursday': ['THU', 'THURSDAY', 'THURS'],
-      'Friday': ['FRI', 'FRIDAY'],
-      'Saturday': ['SAT', 'SATURDAY']
+      Sunday: ['SUN', 'SUNDAY'],
+      Monday: ['MON', 'MONDAY'],
+      Tuesday: ['TUE', 'TUESDAY', 'TUES'],
+      Wednesday: ['WED', 'WEDNESDAY'],
+      Thursday: ['THU', 'THURSDAY', 'THURS'],
+      Friday: ['FRI', 'FRIDAY'],
+      Saturday: ['SAT', 'SATURDAY'],
     };
-    
+
     // Get possible abbreviations for today
     const todayAbbreviations = dayMappings[currentDayOfWeek] || [];
-    
+
     // Try to find today's day in the timetable using various formats
-    const todaySchedule = timetableData.days.find(day => {
+    const todaySchedule = timetableData.days.find((day) => {
       const dayName = day.day.toUpperCase().trim();
-      return todayAbbreviations.some(abbrev => abbrev === dayName) || 
-             dayName === currentDayOfWeek.toUpperCase();
+      return todayAbbreviations.some((abbrev) => abbrev === dayName) || dayName === currentDayOfWeek.toUpperCase();
     });
-    
+
     if (todaySchedule) {
       // Set to today if found
       console.log('Found today in timetable, setting to:', todaySchedule.day);
@@ -185,14 +189,18 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
               }
               await updateDoc(userDocRef, {
                 timetableStreak: newStreak,
-                lastTimetableUseDate: todayStr
+                lastTimetableUseDate: todayStr,
               });
             }
           } else {
-            await setDoc(userDocRef, {
-              timetableStreak: 1,
-              lastTimetableUseDate: todayStr
-            }, { merge: true });
+            await setDoc(
+              userDocRef,
+              {
+                timetableStreak: 1,
+                lastTimetableUseDate: todayStr,
+              },
+              { merge: true },
+            );
           }
         }
       } catch (error) {
@@ -258,13 +266,9 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
       }
 
       const timetablesRef = collection(db, EXTRACTED_TIMETABLES_COLLECTION);
-      const q = query(
-        timetablesRef,
-        where('userId', '==', userId),
-        orderBy('extractionDate', 'desc')
-      );
+      const q = query(timetablesRef, where('userId', '==', userId), orderBy('extractionDate', 'desc'));
       const querySnapshot = await getDocs(q);
-      
+
       const extractedList: ExtractedTimetable[] = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
@@ -274,12 +278,12 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
           originalImageUrl: data.originalImageUrl,
           extractedData: data.extractedData,
           extractionDate: data.extractionDate,
-          confidence: data.confidence
+          confidence: data.confidence,
         });
       });
-      
+
       setExtractedTimetables(extractedList);
-      
+
       if (extractedList.length > 0) {
         const mostRecent = extractedList[0]; // Already ordered by extractionDate desc
         setTimetableData(mostRecent.extractedData);
@@ -298,7 +302,7 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
 
   const getCurrentDay = (): DaySchedule | null => {
     if (!timetableData || !selectedDay) return null;
-    return timetableData.days.find(day => day.day === selectedDay) || null;
+    return timetableData.days.find((day) => day.day === selectedDay) || null;
   };
 
   // Enhanced class reminder functions
@@ -336,15 +340,15 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
     const classId = getClassId(classEntry, dayIndex, classIndex);
     const isCurrentlyEnabled = classReminders[classId] || false;
     const newEnabled = !isCurrentlyEnabled;
-    
+
     const updatedReminders = {
       ...classReminders,
-      [classId]: newEnabled
+      [classId]: newEnabled,
     };
-    
+
     setClassReminders(updatedReminders);
     await saveClassReminders(updatedReminders);
-    
+
     // Animate the bell icon
     const animValue = animatedValues.get(classId);
     if (animValue) {
@@ -361,7 +365,7 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
         }),
       ]).start();
     }
-    
+
     if (newEnabled) {
       // Schedule individual notification for this class
       await scheduleIndividualClassReminder(classEntry, dayIndex, classIndex);
@@ -378,10 +382,12 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
       const classId = getClassId(classEntry, dayIndex, classIndex);
       // Create temporary timetable data for single class
       const singleClassTimetable: TimetableData = {
-        days: [{
-          day: 'Individual',
-          classes: [classEntry]
-        }]
+        days: [
+          {
+            day: 'Individual',
+            classes: [classEntry],
+          },
+        ],
       };
       await notificationService.scheduleClassAlarms(singleClassTimetable, 20); // 20 minutes before class
       console.log(`Scheduled AI reminder for ${classEntry.subject} at ${classEntry.startTime}`);
@@ -426,13 +432,13 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
     try {
       const cleanTime = startTime.replace(/\s*(AM|PM|am|pm)\s*/g, '').trim();
       const hour = parseInt(cleanTime.split(':')[0]);
-      
+
       // Use different shades of blue for better visual hierarchy while maintaining consistency
-      if (hour < 9) return '#1976D2';   // Darker blue - Early morning
-      if (hour < 12) return '#2196F3';  // Standard blue - Morning  
-      if (hour < 15) return '#42A5F5';  // Medium blue - Afternoon
-      if (hour < 18) return '#64B5F6';  // Light blue - Late afternoon
-      return '#1565C0';                 // Deep blue - Evening
+      if (hour < 9) return '#1976D2'; // Darker blue - Early morning
+      if (hour < 12) return '#2196F3'; // Standard blue - Morning
+      if (hour < 15) return '#42A5F5'; // Medium blue - Afternoon
+      if (hour < 18) return '#64B5F6'; // Light blue - Late afternoon
+      return '#1565C0'; // Deep blue - Evening
     } catch (error) {
       return '#4285F4'; // Default Google blue
     }
@@ -440,9 +446,11 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
 
   const getSubjectIcon = (subject: string): string => {
     const subjectLower = subject.toLowerCase();
-    if (subjectLower.includes('math') || subjectLower.includes('calculus') || subjectLower.includes('algebra')) return 'calculator-outline';
+    if (subjectLower.includes('math') || subjectLower.includes('calculus') || subjectLower.includes('algebra'))
+      return 'calculator-outline';
     if (subjectLower.includes('physics') || subjectLower.includes('chemistry')) return 'flask-outline';
-    if (subjectLower.includes('computer') || subjectLower.includes('programming') || subjectLower.includes('cs')) return 'code-outline';
+    if (subjectLower.includes('computer') || subjectLower.includes('programming') || subjectLower.includes('cs'))
+      return 'code-outline';
     if (subjectLower.includes('english') || subjectLower.includes('literature')) return 'book-outline';
     if (subjectLower.includes('history') || subjectLower.includes('social')) return 'library-outline';
     if (subjectLower.includes('art') || subjectLower.includes('design')) return 'color-palette-outline';
@@ -463,30 +471,29 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
 
   const updateClass = async (updatedClass: ClassEntry) => {
     if (!editingClass || !timetableData) return;
-    
+
     try {
       const updatedTimetableData = { ...timetableData };
       updatedTimetableData.days[editingClass.dayIndex].classes[editingClass.classIndex] = updatedClass;
       setTimetableData(updatedTimetableData);
-      
+
       // Find the corresponding extracted timetable to update in Firestore
-      const timetableToUpdate = extractedTimetables.find(t => t.extractedData === timetableData);
+      const timetableToUpdate = extractedTimetables.find((t) => t.extractedData === timetableData);
       if (timetableToUpdate) {
         // Update in Firestore
         const docRef = doc(db, EXTRACTED_TIMETABLES_COLLECTION, timetableToUpdate.id);
         await updateDoc(docRef, {
           extractedData: updatedTimetableData,
-          updatedAt: Timestamp.now()
+          updatedAt: Timestamp.now(),
         });
-        
+
         // Update local state
-        const updatedExtracted = extractedTimetables.map(t =>
-          t.id === timetableToUpdate.id ? { ...t, extractedData: updatedTimetableData } : t
+        const updatedExtracted = extractedTimetables.map((t) =>
+          t.id === timetableToUpdate.id ? { ...t, extractedData: updatedTimetableData } : t,
         );
         setExtractedTimetables(updatedExtracted);
       }
-      
-      
+
       setEditingClass(null);
       Alert.alert('Success', 'Class updated successfully!');
     } catch (error) {
@@ -555,23 +562,21 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
       startTime: start,
       endTime: end,
       room: editRoom,
-      professor: editProfessor
+      professor: editProfessor,
     };
     await updateClass(updatedClass);
   };
-  
+
   // Add a new custom class
   const addCustomClass = async () => {
     if (!timetableData) {
       // Initialize timetable data if it doesn't exist
       setTimetableData({
-        days: [
-          { day: selectedDay, classes: [] }
-        ]
+        days: [{ day: selectedDay, classes: [] }],
       });
       return;
     }
-    
+
     // --- Time validation logic start ---
     // Helper to parse time string to minutes since midnight
     const parseTime = (time: string): number => {
@@ -617,23 +622,23 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
       Alert.alert('Missing Information', 'Please enter a subject name.');
       return;
     }
-    
+
     const start = normalizeTime(newStartTime);
     const end = normalizeTime(newEndTime);
     const startMins = parseTime(start);
     const endMins = parseTime(end);
-    
+
     if (startMins === -1 || endMins === -1) {
       Alert.alert('Invalid Time', 'Please enter valid start and end times in HH:MM format.');
       return;
     }
-    
+
     if (endMins <= startMins) {
       Alert.alert('Invalid Time Order', 'End time must be after start time.');
       return;
     }
     // --- Time validation logic end ---
-    
+
     try {
       // Create the new class entry
       const newClassEntry: ClassEntry = {
@@ -641,24 +646,24 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
         startTime: start,
         endTime: end,
         room: newRoom,
-        professor: newProfessor
+        professor: newProfessor,
       };
-      
+
       // Find the day index or create a new day if it doesn't exist
-      let dayIndex = timetableData.days.findIndex(day => day.day === selectedDay);
-      
+      let dayIndex = timetableData.days.findIndex((day) => day.day === selectedDay);
+
       const updatedTimetableData = { ...timetableData };
-      
+
       if (dayIndex === -1) {
         // Create a new day if it doesn't exist
         updatedTimetableData.days.push({
           day: selectedDay,
-          classes: [newClassEntry]
+          classes: [newClassEntry],
         });
       } else {
         // Add class to existing day
         updatedTimetableData.days[dayIndex].classes.push(newClassEntry);
-        
+
         // Sort classes by start time
         updatedTimetableData.days[dayIndex].classes.sort((a, b) => {
           const aTime = parseTime(a.startTime);
@@ -666,26 +671,26 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
           return aTime - bTime;
         });
       }
-      
+
       // Update state
       setTimetableData(updatedTimetableData);
-      
+
       // Update in Firestore if we have extracted timetables
       if (extractedTimetables.length > 0) {
         const timetableToUpdate = extractedTimetables[0]; // Use the most recent one
         const docRef = doc(db, EXTRACTED_TIMETABLES_COLLECTION, timetableToUpdate.id);
         await updateDoc(docRef, {
           extractedData: updatedTimetableData,
-          updatedAt: Timestamp.now()
+          updatedAt: Timestamp.now(),
         });
-        
+
         // Update local state
-        const updatedExtracted = extractedTimetables.map(t =>
-          t.id === timetableToUpdate.id ? { ...t, extractedData: updatedTimetableData } : t
+        const updatedExtracted = extractedTimetables.map((t) =>
+          t.id === timetableToUpdate.id ? { ...t, extractedData: updatedTimetableData } : t,
         );
         setExtractedTimetables(updatedExtracted);
       }
-      
+
       // Reset form and close modal
       setNewSubject('');
       setNewStartTime('');
@@ -693,10 +698,10 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
       setNewRoom('');
       setNewProfessor('');
       setShowAddClassModal(false);
-      
+
       // Show success message
       showToast(`Added ${newSubject} to ${selectedDay}`, 'success');
-      
+
       // Reschedule alarms if enabled
       if (alarmSettings.enabled) {
         scheduleClassAlarms();
@@ -713,12 +718,12 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
       const hasPermission = await notificationService.initializeNotifications();
       if (!hasPermission) {
         Alert.alert(
-          'Notification Permission Required', 
+          'Notification Permission Required',
           'Please enable notifications to receive class reminders with AI-generated motivational messages.',
           [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Settings', onPress: () => console.log('Open settings') }
-          ]
+            { text: 'Settings', onPress: () => console.log('Open settings') },
+          ],
         );
         return false;
       }
@@ -748,16 +753,16 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
       const hasPermission = await requestNotificationPermissions();
       if (!hasPermission) return;
     }
-    
+
     const newSettings = { ...alarmSettings, enabled };
     setAlarmSettings(newSettings);
     await saveAlarmSettings(newSettings);
-    
+
     if (enabled) {
       await scheduleClassAlarms();
       Alert.alert(
-        'AI Notifications Enabled! 🤖', 
-        'You\'ll receive motivational AI-generated reminders 20 minutes before each class, with special "start of new day" messages for your first class!'
+        'AI Notifications Enabled! 🤖',
+        'You\'ll receive motivational AI-generated reminders 20 minutes before each class, with special "start of new day" messages for your first class!',
       );
     } else {
       await notificationService.cancelAllAlarms();
@@ -770,15 +775,13 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
     const newSettings = { ...alarmSettings, reminderMinutes: 20 };
     setAlarmSettings(newSettings);
     await saveAlarmSettings(newSettings);
-    
+
     // Re-schedule alarms if enabled
     if (alarmSettings.enabled) {
       await scheduleClassAlarms();
       Alert.alert('Reminder Updated', 'AI notifications will remind you 20 minutes before each class.');
     }
   };
-
-
 
   const renderAlarmModal = () => {
     return (
@@ -791,7 +794,7 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
         <View style={styles.modalContainer}>
           <View style={styles.alarmModalContent}>
             <ThemedText style={styles.modalTitle}>🤖 AI Class Notifications</ThemedText>
-            
+
             <View style={styles.alarmDescriptionContainer}>
               <ThemedText style={styles.alarmDescription}>
                 Get motivational AI-generated reminders 20 minutes before each class!
@@ -802,7 +805,7 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
                 🧠 Powered by multiple AI models for reliability
               </ThemedText>
             </View>
-            
+
             <View style={styles.alarmSettingItem}>
               <ThemedText style={styles.alarmSettingLabel}>Enable AI Notifications</ThemedText>
               <Switch
@@ -812,14 +815,12 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
                 thumbColor={alarmSettings.enabled ? '#fff' : '#f4f3f4'}
               />
             </View>
-            
+
             <View style={styles.alarmSettingItem}>
               <ThemedText style={styles.alarmSettingLabel}>Reminder Time: 20 minutes before class</ThemedText>
-              <ThemedText style={styles.alarmSettingNote}>
-                (Fixed for optimal AI message generation)
-              </ThemedText>
+              <ThemedText style={styles.alarmSettingNote}>(Fixed for optimal AI message generation)</ThemedText>
             </View>
-            
+
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.closeAlarmModalButton}
@@ -839,16 +840,11 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
     if (!editingClass) return null;
 
     return (
-      <Modal
-        visible={true}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setEditingClass(null)}
-      >
+      <Modal visible={true} transparent={true} animationType="slide" onRequestClose={() => setEditingClass(null)}>
         <View style={styles.modalContainer}>
           <View style={styles.editModalContent}>
             <ThemedText style={styles.modalTitle}>Edit Class</ThemedText>
-            
+
             <TextInput
               style={styles.input}
               value={editSubject}
@@ -856,7 +852,7 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
               placeholder="Subject"
               placeholderTextColor="#999"
             />
-            
+
             <View style={styles.timeRow}>
               <TextInput
                 style={[styles.input, styles.timeInput]}
@@ -873,7 +869,7 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
                 placeholderTextColor="#999"
               />
             </View>
-            
+
             <TextInput
               style={styles.input}
               value={editRoom}
@@ -881,7 +877,7 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
               placeholder="Room (optional)"
               placeholderTextColor="#999"
             />
-            
+
             <TextInput
               style={styles.input}
               value={editProfessor}
@@ -889,18 +885,12 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
               placeholder="Professor (optional)"
               placeholderTextColor="#999"
             />
-            
+
             <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setEditingClass(null)}
-              >
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setEditingClass(null)}>
                 <ThemedText style={styles.buttonText}>Cancel</ThemedText>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={saveEditedClass}
-              >
+              <TouchableOpacity style={styles.saveButton} onPress={saveEditedClass}>
                 <ThemedText style={styles.buttonText}>Save</ThemedText>
               </TouchableOpacity>
             </View>
@@ -916,35 +906,25 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
     }
 
     // Show all available days from the timetable data
-    const availableDays = timetableData.days.filter(day => day.day && day.day.trim() !== '');
-    
+    const availableDays = timetableData.days.filter((day) => day.day && day.day.trim() !== '');
+
     if (availableDays.length === 0) {
       return null;
     }
 
     return (
       <View style={styles.dayFilterContainer}>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.dayFilterContent}
-        >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dayFilterContent}>
           {availableDays.map((daySchedule) => {
             const isSelected = selectedDay === daySchedule.day;
-            
+
             return (
               <TouchableOpacity
                 key={daySchedule.day}
-                style={[
-                  styles.dayFilterButton,
-                  isSelected && styles.selectedDayFilterButton
-                ]}
+                style={[styles.dayFilterButton, isSelected && styles.selectedDayFilterButton]}
                 onPress={() => setSelectedDay(daySchedule.day)}
               >
-                <ThemedText style={[
-                  styles.dayFilterText,
-                  isSelected && styles.selectedDayFilterText
-                ]}>
+                <ThemedText style={[styles.dayFilterText, isSelected && styles.selectedDayFilterText]}>
                   {daySchedule.day}
                 </ThemedText>
               </TouchableOpacity>
@@ -959,7 +939,7 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
     const classId = getClassId(classItem, dayIndex, classIndex);
     const isReminderEnabled = classReminders[classId] || false;
     const animatedValue = animatedValues.get(classId) || new Animated.Value(1);
-    
+
     return (
       <View
         key={`${classItem.subject}-${classIndex}`}
@@ -969,16 +949,14 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
           {/* Subject Icon and Main Info */}
           <View style={styles.classMainInfo}>
             <View style={[styles.subjectIconContainer, { backgroundColor: getTimeColor(classItem.startTime) + '20' }]}>
-              <Ionicons 
-                name={getSubjectIcon(classItem.subject) as any} 
-                size={20} 
-                color={getTimeColor(classItem.startTime)} 
+              <Ionicons
+                name={getSubjectIcon(classItem.subject) as any}
+                size={20}
+                color={getTimeColor(classItem.startTime)}
               />
             </View>
             <View style={styles.classTextInfo}>
-              <ThemedText style={styles.subjectText}>
-                {classItem.subject}
-              </ThemedText>
+              <ThemedText style={styles.subjectText}>{classItem.subject}</ThemedText>
               <View style={styles.timeContainer}>
                 <Ionicons name="time-outline" size={14} color={getTimeColor(classItem.startTime)} />
                 <ThemedText style={[styles.timeText, { color: getTimeColor(classItem.startTime) }]}>
@@ -987,27 +965,24 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
               </View>
             </View>
           </View>
-          
+
           {/* Action Buttons */}
           <View style={styles.classActions}>
             {/* Individual Reminder Bell */}
             <Animated.View style={{ transform: [{ scale: animatedValue }] }}>
               <TouchableOpacity
-                style={[
-                  styles.reminderBell,
-                  isReminderEnabled && styles.reminderBellActive
-                ]}
+                style={[styles.reminderBell, isReminderEnabled && styles.reminderBellActive]}
                 onPress={() => toggleClassReminder(classItem, dayIndex, classIndex)}
                 activeOpacity={0.7}
               >
-                <Ionicons 
-                  name={isReminderEnabled ? "notifications" : "notifications-outline"} 
-                  size={18} 
-                  color={isReminderEnabled ? "#FF6B35" : "#666"} 
+                <Ionicons
+                  name={isReminderEnabled ? 'notifications' : 'notifications-outline'}
+                  size={18}
+                  color={isReminderEnabled ? '#FF6B35' : '#666'}
                 />
               </TouchableOpacity>
             </Animated.View>
-            
+
             {/* Edit Button */}
             <TouchableOpacity
               style={styles.editButton}
@@ -1018,29 +993,25 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
             </TouchableOpacity>
           </View>
         </View>
-        
+
         {/* Class Details */}
         {(classItem.room || classItem.professor) && (
           <View style={styles.classDetails}>
             {classItem.room && (
               <View style={styles.detailRow}>
                 <Ionicons name="location-outline" size={12} color="#888" />
-                <ThemedText style={styles.detailText}>
-                  {classItem.room}
-                </ThemedText>
+                <ThemedText style={styles.detailText}>{classItem.room}</ThemedText>
               </View>
             )}
             {classItem.professor && (
               <View style={styles.detailRow}>
                 <Ionicons name="person-outline" size={12} color="#888" />
-                <ThemedText style={styles.detailText}>
-                  {classItem.professor}
-                </ThemedText>
+                <ThemedText style={styles.detailText}>{classItem.professor}</ThemedText>
               </View>
             )}
           </View>
         )}
-        
+
         {/* Reminder Status Indicator */}
         {isReminderEnabled && (
           <View style={styles.reminderIndicator}>
@@ -1054,7 +1025,7 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
 
   const renderCurrentDaySchedule = () => {
     const currentDay = getCurrentDay();
-    
+
     if (!currentDay) {
       return (
         <View style={styles.emptyState}>
@@ -1069,19 +1040,17 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
         <View style={styles.emptyState}>
           <Ionicons name="calendar-clear-outline" size={48} color="#CED4DA" />
           <ThemedText style={styles.emptyText}>No classes scheduled for {selectedDay}</ThemedText>
-          <ThemedText style={[styles.emptyText, { fontSize: 14, marginTop: 8 }]}>
-            Enjoy your free day! 🎉
-          </ThemedText>
+          <ThemedText style={[styles.emptyText, { fontSize: 14, marginTop: 8 }]}>Enjoy your free day! 🎉</ThemedText>
         </View>
       );
     }
 
-    const dayIndex = timetableData?.days.findIndex(day => day.day === selectedDay) || 0;
+    const dayIndex = timetableData?.days.findIndex((day) => day.day === selectedDay) || 0;
 
     return (
       <ScrollView style={styles.classesContainer}>
-        {currentDay.classes.map((classItem: ClassEntry, classIndex: number) => 
-          renderClassCard(classItem, dayIndex, classIndex)
+        {currentDay.classes.map((classItem: ClassEntry, classIndex: number) =>
+          renderClassCard(classItem, dayIndex, classIndex),
         )}
       </ScrollView>
     );
@@ -1089,19 +1058,19 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
 
   const renderToast = () => {
     if (!toastVisible) return null;
-    
+
     const toastColors = {
       success: '#4CAF50',
       info: '#2196F3',
-      warning: '#FF9800'
+      warning: '#FF9800',
     };
-    
+
     const toastIcons = {
       success: 'checkmark-circle-outline',
       info: 'information-circle-outline',
-      warning: 'warning-outline'
+      warning: 'warning-outline',
     };
-    
+
     return (
       <View style={[styles.toastContainer, { backgroundColor: toastColors[toastType] }]}>
         <Ionicons name={toastIcons[toastType] as any} size={20} color="white" />
@@ -1180,10 +1149,7 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
               >
                 <ThemedText style={styles.buttonText}>Cancel</ThemedText>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={addCustomClass}
-              >
+              <TouchableOpacity style={styles.saveButton} onPress={addCustomClass}>
                 <ThemedText style={styles.buttonText}>Add Class</ThemedText>
               </TouchableOpacity>
             </View>
@@ -1198,11 +1164,7 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="white" />
         <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation?.goBack()}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation?.goBack()} activeOpacity={0.7}>
             <Ionicons name="arrow-back-outline" size={24} color="#4285F4" />
           </TouchableOpacity>
           <ThemedText style={styles.title}>Daily Timetable</ThemedText>
@@ -1225,17 +1187,13 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
       <ThemedView style={styles.container}>
         {/* Header section with logo, app name, and navigation */}
         <View style={styles.logoHeader}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation?.goBack()}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation?.goBack()} activeOpacity={0.7}>
             <Ionicons name="arrow-back-outline" size={24} color="#4285F4" />
           </TouchableOpacity>
-          
+
           <View style={styles.centerContent}>
             <View style={styles.logoRow}>
-              <Image 
+              <Image
                 source={require('../../assets/images/YOGOCampus.jpg')}
                 style={styles.logoImage}
                 resizeMode="cover"
@@ -1246,17 +1204,13 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
               </View>
             </View>
           </View>
-          
+
           <View style={styles.headerRightButtons}>
-            <TouchableOpacity
-              style={styles.alarmButton}
-              onPress={() => setShowAlarmModal(true)}
-              activeOpacity={0.7}
-            >
-              <Ionicons 
-                name={alarmSettings.enabled ? "notifications" : "notifications-outline"} 
-                size={24} 
-                color={alarmSettings.enabled ? "#FF6B35" : "#666"} 
+            <TouchableOpacity style={styles.alarmButton} onPress={() => setShowAlarmModal(true)} activeOpacity={0.7}>
+              <Ionicons
+                name={alarmSettings.enabled ? 'notifications' : 'notifications-outline'}
+                size={24}
+                color={alarmSettings.enabled ? '#FF6B35' : '#666'}
               />
             </TouchableOpacity>
           </View>
@@ -1266,10 +1220,8 @@ const DailyTimetable: React.FC<DailyTimetableProps> = ({ route, navigation }) =>
 
         <View style={styles.scheduleContainer}>
           <View style={styles.dayTitleRow}>
-            <ThemedText style={styles.dayTitle}>
-              📅 {selectedDay}
-            </ThemedText>
-            <TouchableOpacity 
+            <ThemedText style={styles.dayTitle}>📅 {selectedDay}</ThemedText>
+            <TouchableOpacity
               style={styles.addClassButton}
               onPress={() => setShowAddClassModal(true)}
               activeOpacity={0.7}
@@ -1770,7 +1722,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-
 });
 
 export default DailyTimetable;

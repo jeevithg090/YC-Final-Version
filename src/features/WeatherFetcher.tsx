@@ -25,10 +25,10 @@ const WeatherFetcher: React.FC = () => {
 
   useEffect(() => {
     fetchWeatherData();
-    
+
     // Set up interval to refresh weather data every 30 minutes
     const weatherInterval = setInterval(fetchWeatherData, 30 * 60 * 1000);
-    
+
     return () => {
       clearInterval(weatherInterval);
     };
@@ -38,7 +38,7 @@ const WeatherFetcher: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Request location permission
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -54,7 +54,7 @@ const WeatherFetcher: React.FC = () => {
       });
       const lat = location.coords.latitude;
       const lon = location.coords.longitude;
-      
+
       console.log(`Using phone location: ${lat}, ${lon}`);
       await fetchWeatherForLocation(lat, lon);
     } catch (error) {
@@ -72,24 +72,24 @@ const WeatherFetcher: React.FC = () => {
       // Use real API call with your valid key
       const url = `${BASE_URL}/current.json?key=${WEATHER_API_KEY}&q=${lat},${lon}&aqi=yes`;
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         throw new Error(`Weather API error: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       // Enhanced daily messages based on temperature and conditions
       const temp = data.current.temp_c;
       const condition = data.current.condition.text.toLowerCase();
       let dailyMessage = '';
-      
+
       if (temp > 35) {
         dailyMessage = '🔥 Extreme heat! Stay hydrated and in shade.';
       } else if (temp > 30) {
         dailyMessage = '🔆 Hot day! Remember to drink water regularly.';
       } else if (temp > 25) {
-        dailyMessage = '☀️ Perfect weather for outdoor activities! Don\'t forget to stay hydrated.';
+        dailyMessage = "☀️ Perfect weather for outdoor activities! Don't forget to stay hydrated.";
       } else if (temp > 20) {
         dailyMessage = '🌤️ Comfortable weather, perfect for outdoor activities.';
       } else if (temp > 15) {
@@ -97,10 +97,10 @@ const WeatherFetcher: React.FC = () => {
       } else {
         dailyMessage = '❄️ Cold weather today! Bundle up.';
       }
-      
+
       // Add condition-specific messages
       if (condition.includes('rain')) {
-        dailyMessage = '☔ Rain expected. Don\'t forget an umbrella!';
+        dailyMessage = "☔ Rain expected. Don't forget an umbrella!";
       } else if (condition.includes('thunder')) {
         dailyMessage = '⚡ Thunderstorms possible. Stay safe indoors.';
       } else if (condition.includes('fog') || condition.includes('mist')) {
@@ -109,10 +109,10 @@ const WeatherFetcher: React.FC = () => {
 
       // Format date for last update time
       const now = new Date();
-      const formattedTime = now.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
+      const formattedTime = now.toLocaleTimeString('en-US', {
+        hour: '2-digit',
         minute: '2-digit',
-        hour12: true 
+        hour12: true,
       });
       setLastUpdateTime(formattedTime);
 
@@ -124,13 +124,12 @@ const WeatherFetcher: React.FC = () => {
         icon: getWeatherIcon(data.current.condition.text),
         timestamp: Date.now(),
         feelsLike: Math.round(data.current.feelslike_c),
-        dailyMessage
+        dailyMessage,
       };
 
       // Save to Firebase
       await set(ref(realtimeDb, 'weather_data'), weatherData);
       console.log('Weather data saved to Firebase:', weatherData.location);
-      
     } catch (error) {
       console.error('Error fetching weather:', error);
       setError('Failed to fetch weather data');
@@ -146,11 +145,23 @@ const WeatherFetcher: React.FC = () => {
       return 'partly-sunny-outline';
     } else if (conditionLower.includes('cloudy') || conditionLower.includes('overcast')) {
       return 'cloud-outline';
-    } else if (conditionLower.includes('rain') || conditionLower.includes('drizzle') || conditionLower.includes('shower')) {
+    } else if (
+      conditionLower.includes('rain') ||
+      conditionLower.includes('drizzle') ||
+      conditionLower.includes('shower')
+    ) {
       return 'rainy-outline';
-    } else if (conditionLower.includes('thunder') || conditionLower.includes('storm') || conditionLower.includes('lightning')) {
+    } else if (
+      conditionLower.includes('thunder') ||
+      conditionLower.includes('storm') ||
+      conditionLower.includes('lightning')
+    ) {
       return 'thunderstorm-outline';
-    } else if (conditionLower.includes('snow') || conditionLower.includes('blizzard') || conditionLower.includes('sleet')) {
+    } else if (
+      conditionLower.includes('snow') ||
+      conditionLower.includes('blizzard') ||
+      conditionLower.includes('sleet')
+    ) {
       return 'snow-outline';
     } else if (conditionLower.includes('fog') || conditionLower.includes('mist') || conditionLower.includes('haze')) {
       return 'cloud-outline';
@@ -175,7 +186,7 @@ const WeatherFetcher: React.FC = () => {
       </View>
     );
   }
-  
+
   // Otherwise return null since this is a background service component
   return null;
 };
@@ -200,7 +211,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 5,
-  }
+  },
 });
 
 export default WeatherFetcher;

@@ -69,22 +69,22 @@ export default app;
 export { app };
 
 // Re-export Firestore functions for easier imports
-export { 
-  collection, 
-  doc, 
-  addDoc, 
-  setDoc, 
-  getDoc, 
-  getDocs, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy, 
-  limit, 
+export {
+  collection,
+  doc,
+  addDoc,
+  setDoc,
+  getDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit,
   onSnapshot,
   serverTimestamp,
-  Timestamp 
+  Timestamp,
 } from 'firebase/firestore';
 
 // Re-export Realtime Database functions (for existing features)

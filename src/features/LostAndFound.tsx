@@ -19,26 +19,23 @@ import {
   StatusBar,
   StyleSheet,
   FlatList,
-  RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
-import { 
-  collection, 
-  query, 
-  where, 
-  orderBy, 
-  onSnapshot, 
-  doc, 
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  doc,
   updateDoc,
   addDoc,
   serverTimestamp,
-  getFirestore
+  getFirestore,
 } from 'firebase/firestore';
-import { db } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
 
 // Ultra-light blue modern palette for soft, clean UI
@@ -156,7 +153,7 @@ const Header: React.FC<{
   return (
     <SafeAreaView style={styles.headerContainer}>
       <View style={styles.headerContent}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -165,32 +162,18 @@ const Header: React.FC<{
         >
           <Feather name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
-        
+
         <Text style={styles.headerTitle}>Lost & Found</Text>
-        
-        <TouchableOpacity 
-          style={[
-            styles.myPostsButton,
-            showMyPosts && styles.myPostsButtonActive
-          ]}
+
+        <TouchableOpacity
+          style={[styles.myPostsButton, showMyPosts && styles.myPostsButtonActive]}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             setShowMyPosts(!showMyPosts);
           }}
         >
-          <Feather 
-            name="user" 
-            size={16} 
-            color={showMyPosts ? COLORS.white : COLORS.primary}
-          />
-          <Text 
-            style={[
-              styles.myPostsText,
-              showMyPosts && styles.myPostsTextActive
-            ]}
-          >
-            My Posts
-          </Text>
+          <Feather name="user" size={16} color={showMyPosts ? COLORS.white : COLORS.primary} />
+          <Text style={[styles.myPostsText, showMyPosts && styles.myPostsTextActive]}>My Posts</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -208,7 +191,7 @@ const LostAndFound: React.FC = () => {
   const postButtonScale = useRef(new Animated.Value(1)).current;
   const filterSlideAnim = useRef(new Animated.Value(0)).current;
   const itemAnimations = useRef<{ [key: string]: Animated.Value }>({}).current;
-  
+
   // State
   const [items, setItems] = useState<LostFoundItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<LostFoundItem[]>([]);
@@ -243,13 +226,29 @@ const LostAndFound: React.FC = () => {
   const [claiming, setClaiming] = useState<boolean>(false);
 
   const categories = [
-    'Electronics', 'Books', 'Clothing', 'Accessories', 'ID Cards',
-    'Keys', 'Water Bottles', 'Bags', 'Sports Equipment', 'Other'
+    'Electronics',
+    'Books',
+    'Clothing',
+    'Accessories',
+    'ID Cards',
+    'Keys',
+    'Water Bottles',
+    'Bags',
+    'Sports Equipment',
+    'Other',
   ];
 
   const locations = [
-    'Library', 'Cafeteria', 'Hostel', 'Academic Block A', 'Academic Block B',
-    'Sports Complex', 'Auditorium', 'Parking Area', 'Garden', 'Other'
+    'Library',
+    'Cafeteria',
+    'Hostel',
+    'Academic Block A',
+    'Academic Block B',
+    'Sports Complex',
+    'Auditorium',
+    'Parking Area',
+    'Garden',
+    'Other',
   ];
 
   // Firebase Console Action: Create 'lost_and_found' collection in Firestore with proper indexes
@@ -264,14 +263,14 @@ const LostAndFound: React.FC = () => {
           id: doc.id,
           ...doc.data(),
         })) as LostFoundItem[];
-        
+
         // Animate items loading
         LayoutAnimation.configureNext(fadeConfig);
         setItems(itemsData);
         setFilteredItems(itemsData);
         setLoading(false);
         setRefreshing(false);
-        
+
         // Trigger haptic feedback
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       },
@@ -280,7 +279,7 @@ const LostAndFound: React.FC = () => {
         Alert.alert('Error', 'Failed to connect to Firebase. Please check your setup.');
         setLoading(false);
         setRefreshing(false);
-      }
+      },
     );
 
     return () => unsubscribe();
@@ -304,7 +303,7 @@ const LostAndFound: React.FC = () => {
           duration: 2000,
           easing: Easing.linear,
           useNativeDriver: true,
-        })
+        }),
       ).start();
     }
   }, [loading]);
@@ -348,20 +347,21 @@ const LostAndFound: React.FC = () => {
 
     // Filter by type
     if (filterType !== 'all') {
-      filtered = filtered.filter(item => item.type === filterType);
+      filtered = filtered.filter((item) => item.type === filterType);
     }
 
     // Filter by category
     if (filterCategory !== 'all') {
-      filtered = filtered.filter(item => item.itemCategory === filterCategory);
+      filtered = filtered.filter((item) => item.itemCategory === filterCategory);
     }
 
     // Search functionality
     if (searchQuery.trim()) {
-      filtered = filtered.filter(item =>
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.location.toLowerCase().includes(searchQuery.toLowerCase())
+      filtered = filtered.filter(
+        (item) =>
+          item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.location.toLowerCase().includes(searchQuery.toLowerCase()),
       );
     }
 
@@ -377,7 +377,7 @@ const LostAndFound: React.FC = () => {
     // Animate filter changes
     LayoutAnimation.configureNext(springConfig);
     setFilteredItems(filtered);
-    
+
     // Trigger haptic feedback for filter changes
     if (items.length > 0) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -419,7 +419,7 @@ const LostAndFound: React.FC = () => {
 
     setPosting(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
+
     try {
       const newItem: Omit<LostFoundItem, 'id'> = {
         type: postType,
@@ -437,10 +437,10 @@ const LostAndFound: React.FC = () => {
       };
 
       await addDoc(collection(db, 'lost_and_found'), newItem);
-      
+
       // Success haptic feedback
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
+
       // Reset form with animation
       LayoutAnimation.configureNext(fadeConfig);
       setPostTitle('');
@@ -452,7 +452,7 @@ const LostAndFound: React.FC = () => {
       setPostSecretPhrase('');
       setPostImage(null);
       setShowPostModal(false);
-      
+
       Alert.alert('Success', `Your ${postType} item has been posted!`);
     } catch (error) {
       console.error('Error posting item:', error);
@@ -473,7 +473,7 @@ const LostAndFound: React.FC = () => {
     if (!selectedItem) return;
 
     setClaiming(true);
-    
+
     try {
       const claimRequest: ClaimRequest = {
         id: Date.now().toString(),
@@ -486,7 +486,7 @@ const LostAndFound: React.FC = () => {
 
       const itemRef = doc(db, 'lost_and_found', selectedItem.id);
       const updatedClaims = [...(selectedItem.claims || []), claimRequest];
-      
+
       await updateDoc(itemRef, {
         claims: updatedClaims,
       });
@@ -534,7 +534,7 @@ const LostAndFound: React.FC = () => {
     const animationValue = getItemAnimation(item.id);
     // Use real user ID from auth
     const isMyPost = currentUser && item.createdBy === currentUser.uid;
-    
+
     // Only render in My Posts mode if it's the user's post
     if (showMyPosts && !isMyPost) return null;
 
@@ -548,28 +548,17 @@ const LostAndFound: React.FC = () => {
           },
         ]}
       >
-        <TouchableOpacity 
-          style={styles.itemTouchable}
-          activeOpacity={0.9}
-        >
+        <TouchableOpacity style={styles.itemTouchable} activeOpacity={0.9}>
           <LinearGradient
-            colors={
-              (item.type === 'lost' ? cardGradients.lost : cardGradients.found) as [string, string]
-            }
+            colors={(item.type === 'lost' ? cardGradients.lost : cardGradients.found) as [string, string]}
             style={styles.itemCardGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
             <View style={styles.itemHeader}>
               <View style={styles.typeIndicator}>
-                <Feather 
-                  name={item.type === 'lost' ? 'search' : 'check-circle'} 
-                  size={16} 
-                  color={COLORS.primary} 
-                />
-                <Text style={styles.typeText}>
-                  {item.type === 'lost' ? 'Lost' : 'Found'}
-                </Text>
+                <Feather name={item.type === 'lost' ? 'search' : 'check-circle'} size={16} color={COLORS.primary} />
+                <Text style={styles.typeText}>{item.type === 'lost' ? 'Lost' : 'Found'}</Text>
               </View>
               {/* Delete icon for My Posts only, remove eye button */}
               {showMyPosts && isMyPost && (
@@ -577,21 +566,21 @@ const LostAndFound: React.FC = () => {
                   style={{ marginLeft: 12 }}
                   onPress={async () => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    Alert.alert(
-                      'Delete Post',
-                      'Are you sure you want to delete this post?',
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        { text: 'Delete', style: 'destructive', onPress: async () => {
+                    Alert.alert('Delete Post', 'Are you sure you want to delete this post?', [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Delete',
+                        style: 'destructive',
+                        onPress: async () => {
                           try {
                             const itemRef = doc(db, 'lost_and_found', item.id);
                             await updateDoc(itemRef, { status: 'deleted' }); // Soft delete
                           } catch (error) {
                             Alert.alert('Error', 'Failed to delete post.');
                           }
-                        }}
-                      ]
-                    );
+                        },
+                      },
+                    ]);
                   }}
                 >
                   <Feather name="trash-2" size={20} color={COLORS.primary} />
@@ -602,10 +591,7 @@ const LostAndFound: React.FC = () => {
             {item.imageUrl && (
               <View style={styles.imageContainer}>
                 <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
-                <LinearGradient
-                  colors={['transparent', 'rgba(0,0,0,0.3)']}
-                  style={styles.imageOverlay}
-                />
+                <LinearGradient colors={['transparent', 'rgba(0,0,0,0.3)']} style={styles.imageOverlay} />
               </View>
             )}
 
@@ -667,7 +653,7 @@ const LostAndFound: React.FC = () => {
     >
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setShowPostModal(false);
@@ -677,18 +663,15 @@ const LostAndFound: React.FC = () => {
             <Feather name="x" size={24} color="#1C1C1E" />
           </TouchableOpacity>
           <Text style={styles.modalTitle}>Post Item</Text>
-          <TouchableOpacity 
-            onPress={handlePostItem} 
+          <TouchableOpacity
+            onPress={handlePostItem}
             disabled={posting}
             style={[styles.modalActionButton, posting && styles.disabledButton]}
           >
             {posting ? (
               <ActivityIndicator size="small" color="#4E54C8" />
             ) : (
-              <LinearGradient
-                colors={['#4E54C8', '#8B5CF6']}
-                style={styles.modalActionGradient}
-              >
+              <LinearGradient colors={['#4E54C8', '#8B5CF6']} style={styles.modalActionGradient}>
                 <Text style={styles.modalActionText}>Post</Text>
               </LinearGradient>
             )}
@@ -710,11 +693,7 @@ const LostAndFound: React.FC = () => {
                 colors={postType === 'lost' ? ['#FF6B6B', '#FF8E8E'] : ['white', 'white']}
                 style={styles.typeButtonGradient}
               >
-                <Icon 
-                  name="alert-circle" 
-                  size={20} 
-                  color={postType === 'lost' ? 'white' : '#FF6B6B'} 
-                />
+                <Icon name="alert-circle" size={20} color={postType === 'lost' ? 'white' : '#FF6B6B'} />
                 <Text style={[styles.typeButtonText, postType === 'lost' && styles.selectedTypeButtonText]}>
                   Lost Item
                 </Text>
@@ -732,11 +711,7 @@ const LostAndFound: React.FC = () => {
                 colors={postType === 'found' ? ['#38B000', '#4ED42F'] : ['white', 'white']}
                 style={styles.typeButtonGradient}
               >
-                <Icon 
-                  name="checkmark-circle" 
-                  size={20} 
-                  color={postType === 'found' ? 'white' : '#38B000'} 
-                />
+                <Icon name="checkmark-circle" size={20} color={postType === 'found' ? 'white' : '#38B000'} />
                 <Text style={[styles.typeButtonText, postType === 'found' && styles.selectedTypeButtonText]}>
                   Found Item
                 </Text>
@@ -759,7 +734,7 @@ const LostAndFound: React.FC = () => {
           {/* Form Fields */}
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Item Details</Text>
-            
+
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Title *</Text>
               <TextInput
@@ -791,16 +766,12 @@ const LostAndFound: React.FC = () => {
                   {categories.map((category) => (
                     <TouchableOpacity
                       key={category}
-                      style={[
-                        styles.categoryChip,
-                        postCategory === category && styles.selectedCategoryChip
-                      ]}
+                      style={[styles.categoryChip, postCategory === category && styles.selectedCategoryChip]}
                       onPress={() => setPostCategory(category)}
                     >
-                      <Text style={[
-                        styles.categoryChipText,
-                        postCategory === category && styles.selectedCategoryChipText
-                      ]}>
+                      <Text
+                        style={[styles.categoryChipText, postCategory === category && styles.selectedCategoryChipText]}
+                      >
                         {category}
                       </Text>
                     </TouchableOpacity>
@@ -816,16 +787,12 @@ const LostAndFound: React.FC = () => {
                   {locations.map((location) => (
                     <TouchableOpacity
                       key={location}
-                      style={[
-                        styles.categoryChip,
-                        postLocation === location && styles.selectedCategoryChip
-                      ]}
+                      style={[styles.categoryChip, postLocation === location && styles.selectedCategoryChip]}
                       onPress={() => setPostLocation(location)}
                     >
-                      <Text style={[
-                        styles.categoryChipText,
-                        postLocation === location && styles.selectedCategoryChipText
-                      ]}>
+                      <Text
+                        style={[styles.categoryChipText, postLocation === location && styles.selectedCategoryChipText]}
+                      >
                         {location}
                       </Text>
                     </TouchableOpacity>
@@ -863,9 +830,7 @@ const LostAndFound: React.FC = () => {
                   value={postSecretPhrase}
                   onChangeText={setPostSecretPhrase}
                 />
-                <Text style={styles.helperText}>
-                  Add a question only the real owner would know the answer to
-                </Text>
+                <Text style={styles.helperText}>Add a question only the real owner would know the answer to</Text>
               </View>
             )}
           </View>
@@ -875,22 +840,18 @@ const LostAndFound: React.FC = () => {
   );
 
   const renderClaimModal = () => (
-    <Modal
-      visible={showClaimModal}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
+    <Modal visible={showClaimModal} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => {
-            setShowClaimModal(false);
-            setSelectedItem(null);
-          }}>
+          <TouchableOpacity
+            onPress={() => {
+              setShowClaimModal(false);
+              setSelectedItem(null);
+            }}
+          >
             <Icon name="close" size={24} color="#1C1C1E" />
           </TouchableOpacity>
-          <Text style={styles.modalTitle}>
-            {selectedItem?.type === 'lost' ? 'Found This Item?' : 'Claim Item'}
-          </Text>
+          <Text style={styles.modalTitle}>{selectedItem?.type === 'lost' ? 'Found This Item?' : 'Claim Item'}</Text>
           <TouchableOpacity onPress={handleClaimItem} disabled={claiming}>
             {claiming ? (
               <ActivityIndicator size="small" color="#4E54C8" />
@@ -904,16 +865,14 @@ const LostAndFound: React.FC = () => {
           {selectedItem && (
             <>
               <View style={styles.itemPreview}>
-                {selectedItem.imageUrl && (
-                  <Image source={{ uri: selectedItem.imageUrl }} style={styles.previewImage} />
-                )}
+                {selectedItem.imageUrl && <Image source={{ uri: selectedItem.imageUrl }} style={styles.previewImage} />}
                 <Text style={styles.previewTitle}>{selectedItem.title}</Text>
                 <Text style={styles.previewDescription}>{selectedItem.description}</Text>
               </View>
 
               <View style={styles.formSection}>
                 <Text style={styles.sectionTitle}>Your Information</Text>
-                
+
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Your Name *</Text>
                   <TextInput
@@ -955,9 +914,9 @@ const LostAndFound: React.FC = () => {
                     <TextInput
                       style={[styles.textInput, styles.textArea]}
                       placeholder={
-                        selectedItem.type === 'lost' 
-                          ? "Describe where and when you found this item..."
-                          : "Describe the item in detail to prove ownership..."
+                        selectedItem.type === 'lost'
+                          ? 'Describe where and when you found this item...'
+                          : 'Describe the item in detail to prove ownership...'
                       }
                       value={verificationAnswer}
                       onChangeText={setVerificationAnswer}
@@ -978,26 +937,23 @@ const LostAndFound: React.FC = () => {
   const renderHeader = () => (
     <Animated.View style={[styles.header, { opacity: headerOpacity }]}>
       <View style={styles.headerLeft}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Lost & Found</Text>
       </View>
-      
+
       <View style={styles.headerRight}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.myPostsButton, showMyPosts && styles.activeMyPostsButton]}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             LayoutAnimation.configureNext(springConfig);
             setShowMyPosts(!showMyPosts);
-            
+
             // Filter my posts
             if (!showMyPosts) {
-              const myItems = items.filter(item => item.createdBy === 'current_user'); // Replace with appropriate user ID
+              const myItems = items.filter((item) => item.createdBy === 'current_user'); // Replace with appropriate user ID
               setFilteredItems(myItems);
             } else {
               // Reset to original filtering
@@ -1005,10 +961,10 @@ const LostAndFound: React.FC = () => {
             }
           }}
         >
-          <Icon 
-            name={showMyPosts ? "user-check" : "user"} 
-            size={20} 
-            color={showMyPosts ? COLORS.white : COLORS.primary} 
+          <Icon
+            name={showMyPosts ? 'user-check' : 'user'}
+            size={20}
+            color={showMyPosts ? COLORS.white : COLORS.primary}
           />
         </TouchableOpacity>
       </View>
@@ -1018,10 +974,7 @@ const LostAndFound: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <LinearGradient
-          colors={['#F8F9FA', '#E5E5EA']}
-          style={styles.loadingGradient}
-        >
+        <LinearGradient colors={['#F8F9FA', '#E5E5EA']} style={styles.loadingGradient}>
           <Animated.View
             style={{
               transform: [
@@ -1034,10 +987,7 @@ const LostAndFound: React.FC = () => {
               ],
             }}
           >
-            <LinearGradient
-              colors={['#4E54C8', '#8B5CF6']}
-              style={styles.loadingIcon}
-            >
+            <LinearGradient colors={['#4E54C8', '#8B5CF6']} style={styles.loadingIcon}>
               <Icon name="search" size={32} color="white" />
             </LinearGradient>
           </Animated.View>
@@ -1051,14 +1001,10 @@ const LostAndFound: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      
+
       {/* Custom Header with Back Button and My Posts toggle */}
-      <Header 
-        navigation={navigation} 
-        showMyPosts={showMyPosts} 
-        setShowMyPosts={setShowMyPosts} 
-      />
-      
+      <Header navigation={navigation} showMyPosts={showMyPosts} setShowMyPosts={setShowMyPosts} />
+
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <Feather name="search" size={20} color={COLORS.text.secondary} style={styles.searchIcon} />
@@ -1080,14 +1026,11 @@ const LostAndFound: React.FC = () => {
           </TouchableOpacity>
         )}
       </View>
-      
+
       {/* Main Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <LinearGradient
-            colors={['#4E54C8', '#8B5CF6']}
-            style={styles.loadingGradient}
-          >
+          <LinearGradient colors={['#4E54C8', '#8B5CF6']} style={styles.loadingGradient}>
             <ActivityIndicator size="large" color="white" />
           </LinearGradient>
         </View>
@@ -1104,20 +1047,14 @@ const LostAndFound: React.FC = () => {
             ListEmptyComponent={() => (
               <View style={styles.emptyContainer}>
                 <Icon name="search-outline" size={80} color="#C7C7CC" />
-                <Text style={styles.emptyText}>
-                  {showMyPosts
-                    ? "Nothing here to display"
-                    : "No items found"}
-                </Text>
+                <Text style={styles.emptyText}>{showMyPosts ? 'Nothing here to display' : 'No items found'}</Text>
                 <Text style={styles.emptySubtext}>
-                  {showMyPosts
-                    ? "Items you post will appear here"
-                    : "Try adjusting your filters or search terms"}
+                  {showMyPosts ? 'Items you post will appear here' : 'Try adjusting your filters or search terms'}
                 </Text>
               </View>
             )}
           />
-          
+
           {/* Floating Action Button (Post) */}
           <TouchableOpacity
             style={styles.floatingButton}
@@ -1127,9 +1064,9 @@ const LostAndFound: React.FC = () => {
               setShowPostModal(true);
             }}
           >
-            <Animated.View 
-              style={{ 
-                transform: [{ scale: postButtonScale }]
+            <Animated.View
+              style={{
+                transform: [{ scale: postButtonScale }],
               }}
             >
               <LinearGradient
@@ -1144,7 +1081,7 @@ const LostAndFound: React.FC = () => {
           </TouchableOpacity>
         </>
       )}
-      
+
       {/* Modals */}
       {renderPostModal()}
       {renderClaimModal()}
@@ -1159,7 +1096,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     paddingTop: 4,
   },
-  
+
   // Header styles
   headerContainer: {
     backgroundColor: COLORS.white,
@@ -1233,7 +1170,7 @@ const styles = StyleSheet.create({
   myPostsTextActive: {
     color: COLORS.white,
   },
-  
+
   // Search bar styles
   searchContainer: {
     flexDirection: 'row',
@@ -1262,7 +1199,7 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 8,
   },
-  
+
   // Filter bar
   filterContainer: {
     flexDirection: 'row',
@@ -1296,7 +1233,7 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: '500',
   },
-  
+
   // Filter expanded section
   filtersExpanded: {
     backgroundColor: COLORS.white,
@@ -1338,13 +1275,13 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: '500',
   },
-  
+
   // Content container for FlatList
   contentContainer: {
     padding: 16,
     paddingBottom: 100, // Extra padding for FAB
   },
-  
+
   // Item card styles
   itemCard: {
     marginBottom: 20,
@@ -1466,7 +1403,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginLeft: 8,
   },
-  
+
   // Empty state
   emptyContainer: {
     flex: 1,
@@ -1489,7 +1426,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.7,
   },
-  
+
   // Loading state
   loadingContainer: {
     flex: 1,
@@ -1527,7 +1464,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     textAlign: 'center',
   },
-  
+
   // Floating action button
   floatingButton: {
     position: 'absolute',
@@ -1538,7 +1475,7 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.10,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 8,
     zIndex: 100,
@@ -1553,7 +1490,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
+
   // Modal styles
   modalContainer: {
     flex: 1,
@@ -1613,7 +1550,7 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.5,
   },
-  
+
   // Form styles
   formSection: {
     marginBottom: 24,
@@ -1743,7 +1680,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.white,
   },
-  
+
   // Claim modal styles
   itemPreview: {
     padding: 16,
@@ -1817,10 +1754,16 @@ const styles = StyleSheet.create({
 // Icon component
 const Icon = ({ name, size, color, style }: { name: string; size: number; color: string; style?: any }) => {
   // Determine which icon set to use based on name
-  if (name.includes('-outline') || name === 'add' || name === 'add-circle-outline' || name === 'checkmark-circle' || name === 'camera-outline') {
+  if (
+    name.includes('-outline') ||
+    name === 'add' ||
+    name === 'add-circle-outline' ||
+    name === 'checkmark-circle' ||
+    name === 'camera-outline'
+  ) {
     return <Ionicons name={name as any} size={size} color={color} style={style} />;
   }
-  
+
   // Default to Feather icons
   return <Feather name={name as any} size={size} color={color} style={style} />;
 };

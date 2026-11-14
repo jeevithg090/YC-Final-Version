@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { db } from '../services/firebase';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc } from 'firebase/firestore';
 import { Swipeable } from 'react-native-gesture-handler';
 // import { GiphyDialog, GiphyDialogEvent, GiphyMedia } from '@giphy/react-native-sdk'; // You need to install and configure this package
 
@@ -44,13 +44,16 @@ const GroupChat: React.FC<GroupChatProps> = ({ groupId, groupName, onBack }) => 
   const flatListRef = useRef<FlatList>(null);
   const [replyingTo, setReplyingTo] = useState<GroupChatMessage | null>(null);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
-  const [groupInfo, setGroupInfo] = useState<{ description: string; members: { id: string; name: string; avatar?: string }[] }>({ description: '', members: [] });
+  const [groupInfo, setGroupInfo] = useState<{
+    description: string;
+    members: { id: string; name: string; avatar?: string }[];
+  }>({ description: '', members: [] });
 
   useEffect(() => {
     const chatRef = collection(db, `groups/${groupId}/messages`);
     const q = query(chatRef, orderBy('createdAt', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs: GroupChatMessage[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GroupChatMessage));
+      const msgs: GroupChatMessage[] = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as GroupChatMessage);
       setMessages(msgs);
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     });
@@ -63,7 +66,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ groupId, groupName, onBack }) => 
     // For now, just set description to groupName for demo
     // For members, get unique userId/userName from messages
     const membersMap: { [id: string]: { id: string; name: string; avatar?: string } } = {};
-    messages.forEach(msg => {
+    messages.forEach((msg) => {
       if (!membersMap[msg.userId]) {
         membersMap[msg.userId] = { id: msg.userId, name: msg.userName, avatar: msg.userAvatar };
       }
@@ -125,7 +128,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ groupId, groupName, onBack }) => 
   // Swipeable message
   const renderMessage = ({ item }: { item: GroupChatMessage }) => {
     const isOwn = item.userId === 'current_user';
-    const repliedMsg = item.replyTo ? messages.find(m => m.id === item.replyTo) : null;
+    const repliedMsg = item.replyTo ? messages.find((m) => m.id === item.replyTo) : null;
     return (
       <Swipeable
         renderLeftActions={() => null}
@@ -145,13 +148,14 @@ const GroupChat: React.FC<GroupChatProps> = ({ groupId, groupName, onBack }) => 
           <View style={[styles.bubble, isOwn && styles.ownBubble]}>
             {item.type === 'reply' && repliedMsg && (
               <View style={styles.replyPreviewBubble}>
-                <Text style={styles.replyPreviewText}>Replying to {repliedMsg.userName}: {repliedMsg.content.slice(0, 40)}{repliedMsg.content.length > 40 ? '...' : ''}</Text>
+                <Text style={styles.replyPreviewText}>
+                  Replying to {repliedMsg.userName}: {repliedMsg.content.slice(0, 40)}
+                  {repliedMsg.content.length > 40 ? '...' : ''}
+                </Text>
               </View>
             )}
             {item.type === 'text' && <Text style={[styles.text, isOwn && styles.ownText]}>{item.content}</Text>}
-            {item.type === 'gif' && item.mediaUrl && (
-              <Image source={{ uri: item.mediaUrl }} style={styles.gifImg} />
-            )}
+            {item.type === 'gif' && item.mediaUrl && <Image source={{ uri: item.mediaUrl }} style={styles.gifImg} />}
             {item.type === 'sticker' && item.mediaUrl && (
               <Image source={{ uri: item.mediaUrl }} style={styles.stickerImg} />
             )}
@@ -179,7 +183,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ groupId, groupName, onBack }) => 
           ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
-          keyExtractor={item => item.id}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesList}
           showsVerticalScrollIndicator={false}
           style={{ flex: 1 }}
@@ -187,7 +191,10 @@ const GroupChat: React.FC<GroupChatProps> = ({ groupId, groupName, onBack }) => 
         {/* Reply Preview */}
         {replyingTo && (
           <View style={styles.replyPreviewBar}>
-            <Text style={styles.replyPreviewBarText}>Replying to {replyingTo.userName}: {replyingTo.content.slice(0, 40)}{replyingTo.content.length > 40 ? '...' : ''}</Text>
+            <Text style={styles.replyPreviewBarText}>
+              Replying to {replyingTo.userName}: {replyingTo.content.slice(0, 40)}
+              {replyingTo.content.length > 40 ? '...' : ''}
+            </Text>
             <TouchableOpacity onPress={() => setReplyingTo(null)} style={{ marginLeft: 8 }}>
               <Ionicons name="close" size={18} color="#4E54C8" />
             </TouchableOpacity>
@@ -231,11 +238,14 @@ const GroupChat: React.FC<GroupChatProps> = ({ groupId, groupName, onBack }) => 
             <Text style={{ fontWeight: '600', marginBottom: 8 }}>Members ({groupInfo.members.length})</Text>
             <FlatList
               data={groupInfo.members}
-              keyExtractor={item => item.id}
+              keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                   {item.avatar ? (
-                    <Image source={{ uri: item.avatar }} style={{ width: 32, height: 32, borderRadius: 16, marginRight: 10 }} />
+                    <Image
+                      source={{ uri: item.avatar }}
+                      style={{ width: 32, height: 32, borderRadius: 16, marginRight: 10 }}
+                    />
                   ) : (
                     <Ionicons name="person-circle" size={32} color="#C7C7CC" style={{ marginRight: 10 }} />
                   )}
@@ -244,10 +254,22 @@ const GroupChat: React.FC<GroupChatProps> = ({ groupId, groupName, onBack }) => 
               )}
               style={{ maxHeight: 180, marginBottom: 16 }}
             />
-            <TouchableOpacity style={{ backgroundColor: '#FF3B30', borderRadius: 8, padding: 14, alignItems: 'center', marginBottom: 12 }} onPress={() => alert('Report group feature coming soon!')}>
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#FF3B30',
+                borderRadius: 8,
+                padding: 14,
+                alignItems: 'center',
+                marginBottom: 12,
+              }}
+              onPress={() => alert('Report group feature coming soon!')}
+            >
               <Text style={{ color: '#fff', fontWeight: 'bold' }}>Report Group</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={{ backgroundColor: '#F2F2F7', borderRadius: 8, padding: 14, alignItems: 'center' }} onPress={() => alert('Exit group feature coming soon!')}>
+            <TouchableOpacity
+              style={{ backgroundColor: '#F2F2F7', borderRadius: 8, padding: 14, alignItems: 'center' }}
+              onPress={() => alert('Exit group feature coming soon!')}
+            >
               <Text style={{ color: '#4E54C8', fontWeight: 'bold' }}>Exit Group</Text>
             </TouchableOpacity>
           </SafeAreaView>
@@ -268,10 +290,13 @@ const GroupChat: React.FC<GroupChatProps> = ({ groupId, groupName, onBack }) => 
         <Modal visible={showGiphy} animationType="slide" onRequestClose={() => setShowGiphy(false)}>
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
             <Text style={{ fontSize: 18, color: '#4E54C8', marginBottom: 16 }}>GIF Picker Integration Coming Soon</Text>
-            <TouchableOpacity onPress={() => {
-              // Example: handleSendGif('https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif');
-              setShowGiphy(false);
-            }} style={{ padding: 12, backgroundColor: '#4E54C8', borderRadius: 8 }}>
+            <TouchableOpacity
+              onPress={() => {
+                // Example: handleSendGif('https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif');
+                setShowGiphy(false);
+              }}
+              style={{ padding: 12, backgroundColor: '#4E54C8', borderRadius: 8 }}
+            >
               <Text style={{ color: '#fff', fontWeight: 'bold' }}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -307,13 +332,28 @@ const GroupChat: React.FC<GroupChatProps> = ({ groupId, groupName, onBack }) => 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F8F9FA' },
   container: { flex: 1, backgroundColor: '#F8F9FA' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#F2F2F7' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F7',
+  },
   backBtn: { marginRight: 12 },
   headerTitle: { fontSize: 18, fontWeight: '700', color: '#4E54C8', flex: 1, textAlign: 'center' },
   messagesList: { padding: 16, paddingBottom: 80 },
   messageRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 12 },
   ownMessageRow: { flexDirection: 'row-reverse' },
-  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#F2F2F7', justifyContent: 'center', alignItems: 'center', marginRight: 8 },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F2F2F7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
   avatarImg: { width: 32, height: 32, borderRadius: 16 },
   bubble: { maxWidth: '75%', backgroundColor: '#F2F2F7', borderRadius: 16, padding: 12 },
   ownBubble: { backgroundColor: '#4E54C8' },
@@ -321,20 +361,50 @@ const styles = StyleSheet.create({
   ownText: { color: '#fff' },
   gifImg: { width: 180, height: 180, borderRadius: 12 },
   stickerImg: { width: 100, height: 100, borderRadius: 12 },
-  inputBar: { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: '#fff', padding: 12, borderTopWidth: 1, borderTopColor: '#F2F2F7', paddingBottom: Platform.OS === 'ios' ? 24 : 12 },
+  inputBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: '#fff',
+    padding: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F2F2F7',
+    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+  },
   iconBtn: { padding: 6, marginRight: 4 },
-  input: { flex: 1, fontSize: 16, color: '#1C1C1E', backgroundColor: '#F2F2F7', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, marginHorizontal: 4 },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1C1C1E',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginHorizontal: 4,
+  },
   sendBtn: { padding: 8 },
   stickersModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.2)', justifyContent: 'flex-end' },
-  stickersModalContent: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, alignItems: 'center', minHeight: 220 },
+  stickersModalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    minHeight: 220,
+  },
   stickersTitle: { fontSize: 18, fontWeight: '700', color: '#4E54C8', marginBottom: 16 },
   stickersRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingBottom: 12 },
   stickerOption: { width: 80, height: 80, marginHorizontal: 8 },
   closeStickersBtn: { marginTop: 12, padding: 8 },
-  replyPreviewBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F2F2F7', padding: 8, paddingHorizontal: 16 },
+  replyPreviewBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F2F2F7',
+    padding: 8,
+    paddingHorizontal: 16,
+  },
   replyPreviewBarText: { color: '#4E54C8', fontWeight: '600', flex: 1 },
   replyPreviewBubble: { backgroundColor: 'rgba(78,84,200,0.08)', borderRadius: 8, padding: 6, marginBottom: 4 },
   replyPreviewText: { color: '#8E8E93', fontSize: 13, fontStyle: 'italic' },
 });
 
-export default GroupChat; 
+export default GroupChat;

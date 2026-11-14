@@ -8,16 +8,25 @@ import {
   ScrollView,
   Alert,
   Modal,
-  FlatList,
   ActivityIndicator,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { db, auth } from '../services/firebase';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+  arrayUnion,
+  Timestamp,
+} from 'firebase/firestore';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type NavigationProp = NativeStackNavigationProp<any>;
 
@@ -160,19 +169,19 @@ const LOCATION_LIST: string[] = [
 // Update AB_SHORTNAMES to allow flexible matching (ab1, ab-1, ab 1)
 const AB_SHORTNAMES: { [key: string]: string } = {
   'ab-1': 'MIT administrative block (Academic Block 1)',
-  'ab1': 'MIT administrative block (Academic Block 1)',
+  ab1: 'MIT administrative block (Academic Block 1)',
   'ab 1': 'MIT administrative block (Academic Block 1)',
   'ab-2': 'MIT Hostel - 2nd Block',
-  'ab2': 'MIT Hostel - 2nd Block',
+  ab2: 'MIT Hostel - 2nd Block',
   'ab 2': 'MIT Hostel - 2nd Block',
   'ab-3': 'New Lecture Hall (Academic Block 3) - MIT',
-  'ab3': 'New Lecture Hall (Academic Block 3) - MIT',
+  ab3: 'New Lecture Hall (Academic Block 3) - MIT',
   'ab 3': 'New Lecture Hall (Academic Block 3) - MIT',
   'ab-4': 'Innovation Centre (Academic Block 4) - MIT',
-  'ab4': 'Innovation Centre (Academic Block 4) - MIT',
+  ab4: 'Innovation Centre (Academic Block 4) - MIT',
   'ab 4': 'Innovation Centre (Academic Block 4) - MIT',
   'ab-5': 'Academic Block 5 - MIT',
-  'ab5': 'Academic Block 5 - MIT',
+  ab5: 'Academic Block 5 - MIT',
   'ab 5': 'Academic Block 5 - MIT',
 };
 
@@ -186,7 +195,7 @@ const FindAnAutoShare: React.FC = () => {
     autoTravelTime: new Date(),
     flexibilityMinutes: '15',
   });
-  
+
   const [availableRides, setAvailableRides] = useState<PublishedRide[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [showPickupOptions, setShowPickupOptions] = useState<boolean>(false);
@@ -195,15 +204,15 @@ const FindAnAutoShare: React.FC = () => {
   const [showTimePicker, setShowTimePicker] = useState<boolean>(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [searchProgress, setSearchProgress] = useState<number>(0);
-  
+
   // 2. Add state for autocomplete and input for pickup/drop
   const [pickupQuery, setPickupQuery] = useState('');
   const [dropQuery, setDropQuery] = useState('');
   const [pickupSuggestions, setPickupSuggestions] = useState<string[]>([]);
   const [dropSuggestions, setDropSuggestions] = useState<string[]>([]);
-  
+
   const [showCustomTimePicker, setShowCustomTimePicker] = useState(false);
-  
+
   const handleInputChange = (field: keyof FormData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear the error for this field if it exists
@@ -215,21 +224,21 @@ const FindAnAutoShare: React.FC = () => {
       });
     }
   };
-  
+
   const handleSearchProgress = () => {
     let filledFields = 0;
     const totalFields = 5; // Total number of fields in the form
-    
+
     if (formData.pickupLocation.trim()) filledFields++;
     if (formData.dropLocation.trim()) filledFields++;
     if (formData.travelDate) filledFields++;
     if (formData.autoTravelTime) filledFields++;
     if (formData.flexibilityMinutes.trim()) filledFields++;
-    
+
     const progress = Math.round((filledFields / totalFields) * 100);
     setSearchProgress(progress);
   };
-  
+
   useEffect(() => {
     handleSearchProgress();
   }, [formData]);
@@ -238,9 +247,7 @@ const FindAnAutoShare: React.FC = () => {
   useEffect(() => {
     if (showPickupOptions) {
       const query = pickupQuery.trim().toLowerCase();
-      let filtered = LOCATION_LIST.filter(loc =>
-        loc.toLowerCase().includes(query)
-      );
+      let filtered = LOCATION_LIST.filter((loc) => loc.toLowerCase().includes(query));
       // Add AB-x alias matches
       Object.entries(AB_SHORTNAMES).forEach(([alias, fullname]) => {
         if (query && alias.startsWith(query.replace(/\s+/g, ''))) {
@@ -252,7 +259,7 @@ const FindAnAutoShare: React.FC = () => {
       // Only for pickup: Always show 'Block 16,17,18,19,20-Faster Match' first
       filtered = [
         'Block 16,17,18,19,20-Faster Match',
-        ...filtered.filter(l => l !== 'Block 16,17,18,19,20-Faster Match')
+        ...filtered.filter((l) => l !== 'Block 16,17,18,19,20-Faster Match'),
       ];
       setPickupSuggestions(filtered);
     }
@@ -262,9 +269,7 @@ const FindAnAutoShare: React.FC = () => {
   useEffect(() => {
     if (showDropOptions) {
       const query = dropQuery.trim().toLowerCase();
-      let filtered = LOCATION_LIST.filter(loc =>
-        loc.toLowerCase().includes(query)
-      );
+      let filtered = LOCATION_LIST.filter((loc) => loc.toLowerCase().includes(query));
       let ab1Match = false;
       Object.entries(AB_SHORTNAMES).forEach(([alias, fullname]) => {
         if (query && alias.startsWith(query.replace(/\s+/g, ''))) {
@@ -279,52 +284,49 @@ const FindAnAutoShare: React.FC = () => {
         }
       });
       // Only for drop: Always show 'AB-1 (Last Point of Drop)' first
-      filtered = [
-        'AB-1 (Last Point of Drop)',
-        ...filtered.filter(l => l !== 'AB-1 (Last Point of Drop)')
-      ];
+      filtered = ['AB-1 (Last Point of Drop)', ...filtered.filter((l) => l !== 'AB-1 (Last Point of Drop)')];
       setDropSuggestions(filtered);
     }
   }, [dropQuery, showDropOptions]);
-  
+
   const validateForm = () => {
     const newErrors: ValidationErrors = {};
-    
+
     if (!formData.pickupLocation.trim()) {
       newErrors.pickupLocation = 'Please select a pickup location';
     }
-    
+
     if (!formData.dropLocation.trim()) {
       newErrors.dropLocation = 'Please select a drop location';
     } else if (formData.dropLocation === formData.pickupLocation) {
       newErrors.dropLocation = 'Pickup and drop locations cannot be the same';
     }
-    
+
     if (!formData.travelDate) {
       newErrors.travelDate = 'Please select a travel date';
     }
-    
+
     if (!formData.autoTravelTime) {
       newErrors.autoTravelTime = 'Please select your preferred auto time';
     }
-    
+
     if (!formData.flexibilityMinutes.trim()) {
       newErrors.flexibilityMinutes = 'Please specify your time flexibility';
     } else if (isNaN(Number(formData.flexibilityMinutes)) || Number(formData.flexibilityMinutes) < 0) {
       newErrors.flexibilityMinutes = 'Please enter a valid number of minutes';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  
+
   const findRides = async () => {
     if (!validateForm()) {
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
       // Query Firestore to find matching rides
       const ridesRef = collection(db, 'auto_rides');
@@ -333,12 +335,12 @@ const FindAnAutoShare: React.FC = () => {
         where('pickupLocation', '==', formData.pickupLocation),
         where('dropLocation', '==', formData.dropLocation),
         // Note: Additional filtering by date will be done client-side
-        where('status', '==', 'active')
+        where('status', '==', 'active'),
       );
-      
+
       const querySnapshot = await getDocs(q);
       const rides: PublishedRide[] = [];
-      
+
       const selectedDate = formData.travelDate;
       const selectedDateStr = selectedDate.toDateString();
       const now = new Date();
@@ -351,21 +353,18 @@ const FindAnAutoShare: React.FC = () => {
         userEndTime = formData.autoTravelTime as Date;
       }
       const userFlex = Number(formData.flexibilityMinutes) || 0;
-      
+
       querySnapshot.forEach((doc) => {
         const rideData = { id: doc.id, ...doc.data() } as PublishedRide;
-        const rideDate = rideData.travelDate instanceof Timestamp 
-          ? rideData.travelDate.toDate() 
-          : rideData.travelDate;
-        
+        const rideDate = rideData.travelDate instanceof Timestamp ? rideData.travelDate.toDate() : rideData.travelDate;
+
         // Check if the ride date matches the selected date
         if (rideDate.toDateString() === selectedDateStr) {
           // Check if there's space available
           if (rideData.passengers.length < rideData.maxPassengers) {
             // Check time match logic
-            const rideTime = rideData.autoTravelTime instanceof Timestamp
-              ? rideData.autoTravelTime.toDate()
-              : rideData.autoTravelTime;
+            const rideTime =
+              rideData.autoTravelTime instanceof Timestamp ? rideData.autoTravelTime.toDate() : rideData.autoTravelTime;
             const rideFlex = Number(rideData.flexibilityMinutes) || 0;
             // User is willing to go anytime between userStartTime and userEndTime, considering both flexibilities
             const minAcceptable = new Date(userStartTime.getTime() - userFlex * 60000 - rideFlex * 60000);
@@ -376,17 +375,17 @@ const FindAnAutoShare: React.FC = () => {
           }
         }
       });
-      
+
       setAvailableRides(rides);
-      
+
       if (rides.length === 0) {
         Alert.alert(
           'No Matching Rides',
           'No auto shares match your criteria. Would you like to publish a new auto share?',
           [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Publish New', onPress: () => navigation.navigate('PublishAnAutoShare', formData) }
-          ]
+            { text: 'Publish New', onPress: () => navigation.navigate('PublishAnAutoShare', formData) },
+          ],
         );
       }
     } catch (error) {
@@ -396,81 +395,72 @@ const FindAnAutoShare: React.FC = () => {
       setLoading(false);
     }
   };
-  
+
   const joinRide = async (ride: PublishedRide) => {
     // Logic to join a ride
-    Alert.alert(
-      'Join Auto Share',
-      'Would you like to join this auto share?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Join', 
-          onPress: async () => {
-            try {
-              const rideRef = doc(db, 'auto_rides', ride.id);
-              
-              // Use a Date object instead of serverTimestamp() for array elements
-              const currentTimestamp = new Date();
-              
-              // Add current user as a passenger
-              const currentUser = auth.currentUser;
-              if (!currentUser) {
-                Alert.alert('Login Required', 'Please log in to join a ride.');
-                return;
-              }
-              const userName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Anonymous User';
-              const phoneNumber = currentUser?.phoneNumber || 'No phone number';
-              
-              const newPassenger: Passenger = {
-                id: currentUser.uid,
-                name: userName,
-                phoneNumber: phoneNumber,
-                joinedAt: currentTimestamp,
-              };
-              
-              await updateDoc(rideRef, {
-                passengers: arrayUnion(newPassenger),
-                lastPassengerJoined: serverTimestamp() // Update this top-level field instead
-              });
-              
-              // Create a user_auto_rides document to track user's rides
-              await addDoc(collection(db, 'user_auto_rides'), {
-                userId: currentUser.uid,
-                rideId: ride.id,
-                role: 'passenger',
-                joinedAt: serverTimestamp(),
-                status: 'active',
-                pickupLocation: ride.pickupLocation,
-                dropLocation: ride.dropLocation,
-                travelDate: ride.travelDate,
-                autoTravelTime: ride.autoTravelTime
-              });
-              
-              // Navigate to auto ride details page
-              navigation.navigate('AutoRideDetails', { rideId: ride.id });
-              
-            } catch (error) {
-              console.error('Error joining ride:', error);
-              Alert.alert('Error', 'Failed to join the auto share. Please try again.');
+    Alert.alert('Join Auto Share', 'Would you like to join this auto share?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Join',
+        onPress: async () => {
+          try {
+            const rideRef = doc(db, 'auto_rides', ride.id);
+
+            // Use a Date object instead of serverTimestamp() for array elements
+            const currentTimestamp = new Date();
+
+            // Add current user as a passenger
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+              Alert.alert('Login Required', 'Please log in to join a ride.');
+              return;
             }
-          } 
-        }
-      ]
-    );
+            const userName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Anonymous User';
+            const phoneNumber = currentUser?.phoneNumber || 'No phone number';
+
+            const newPassenger: Passenger = {
+              id: currentUser.uid,
+              name: userName,
+              phoneNumber: phoneNumber,
+              joinedAt: currentTimestamp,
+            };
+
+            await updateDoc(rideRef, {
+              passengers: arrayUnion(newPassenger),
+              lastPassengerJoined: serverTimestamp(), // Update this top-level field instead
+            });
+
+            // Create a user_auto_rides document to track user's rides
+            await addDoc(collection(db, 'user_auto_rides'), {
+              userId: currentUser.uid,
+              rideId: ride.id,
+              role: 'passenger',
+              joinedAt: serverTimestamp(),
+              status: 'active',
+              pickupLocation: ride.pickupLocation,
+              dropLocation: ride.dropLocation,
+              travelDate: ride.travelDate,
+              autoTravelTime: ride.autoTravelTime,
+            });
+
+            // Navigate to auto ride details page
+            navigation.navigate('AutoRideDetails', { rideId: ride.id });
+          } catch (error) {
+            console.error('Error joining ride:', error);
+            Alert.alert('Error', 'Failed to join the auto share. Please try again.');
+          }
+        },
+      },
+    ]);
   };
-  
+
   const renderRideItem = ({ item }: { item: PublishedRide }) => {
-    const rideDate = item.travelDate instanceof Timestamp 
-      ? item.travelDate.toDate() 
-      : item.travelDate;
-    
-    const publishedTime = item.autoTravelTime instanceof Timestamp 
-      ? item.autoTravelTime.toDate() 
-      : item.autoTravelTime;
-    
+    const rideDate = item.travelDate instanceof Timestamp ? item.travelDate.toDate() : item.travelDate;
+
+    const publishedTime = item.autoTravelTime instanceof Timestamp ? item.autoTravelTime.toDate() : item.autoTravelTime;
+
     const availableSeats = item.maxPassengers - item.passengers.length;
-    
+
     return (
       <TouchableOpacity style={styles.rideCard} onPress={() => joinRide(item)}>
         <View style={styles.rideHeader}>
@@ -487,7 +477,7 @@ const FindAnAutoShare: React.FC = () => {
             <Text style={styles.rideSeatsLabel}>seats</Text>
           </View>
         </View>
-        
+
         <View style={styles.rideDetails}>
           <View style={styles.detailRow}>
             <Text style={styles.detailIcon}>⏰</Text>
@@ -495,14 +485,12 @@ const FindAnAutoShare: React.FC = () => {
               Auto Time: {publishedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </Text>
           </View>
-          
+
           <View style={styles.detailRow}>
             <Text style={styles.detailIcon}>⚡</Text>
-            <Text style={styles.detailText}>
-              Flexibility: ±{item.flexibilityMinutes} mins
-            </Text>
+            <Text style={styles.detailText}>Flexibility: ±{item.flexibilityMinutes} mins</Text>
           </View>
-          
+
           <View style={styles.detailRow}>
             <Text style={styles.detailIcon}>👥</Text>
             <Text style={styles.detailText}>
@@ -510,28 +498,25 @@ const FindAnAutoShare: React.FC = () => {
             </Text>
           </View>
         </View>
-        
+
         <TouchableOpacity style={styles.joinButton}>
           <Text style={styles.joinButtonText}>Join Auto Share</Text>
         </TouchableOpacity>
       </TouchableOpacity>
     );
   };
-  
+
   const getLocationName = (locationId: string) => {
     // This function is no longer needed as location names are directly displayed
     // but keeping it for now in case it's called elsewhere or for future use.
     return locationId;
   };
-  
+
   return (
     <SafeAreaView style={{ flex: 1, paddingBottom: insets.bottom, backgroundColor: '#fff' }}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Find an Auto Share</Text>
@@ -542,7 +527,7 @@ const FindAnAutoShare: React.FC = () => {
         {/* Search Form */}
         <View style={styles.searchForm}>
           <Text style={styles.formTitle}>Search for Auto Shares</Text>
-          
+
           {/* Pickup Location */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Pickup Location</Text>
@@ -601,7 +586,7 @@ const FindAnAutoShare: React.FC = () => {
               </ScrollView>
             </View>
           )}
-          
+
           {/* Drop Location */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Drop Location</Text>
@@ -660,7 +645,7 @@ const FindAnAutoShare: React.FC = () => {
               </ScrollView>
             </View>
           )}
-          
+
           {/* Date Selection */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Date of Travel</Text>
@@ -670,19 +655,20 @@ const FindAnAutoShare: React.FC = () => {
                 onPress={() => setShowDatePicker(true)}
               >
                 <Text style={styles.inputText}>
-                  {formData.travelDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  {formData.travelDate.toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.todayButton}
-                onPress={() => handleInputChange('travelDate', new Date())}
-              >
+              <TouchableOpacity style={styles.todayButton} onPress={() => handleInputChange('travelDate', new Date())}>
                 <Text style={styles.todayButtonText}>Today</Text>
               </TouchableOpacity>
             </View>
             {errors.travelDate && <Text style={styles.errorText}>{errors.travelDate}</Text>}
           </View>
-          
+
           {/* Auto Time */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Auto Time</Text>
@@ -708,7 +694,9 @@ const FindAnAutoShare: React.FC = () => {
             onRequestClose={() => setShowCustomTimePicker(false)}
           >
             <View style={styles.modalContainer}>
-              <View style={[styles.modalContent, { padding: 0 }]}> {/* Remove extra padding for picker */}
+              <View style={[styles.modalContent, { padding: 0 }]}>
+                {' '}
+                {/* Remove extra padding for picker */}
                 <TouchableOpacity
                   style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: '#e9ecef' }}
                   onPress={() => {
@@ -741,7 +729,7 @@ const FindAnAutoShare: React.FC = () => {
               </View>
             </View>
           </Modal>
-          
+
           {/* Time Flexibility */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Time Flexibility (minutes)</Text>
@@ -755,15 +743,15 @@ const FindAnAutoShare: React.FC = () => {
             />
             {errors.flexibilityMinutes && <Text style={styles.errorText}>{errors.flexibilityMinutes}</Text>}
           </View>
-          
+
           {/* Search Progress */}
           <View style={styles.progressContainer}>
             <View style={[styles.progressBar, { width: `${searchProgress}%` }]} />
             <Text style={styles.progressText}>{searchProgress}% Complete</Text>
           </View>
-          
+
           {/* Search Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.searchButton, searchProgress < 100 && styles.searchButtonDisabled]}
             onPress={findRides}
             disabled={searchProgress < 100}
@@ -775,7 +763,7 @@ const FindAnAutoShare: React.FC = () => {
             )}
           </TouchableOpacity>
         </View>
-        
+
         {/* Search Results */}
         {availableRides.length > 0 && (
           <View style={styles.resultsContainer}>
@@ -784,7 +772,7 @@ const FindAnAutoShare: React.FC = () => {
           </View>
         )}
       </ScrollView>
-      
+
       {/* Date Picker */}
       {showDatePicker && (
         <DateTimePicker
@@ -800,7 +788,7 @@ const FindAnAutoShare: React.FC = () => {
           minimumDate={new Date()}
         />
       )}
-      
+
       {/* Time Picker - Removed unused component */}
     </SafeAreaView>
   );

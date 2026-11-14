@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  StyleSheet,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   SafeAreaView,
   RefreshControl,
   StatusBar,
-  Dimensions
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,19 +25,19 @@ const Weather: React.FC = () => {
   // Background colors based on time of day and weather condition
   const getGradientColors = (): readonly [string, string, ...string[]] => {
     if (!weatherData) return ['#4c669f', '#3b5998', '#192f6a'] as const;
-    
+
     const hours = new Date().getHours();
     const condition = weatherData.condition.toLowerCase();
-    
+
     if (hours >= 18 || hours < 6) {
       // Night
-      return condition.includes('cloud') 
-        ? ['#172941', '#1F3B60', '#3A4A7A'] as const  // Cloudy night
-        : ['#0F2027', '#203A43', '#2C5364'] as const; // Clear night
+      return condition.includes('cloud')
+        ? (['#172941', '#1F3B60', '#3A4A7A'] as const) // Cloudy night
+        : (['#0F2027', '#203A43', '#2C5364'] as const); // Clear night
     } else {
       // Day
       if (condition.includes('rain')) {
-        return ['#3E5A7B', '#515B7A', '#626B88'] as const; // Rainy 
+        return ['#3E5A7B', '#515B7A', '#626B88'] as const; // Rainy
       } else if (condition.includes('cloud')) {
         return ['#5888AA', '#799FB7', '#A1B5C5'] as const; // Cloudy
       } else if (condition.includes('sunny') || condition.includes('clear')) {
@@ -53,23 +53,23 @@ const Weather: React.FC = () => {
     const now = new Date();
     return now.toLocaleDateString('en-US', {
       weekday: 'long',
-      month: 'long', 
-      day: 'numeric'
+      month: 'long',
+      day: 'numeric',
     });
   };
 
   // Get time since last update
   const getTimeSinceUpdate = () => {
     if (!weatherData) return '';
-    
+
     const now = Date.now();
     const diff = now - weatherData.timestamp;
     const minutes = Math.floor(diff / 60000);
-    
+
     if (minutes < 1) return 'Just now';
     if (minutes === 1) return '1 minute ago';
     if (minutes < 60) return `${minutes} minutes ago`;
-    
+
     const hours = Math.floor(minutes / 60);
     if (hours === 1) return '1 hour ago';
     return `${hours} hours ago`;
@@ -87,7 +87,7 @@ const Weather: React.FC = () => {
   // Weather icon mapping
   const getWeatherIconName = (condition: string): string => {
     const conditionLower = condition?.toLowerCase() || '';
-    
+
     if (conditionLower.includes('sunny') || conditionLower.includes('clear')) {
       return 'sunny-outline';
     } else if (conditionLower.includes('partly cloudy')) {
@@ -120,9 +120,7 @@ const Weather: React.FC = () => {
       <View style={styles.errorContainer}>
         <StatusBar barStyle="dark-content" />
         <Ionicons name="cloud-offline-outline" size={60} color="#666" />
-        <Text style={styles.errorText}>
-          {error || "Couldn't load weather data"}
-        </Text>
+        <Text style={styles.errorText}>{error || "Couldn't load weather data"}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
           <Text style={styles.retryText}>Retry</Text>
         </TouchableOpacity>
@@ -135,30 +133,17 @@ const Weather: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
       <WeatherFetcher />
-      <LinearGradient
-        colors={getGradientColors()}
-        style={styles.background}
-      >
+      <LinearGradient colors={getGradientColors()} style={styles.background}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#ffffff"
-            />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ffffff" />}
         >
           {/* Card Container */}
           <View style={styles.weatherCard}>
             {/* Location Header */}
             <View style={styles.cardHeader}>
               <View style={styles.iconContainer}>
-                <Ionicons 
-                  name={getWeatherIconName(weatherData.condition) as any} 
-                  size={32} 
-                  color="#F9C74F" 
-                />
+                <Ionicons name={getWeatherIconName(weatherData.condition) as any} size={32} color="#F9C74F" />
               </View>
               <View>
                 <Text style={styles.cardTitle}>Today's Weather</Text>
@@ -168,11 +153,7 @@ const Weather: React.FC = () => {
 
             {/* Weather Icon */}
             <View style={styles.iconDisplay}>
-              <Ionicons 
-                name={getWeatherIconName(weatherData.condition) as any} 
-                size={120} 
-                color="#333" 
-              />
+              <Ionicons name={getWeatherIconName(weatherData.condition) as any} size={120} color="#333" />
             </View>
 
             {/* Weather Message */}
@@ -180,7 +161,6 @@ const Weather: React.FC = () => {
               <Text style={styles.dailyMessage}>{weatherData.dailyMessage}</Text>
             </View>
           </View>
-
         </ScrollView>
       </LinearGradient>
     </SafeAreaView>

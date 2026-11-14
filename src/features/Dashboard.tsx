@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  StyleSheet,
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
@@ -13,12 +13,10 @@ import {
   Animated,
   Platform,
   Dimensions,
-  Easing,
-  LayoutAnimation,
   UIManager,
   ActivityIndicator,
   Modal,
-  View as RNView
+  View as RNView,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -30,24 +28,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import apiKeysService from '../services/apiKeysService';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { format } from 'date-fns';
-import { db } from '../services/firebase';
+import { db, auth } from '../services/firebase';
 import { collection, getDocs, query, orderBy, onSnapshot, limit, doc, getDoc, where } from 'firebase/firestore';
-import { TimetableData, ExtractedTimetable, ClassEntry } from '../types/timetable';
+import { TimetableData, ExtractedTimetable } from '../types/timetable';
 import { EventData, getLatestEvent } from './Events';
-import AskAIBot from './AskAIBot';
 import Alerts from './Alerts';
-import { auth } from '../services/firebase';
 import { Collapsible } from '../components/Collapsible';
 import { mitCalendar } from '../data/calendars';
-import { findNextEvent, formatDaysRemaining } from '../utils/academicCalendar';
+import { findNextEvent } from '../utils/academicCalendar';
+import { getUserPoints, UserPoints, updateStreakOnDashboardVisit } from '../services/pointsService';
 // Replace import ... from ... for badges with require()
 const BeginnerBadge = require('../../assets/Badges-Points/Beginner.png');
 const ExplorerBadge = require('../../assets/Badges-Points/Explorer.png');
 const ProdigyBadge = require('../../assets/Badges-Points/Prodigy.png');
 const MasterBadge = require('../../assets/Badges-Points/Master.png');
 const LegendBadge = require('../../assets/Badges-Points/Legend.png');
-import { getUserPoints, UserPoints, updateStreakOnDashboardVisit } from '../services/pointsService';
 const OGUserBadge = require('../../assets/Badges/OgUser.png');
 
 // Enable LayoutAnimation for Android
@@ -131,16 +126,16 @@ const Dashboard: React.FC = () => {
   const [nextClassInfo, setNextClassInfo] = useState<NextClassInfo | null>(null);
   const { weatherData, loading: weatherLoading } = useWeather();
   const [latestEvent, setLatestEvent] = useState<EventData | null>(null);
-  
+
   // Recent activities state
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
-  
+
   // Animation values for interactions
   const [quickActionAnimations] = useState([
     new Animated.Value(1),
     new Animated.Value(1),
     new Animated.Value(1),
-    new Animated.Value(1)
+    new Animated.Value(1),
   ]);
 
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -151,7 +146,7 @@ const Dashboard: React.FC = () => {
 
   // Add state for leaderboard modal and data
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
-  const [leaderboardData, setLeaderboardData] = useState<{ uid: string, name: string, points: number }[]>([]);
+  const [leaderboardData, setLeaderboardData] = useState<{ uid: string; name: string; points: number }[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
 
   const rankThresholds = [
@@ -181,13 +176,13 @@ const Dashboard: React.FC = () => {
       const timetablesRef = collection(db, 'extracted_timetables');
       const q = query(timetablesRef, orderBy('extractionDate', 'desc'));
       const querySnapshot = await getDocs(q);
-      
+
       if (!querySnapshot.empty) {
         const latestTimetable = querySnapshot.docs[0].data() as ExtractedTimetable;
         setTimetableData(latestTimetable.extractedData);
         return latestTimetable.extractedData;
       }
-      
+
       // Fallback to AsyncStorage
       const savedTimetable = await AsyncStorage.getItem('timetableData');
       if (savedTimetable) {
@@ -195,7 +190,7 @@ const Dashboard: React.FC = () => {
         setTimetableData(parsedTimetable);
         return parsedTimetable;
       }
-      
+
       return null;
     } catch (error) {
       console.error('Error loading timetable data:', error);
@@ -208,15 +203,15 @@ const Dashboard: React.FC = () => {
     try {
       const [time, period] = timeString.split(' ');
       const [hours, minutes] = time.split(':').map(Number);
-      
+
       let totalMinutes = hours * 60 + minutes;
-      
+
       if (period && period.toUpperCase() === 'PM' && hours !== 12) {
         totalMinutes += 12 * 60;
       } else if (period && period.toUpperCase() === 'AM' && hours === 12) {
         totalMinutes = minutes;
       }
-      
+
       return totalMinutes;
     } catch (error) {
       console.error('Error parsing time:', timeString);
@@ -229,22 +224,20 @@ const Dashboard: React.FC = () => {
     const now = new Date();
     const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
     const currentTime = now.getHours() * 60 + now.getMinutes(); // Current time in minutes
-    
+
     // Map days to our timetable format
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    
+
     // Look for classes today first
     const today = dayNames[currentDay];
-    const todaySchedule = timetableData.days.find(day => 
-      day.day.toLowerCase() === today.toLowerCase()
-    );
-    
+    const todaySchedule = timetableData.days.find((day) => day.day.toLowerCase() === today.toLowerCase());
+
     if (todaySchedule && todaySchedule.classes.length > 0) {
       // Sort classes by start time
       const sortedClasses = [...todaySchedule.classes].sort((a, b) => {
         return parseTime(a.startTime) - parseTime(b.startTime);
       });
-      
+
       // Find next class today
       for (const classItem of sortedClasses) {
         const classStartTime = parseTime(classItem.startTime);
@@ -257,29 +250,27 @@ const Dashboard: React.FC = () => {
             professor: classItem.professor,
             dayOfWeek: today,
             minutesUntilStart: classStartTime - currentTime,
-            isToday: true
+            isToday: true,
           };
         }
       }
     }
-    
+
     // If no class today, look for next day with classes
     for (let i = 1; i < 7; i++) {
       const nextDayIndex = (currentDay + i) % 7;
       const nextDay = dayNames[nextDayIndex];
-      const nextDaySchedule = timetableData.days.find(day => 
-        day.day.toLowerCase() === nextDay.toLowerCase()
-      );
-      
+      const nextDaySchedule = timetableData.days.find((day) => day.day.toLowerCase() === nextDay.toLowerCase());
+
       if (nextDaySchedule && nextDaySchedule.classes.length > 0) {
         const sortedClasses = [...nextDaySchedule.classes].sort((a, b) => {
           return parseTime(a.startTime) - parseTime(b.startTime);
         });
-        
+
         const firstClass = sortedClasses[0];
         const classStartTime = parseTime(firstClass.startTime);
-        const minutesUntilStart = (i * 24 * 60) + classStartTime - currentTime;
-        
+        const minutesUntilStart = i * 24 * 60 + classStartTime - currentTime;
+
         return {
           subject: firstClass.subject,
           startTime: firstClass.startTime,
@@ -288,11 +279,11 @@ const Dashboard: React.FC = () => {
           professor: firstClass.professor,
           dayOfWeek: nextDay,
           minutesUntilStart: minutesUntilStart,
-          isToday: false
+          isToday: false,
         };
       }
     }
-    
+
     return null;
   };
 
@@ -315,22 +306,22 @@ const Dashboard: React.FC = () => {
   };
 
   // Get current meal based on time of day
-  const getCurrentMeal = (): { 
-    meal: 'Breakfast' | 'Lunch' | 'Snacks' | 'Dinner'; 
+  const getCurrentMeal = (): {
+    meal: 'Breakfast' | 'Lunch' | 'Snacks' | 'Dinner';
     isServing: boolean;
-    timing: string; 
+    timing: string;
   } => {
     const now = new Date();
-    const hours = now.getHours() + (now.getMinutes() / 60);
-    
+    const hours = now.getHours() + now.getMinutes() / 60;
+
     // Define meal times (24-hour format)
     const mealTimes = {
-      breakfast: { start: 7, end: 9.5, display: "7:00 AM - 9:30 AM" },     // 7:00 AM - 9:30 AM
-      lunch: { start: 11.75, end: 14.25, display: "11:45 AM - 2:15 PM" },  // 11:45 AM - 2:15 PM
-      snacks: { start: 16.5, end: 18, display: "4:30 PM - 6:00 PM" },      // 4:30 PM - 6:00 PM
-      dinner: { start: 19, end: 21.5, display: "7:00 PM - 9:30 PM" },      // 7:00 PM - 9:30 PM
+      breakfast: { start: 7, end: 9.5, display: '7:00 AM - 9:30 AM' }, // 7:00 AM - 9:30 AM
+      lunch: { start: 11.75, end: 14.25, display: '11:45 AM - 2:15 PM' }, // 11:45 AM - 2:15 PM
+      snacks: { start: 16.5, end: 18, display: '4:30 PM - 6:00 PM' }, // 4:30 PM - 6:00 PM
+      dinner: { start: 19, end: 21.5, display: '7:00 PM - 9:30 PM' }, // 7:00 PM - 9:30 PM
     };
-    
+
     // Check which meal is currently being served
     if (hours >= mealTimes.breakfast.start && hours < mealTimes.breakfast.end) {
       return { meal: 'Breakfast', isServing: true, timing: mealTimes.breakfast.display };
@@ -341,7 +332,7 @@ const Dashboard: React.FC = () => {
     } else if (hours >= mealTimes.dinner.start && hours < mealTimes.dinner.end) {
       return { meal: 'Dinner', isServing: true, timing: mealTimes.dinner.display };
     }
-    
+
     // If no meal is currently being served, determine the next meal
     if (hours < mealTimes.breakfast.start || hours >= mealTimes.dinner.end) {
       return { meal: 'Breakfast', isServing: false, timing: mealTimes.breakfast.display };
@@ -374,37 +365,37 @@ const Dashboard: React.FC = () => {
       }
 
       const date = new Date();
-      const options: Intl.DateTimeFormatOptions = { 
-        weekday: 'long', 
-        month: 'long', 
-        day: 'numeric' 
+      const options: Intl.DateTimeFormatOptions = {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
       };
       setCurrentDate(date.toLocaleDateString('en-US', options));
-      
+
       // Load timetable data
       const timetable = await loadTimetableData();
-      
+
       // Fetch latest event from Events module
       const event = await getLatestEvent();
       setLatestEvent(event);
-      
+
       if (timetable) {
         setTimetableData(timetable);
         const nextClass = calculateNextClass(timetable);
         setNextClassInfo(nextClass);
-        
+
         // Create initial highlight cards with next class if available
         const cards: HighlightCard[] = [];
-        
+
         // Add next class card
         if (nextClass) {
           cards.push({
             id: 'next-class',
             type: 'class',
-            data: nextClass
+            data: nextClass,
           });
         }
-        
+
         // Mock mess data
         cards.push({
           id: 'mess-menu',
@@ -412,10 +403,10 @@ const Dashboard: React.FC = () => {
           data: {
             meal: 'Lunch',
             items: ['Vegetable Biryani', 'Paneer Butter Masala', 'Roti', 'Salad', 'Ice Cream'],
-            time: '12:30 PM - 2:30 PM'
-          }
+            time: '12:30 PM - 2:30 PM',
+          },
         });
-        
+
         // Add event data from Events.tsx
         cards.push({
           id: 'event-card',
@@ -423,26 +414,26 @@ const Dashboard: React.FC = () => {
           data: {
             title: event ? event.title : 'No upcoming events',
             time: event ? event.time : 'N/A',
-            location: event ? event.location : 'N/A'
-          }
+            location: event ? event.location : 'N/A',
+          },
         });
-        
+
         // Add weather card if available
         if (weatherData) {
           cards.push({
             id: 'today-class-card',
             type: 'todayClass',
             data: {
-              subject: 'Today\'s Algorithm Design',
+              subject: "Today's Algorithm Design",
               startTime: '2:30 PM',
               room: 'NLH-301',
               minutesUntilStart: 120,
               isToday: true,
-              dayOfWeek: 'Today'
-            } as NextClassInfo
+              dayOfWeek: 'Today',
+            } as NextClassInfo,
           });
         }
-        
+
         setHighlightCards(cards);
       } else {
         // Mock data if no timetable available
@@ -453,8 +444,8 @@ const Dashboard: React.FC = () => {
             data: {
               meal: 'Lunch',
               items: ['Basmati Rice', 'Dal Tadka', 'Paneer Butter Masala', 'Fresh Fruit Salad'],
-              time: '12:00 PM - 2:00 PM'
-            } as MessMenu
+              time: '12:00 PM - 2:00 PM',
+            } as MessMenu,
           },
           {
             id: '2',
@@ -462,8 +453,8 @@ const Dashboard: React.FC = () => {
             data: {
               subject: 'Data Structures & Algorithms',
               time: '10:30 AM',
-              room: 'CS-301'
-            } as ClassAlert
+              room: 'CS-301',
+            } as ClassAlert,
           },
           {
             id: '3',
@@ -471,21 +462,21 @@ const Dashboard: React.FC = () => {
             data: {
               title: 'Tech Innovation Meetup',
               time: '5:30 PM',
-              location: 'Innovation Center'
-            } as EventItem
+              location: 'Innovation Center',
+            } as EventItem,
           },
           {
             id: '4',
             type: 'todayClass',
             data: {
-              subject: 'Today\'s Algorithm Design',
+              subject: "Today's Algorithm Design",
               startTime: '2:30 PM',
               room: 'NLH-301',
               minutesUntilStart: 120,
               isToday: true,
-              dayOfWeek: 'Today'
-            } as NextClassInfo
-          }
+              dayOfWeek: 'Today',
+            } as NextClassInfo,
+          },
         ]);
       }
     };
@@ -494,37 +485,37 @@ const Dashboard: React.FC = () => {
 
     // Enhanced mock data for notifications
     setNotifications([
-      { 
-        id: '1', 
-        type: 'event', 
-        title: '🚀 Hackathon registration closes in 2 hours', 
-        icon: 'code-slash-outline', 
+      {
+        id: '1',
+        type: 'event',
+        title: '🚀 Hackathon registration closes in 2 hours',
+        icon: 'code-slash-outline',
         time: '2h ago',
-        read: false
+        read: false,
       },
-      { 
-        id: '2', 
-        type: 'study', 
-        title: '📚 New study material shared in DBMS group', 
-        icon: 'book-outline', 
+      {
+        id: '2',
+        type: 'study',
+        title: '📚 New study material shared in DBMS group',
+        icon: 'book-outline',
         time: '3h ago',
-        read: false
+        read: false,
       },
-      { 
-        id: '3', 
-        type: 'roommate', 
-        title: '🏠 Your roommate request has been accepted!', 
-        icon: 'home-outline', 
+      {
+        id: '3',
+        type: 'roommate',
+        title: '🏠 Your roommate request has been accepted!',
+        icon: 'home-outline',
         time: '5h ago',
-        read: false
+        read: false,
       },
-      { 
-        id: '4', 
-        type: 'mess', 
-        title: '🍽️ Tomorrow\'s mess menu has been updated', 
-        icon: 'restaurant-outline', 
+      {
+        id: '4',
+        type: 'mess',
+        title: "🍽️ Tomorrow's mess menu has been updated",
+        icon: 'restaurant-outline',
         time: '1d ago',
-        read: true
+        read: true,
       },
     ]);
   }, [weatherData]);
@@ -533,24 +524,28 @@ const Dashboard: React.FC = () => {
   useFocusEffect(
     React.useCallback(() => {
       setActiveTab('home');
-    }, [])
+    }, []),
   );
 
   // Listen for recent activities
   useEffect(() => {
     const q = query(collection(db, 'recent_activities'), orderBy('createdAt', 'desc'), limit(5));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const activities = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setRecentActivities(activities);
-    }, (error) => {
-      console.error('Error listening to recent activities:', error);
-      // Fallback to empty array if there's an error
-      setRecentActivities([]);
-    });
-    
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const activities = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setRecentActivities(activities);
+      },
+      (error) => {
+        console.error('Error listening to recent activities:', error);
+        // Fallback to empty array if there's an error
+        setRecentActivities([]);
+      },
+    );
+
     return () => unsubscribe();
   }, []);
 
@@ -693,26 +688,26 @@ const Dashboard: React.FC = () => {
           return {
             gradient: ['#FFE5E5', '#FFF0F0'] as const,
             accent: '#FF6B6B',
-            icon: 'restaurant-outline'
+            icon: 'restaurant-outline',
           };
         case 'class':
         case 'todayClass':
           return {
             gradient: ['#E8F2FF', '#F0F8FF'] as const,
             accent: '#4E54C8',
-            icon: 'school-outline'
+            icon: 'school-outline',
           };
         case 'event':
           return {
             gradient: ['#E8F5E8', '#F0FAF0'] as const,
             accent: '#38B000',
-            icon: 'calendar-outline'
+            icon: 'calendar-outline',
           };
         default:
           return {
             gradient: ['#F5F5F5', '#FAFAFA'] as const,
             accent: '#999',
-            icon: 'information-circle-outline'
+            icon: 'information-circle-outline',
           };
       }
     };
@@ -728,49 +723,51 @@ const Dashboard: React.FC = () => {
             }}
             style={styles.modernCardWrapper}
           >
-          <LinearGradient
-            colors={colors.gradient}
-            style={styles.modernCard}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <View style={styles.cardHeader}>
-              <View style={[styles.iconContainer, { backgroundColor: colors.accent + '20' }]}>
-                <Ionicons name={colors.icon as any} size={24} color={colors.accent} />
+            <LinearGradient
+              colors={colors.gradient}
+              style={styles.modernCard}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.cardHeader}>
+                <View style={[styles.iconContainer, { backgroundColor: colors.accent + '20' }]}>
+                  <Ionicons name={colors.icon as any} size={24} color={colors.accent} />
+                </View>
+                <View style={styles.headerTextContainer}>
+                  <Text style={styles.cardTitle}>Today's Mess</Text>
+                  {(() => {
+                    const { meal, isServing } = getCurrentMeal();
+                    return (
+                      <Text style={styles.cardSubtitle}>
+                        {isServing ? `Serving ${meal} Now` : `${meal} Around the Corner`}
+                      </Text>
+                    );
+                  })()}
+                </View>
               </View>
-              <View style={styles.headerTextContainer}>
-                <Text style={styles.cardTitle}>Today's Mess</Text>
+              <View style={styles.cardContent}>
                 {(() => {
-                  const { meal, isServing } = getCurrentMeal();
+                  const { meal, timing } = getCurrentMeal();
                   return (
-                    <Text style={styles.cardSubtitle}>
-                      {isServing ? `Serving ${meal} Now` : `${meal} Around the Corner`}
+                    <Text style={styles.timeText}>
+                      {meal} Timings: {timing}
                     </Text>
                   );
                 })()}
+                <TouchableOpacity
+                  style={[styles.checkButton, { backgroundColor: colors.accent }]}
+                  onPress={() => {
+                    navigation.navigate('MessOption');
+                  }}
+                >
+                  <Text style={styles.checkButtonText}>Check what's cooking!</Text>
+                  <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+                </TouchableOpacity>
               </View>
-            </View>
-            <View style={styles.cardContent}>
-              {(() => {
-                const { meal, timing } = getCurrentMeal();
-                return (
-                  <Text style={styles.timeText}>{meal} Timings: {timing}</Text>
-                );
-              })()}
-              <TouchableOpacity
-                style={[styles.checkButton, { backgroundColor: colors.accent }]}
-                onPress={() => {
-                  navigation.navigate('MessOption');
-                }}
-              >
-                <Text style={styles.checkButtonText}>Check what's cooking!</Text>
-                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
+            </LinearGradient>
           </TouchableOpacity>
         );
-      
+
       case 'class':
       case 'todayClass':
         // Clean and concise class card
@@ -795,7 +792,7 @@ const Dashboard: React.FC = () => {
                   <Text style={styles.cardSubtitle}>Stay updated with your classes</Text>
                 </View>
               </View>
-              
+
               <View style={styles.cardContent}>
                 <TouchableOpacity
                   style={[styles.actionButton, { backgroundColor: colors.accent }]}
@@ -819,51 +816,49 @@ const Dashboard: React.FC = () => {
             }}
             style={styles.modernCardWrapper}
           >
-          <LinearGradient
-            colors={colors.gradient}
-            style={styles.modernCard}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <View style={styles.cardHeader}>
-              <View style={[styles.iconContainer, { backgroundColor: colors.accent + '20' }]}>
-                <Ionicons name={colors.icon as any} size={24} color={colors.accent} />
-              </View>
-              <View style={styles.headerTextContainer}>
-                <Text style={styles.cardTitle}>Upcoming Events</Text>
-                <Text style={styles.cardSubtitle}>Don't miss out!</Text>
-              </View>
-            </View>
-            <View style={styles.cardContent}>
-              <Text style={styles.eventName}>
-                {latestEvent ? latestEvent.title : eventData.title}
-              </Text>
-              <View style={styles.eventDetailsRow}>
-                <View style={styles.detailItem}>
-                  <Ionicons name="time-outline" size={16} color="#666" />
-                  <Text style={styles.detailText}>{eventData.time}</Text>
+            <LinearGradient
+              colors={colors.gradient}
+              style={styles.modernCard}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.cardHeader}>
+                <View style={[styles.iconContainer, { backgroundColor: colors.accent + '20' }]}>
+                  <Ionicons name={colors.icon as any} size={24} color={colors.accent} />
                 </View>
-                <View style={styles.detailItem}>
-                  <Ionicons name="location-outline" size={16} color="#666" />
-                  <Text style={styles.detailText}>{eventData.location}</Text>
+                <View style={styles.headerTextContainer}>
+                  <Text style={styles.cardTitle}>Upcoming Events</Text>
+                  <Text style={styles.cardSubtitle}>Don't miss out!</Text>
                 </View>
               </View>
-              <TouchableOpacity 
-                style={[styles.actionButton, { backgroundColor: colors.accent }]}
-                onPress={() => {
-                  if (latestEvent) {
-                    handleTabNavigation('Events');
-                  }
-                }}
-              >
-                <Text style={styles.actionButtonText}>View Details</Text>
-                <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
+              <View style={styles.cardContent}>
+                <Text style={styles.eventName}>{latestEvent ? latestEvent.title : eventData.title}</Text>
+                <View style={styles.eventDetailsRow}>
+                  <View style={styles.detailItem}>
+                    <Ionicons name="time-outline" size={16} color="#666" />
+                    <Text style={styles.detailText}>{eventData.time}</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Ionicons name="location-outline" size={16} color="#666" />
+                    <Text style={styles.detailText}>{eventData.location}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: colors.accent }]}
+                  onPress={() => {
+                    if (latestEvent) {
+                      handleTabNavigation('Events');
+                    }
+                  }}
+                >
+                  <Text style={styles.actionButtonText}>View Details</Text>
+                  <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
           </TouchableOpacity>
         );
-      
+
       default:
         return null;
     }
@@ -895,10 +890,7 @@ const Dashboard: React.FC = () => {
     // Reset navigation stack to Dashboard first, then navigate to the screen
     navigation.reset({
       index: 1,
-      routes: [
-        { name: 'Dashboard' },
-        { name: screenName, params }
-      ],
+      routes: [{ name: 'Dashboard' }, { name: screenName, params }],
     });
   };
 
@@ -944,7 +936,7 @@ const Dashboard: React.FC = () => {
       case 'Mess Menu':
         handleTabNavigation('MessNotification');
         break;
-      case 'Today\'s Class':
+      case "Today's Class":
         handleTabNavigation('DailyTimetable', { timetableData });
         break;
       case 'Sports':
@@ -1014,10 +1006,7 @@ const Dashboard: React.FC = () => {
           },
         ]}
       >
-        <LinearGradient
-          colors={[item.color + '20', item.color + '10']}
-          style={styles.featureIcon}
-        >
+        <LinearGradient colors={[item.color + '20', item.color + '10']} style={styles.featureIcon}>
           {item.name === 'QnA Forum' && item.image ? (
             <Image source={item.image} style={{ width: 40, height: 40, resizeMode: 'contain' }} />
           ) : (
@@ -1034,7 +1023,7 @@ const Dashboard: React.FC = () => {
       { name: 'Mess Menu', icon: 'restaurant-outline', color: '#FF6B6B' },
       { name: 'Timetable', icon: 'calendar-outline', color: '#4E54C8' },
       { name: 'Marketplace', icon: 'storefront-outline', color: '#38B000' },
-      { name: 'Today\'s Class', icon: 'today-outline', color: '#4E54C8' },
+      { name: "Today's Class", icon: 'today-outline', color: '#4E54C8' },
     ];
 
     return (
@@ -1056,10 +1045,7 @@ const Dashboard: React.FC = () => {
                 },
               ]}
             >
-              <LinearGradient
-                colors={[action.color + '20', action.color + '10']}
-                style={styles.quickActionGradient}
-              >
+              <LinearGradient colors={[action.color + '20', action.color + '10']} style={styles.quickActionGradient}>
                 <Ionicons name={action.icon as any} size={24} color={action.color} />
               </LinearGradient>
             </Animated.View>
@@ -1071,25 +1057,19 @@ const Dashboard: React.FC = () => {
   };
 
   const renderTabBar = () => (
-    <View style={styles.modernTabBarContainer}> {/* Removed paddingBottom: insets.bottom */}
+    <View style={styles.modernTabBarContainer}>
+      {' '}
+      {/* Removed paddingBottom: insets.bottom */}
       <BlurView intensity={95} tint="light" style={styles.modernTabBar}>
         {/* Home Tab */}
-        <TouchableOpacity
-          style={styles.modernTabButton}
-          onPress={() => setActiveTab('home')}
-        >
+        <TouchableOpacity style={styles.modernTabButton} onPress={() => setActiveTab('home')}>
           <View style={[styles.tabIndicator, activeTab === 'home' && styles.activeTabIndicator]} />
           <Ionicons
             name={activeTab === 'home' ? 'home' : 'home-outline'}
             size={22}
             color={activeTab === 'home' ? '#4E54C8' : '#8E8E93'}
           />
-          <Text style={[
-            styles.modernTabLabel,
-            activeTab === 'home' && styles.activeModernTabLabel
-          ]}>
-            Home
-          </Text>
+          <Text style={[styles.modernTabLabel, activeTab === 'home' && styles.activeModernTabLabel]}>Home</Text>
         </TouchableOpacity>
 
         {/* Social Hub Tab */}
@@ -1107,12 +1087,7 @@ const Dashboard: React.FC = () => {
             size={22}
             color={activeTab === 'social' ? '#4E54C8' : '#8E8E93'}
           />
-          <Text style={[
-            styles.modernTabLabel,
-            activeTab === 'social' && styles.activeModernTabLabel
-          ]}>
-            Social Hub
-          </Text>
+          <Text style={[styles.modernTabLabel, activeTab === 'social' && styles.activeModernTabLabel]}>Social Hub</Text>
         </TouchableOpacity>
 
         {/* Explore Tab - Center with larger size */}
@@ -1121,19 +1096,19 @@ const Dashboard: React.FC = () => {
           onPress={() => setActiveTab('explore')}
         >
           <View style={[styles.tabIndicator, activeTab === 'explore' && styles.activeTabIndicator]} />
-          <View style={[styles.centerTabIconContainer, { backgroundColor: activeTab === 'explore' ? '#4E54C8' : '#F2F2F7' }]}>
+          <View
+            style={[
+              styles.centerTabIconContainer,
+              { backgroundColor: activeTab === 'explore' ? '#4E54C8' : '#F2F2F7' },
+            ]}
+          >
             <Ionicons
               name={activeTab === 'explore' ? 'apps' : 'apps-outline'}
               size={26}
               color={activeTab === 'explore' ? '#FFFFFF' : '#8E8E93'}
             />
           </View>
-          <Text style={[
-            styles.modernTabLabel,
-            activeTab === 'explore' && styles.activeModernTabLabel
-          ]}>
-            Explore
-          </Text>
+          <Text style={[styles.modernTabLabel, activeTab === 'explore' && styles.activeModernTabLabel]}>Explore</Text>
         </TouchableOpacity>
 
         {/* Your Rides Tab */}
@@ -1151,19 +1126,11 @@ const Dashboard: React.FC = () => {
             size={22}
             color={activeTab === 'rides' ? '#4E54C8' : '#8E8E93'}
           />
-          <Text style={[
-            styles.modernTabLabel,
-            activeTab === 'rides' && styles.activeModernTabLabel
-          ]}>
-            Your Rides
-          </Text>
+          <Text style={[styles.modernTabLabel, activeTab === 'rides' && styles.activeModernTabLabel]}>Your Rides</Text>
         </TouchableOpacity>
 
         {/* Notifications Tab */}
-        <TouchableOpacity
-          style={styles.modernTabButton}
-          onPress={() => setActiveTab('notifications')}
-        >
+        <TouchableOpacity style={styles.modernTabButton} onPress={() => setActiveTab('notifications')}>
           <View style={[styles.tabIndicator, activeTab === 'notifications' && styles.activeTabIndicator]} />
           <View style={styles.notificationTabContainer}>
             <Ionicons
@@ -1173,21 +1140,14 @@ const Dashboard: React.FC = () => {
             />
             {unreadCount > 0 && (
               <View style={styles.modernUnreadBadge}>
-                <Text style={styles.modernUnreadBadgeText}>
-                  {unreadCount > 99 ? '99+' : unreadCount.toString()}
-                </Text>
+                <Text style={styles.modernUnreadBadgeText}>{unreadCount > 99 ? '99+' : unreadCount.toString()}</Text>
               </View>
             )}
           </View>
-          <Text style={[
-            styles.modernTabLabel,
-            activeTab === 'notifications' && styles.activeModernTabLabel
-          ]}>
+          <Text style={[styles.modernTabLabel, activeTab === 'notifications' && styles.activeModernTabLabel]}>
             Alerts
           </Text>
         </TouchableOpacity>
-        
-
       </BlurView>
     </View>
   );
@@ -1203,10 +1163,17 @@ const Dashboard: React.FC = () => {
       ) : (
         <FlatList
           data={allChats}
-          keyExtractor={item => item.chatId}
+          keyExtractor={(item) => item.chatId}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8F9FA', borderRadius: 10, padding: 10, marginBottom: 10 }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#F8F9FA',
+                borderRadius: 10,
+                padding: 10,
+                marginBottom: 10,
+              }}
               onPress={() => {
                 if (item.type === 'product') {
                   navigation.navigate('ProductChat', {
@@ -1226,7 +1193,10 @@ const Dashboard: React.FC = () => {
               }}
             >
               {item.type === 'product' && item.productImage ? (
-                <Image source={{ uri: item.productImage }} style={{ width: 40, height: 40, borderRadius: 8, marginRight: 10, backgroundColor: '#F2F2F7' }} />
+                <Image
+                  source={{ uri: item.productImage }}
+                  style={{ width: 40, height: 40, borderRadius: 8, marginRight: 10, backgroundColor: '#F2F2F7' }}
+                />
               ) : item.type === 'roommate' ? (
                 <Ionicons name="bed-outline" size={40} color="#C7C7CC" style={{ marginRight: 10 }} />
               ) : (
@@ -1236,9 +1206,13 @@ const Dashboard: React.FC = () => {
                 <Text style={{ fontSize: 15, fontWeight: '600', color: '#1C1C1E' }}>
                   {item.type === 'product' ? item.productTitle : 'Roommate Listing'}
                 </Text>
-                <Text style={{ fontSize: 13, color: '#8E8E93', marginTop: 2 }} numberOfLines={1}>{item.otherUser.name}: {item.lastMessage}</Text>
+                <Text style={{ fontSize: 13, color: '#8E8E93', marginTop: 2 }} numberOfLines={1}>
+                  {item.otherUser.name}: {item.lastMessage}
+                </Text>
               </View>
-              <Text style={{ fontSize: 11, color: '#8E8E93', marginLeft: 8 }}>{item.lastMessageTime ? new Date(item.lastMessageTime).toLocaleTimeString() : ''}</Text>
+              <Text style={{ fontSize: 11, color: '#8E8E93', marginLeft: 8 }}>
+                {item.lastMessageTime ? new Date(item.lastMessageTime).toLocaleTimeString() : ''}
+              </Text>
             </TouchableOpacity>
           )}
         />
@@ -1263,7 +1237,7 @@ const Dashboard: React.FC = () => {
   useFocusEffect(
     React.useCallback(() => {
       loadProfile();
-    }, [])
+    }, []),
   );
 
   useEffect(() => {
@@ -1287,7 +1261,7 @@ const Dashboard: React.FC = () => {
       const usersRef = collection(db, 'users');
       const q = query(usersRef, orderBy('accountCreatedOn', 'asc'), limit(500));
       const snapshot = await getDocs(q);
-      const isOG = snapshot.docs.some(doc => doc.id === user.uid);
+      const isOG = snapshot.docs.some((doc) => doc.id === user.uid);
       setIsOGUser(isOG);
     };
     checkOGUser();
@@ -1307,8 +1281,8 @@ const Dashboard: React.FC = () => {
           {/* Tab Content */}
           <View style={styles.tabContent}>
             {activeTab === 'home' && (
-              <ScrollView 
-                style={styles.modernTabContent} 
+              <ScrollView
+                style={styles.modernTabContent}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
               >
@@ -1322,21 +1296,12 @@ const Dashboard: React.FC = () => {
                     />
                     <Text style={styles.appName}>YOGO Campus</Text>
                   </View>
-                  
-                  <TouchableOpacity 
-                    style={styles.profileButton}
-                    onPress={() => navigation.navigate('Profile')}
-                  >
+
+                  <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate('Profile')}>
                     {userProfile?.profileImage ? (
-                      <Image
-                        source={{ uri: userProfile.profileImage }}
-                        style={styles.profileGradient}
-                      />
+                      <Image source={{ uri: userProfile.profileImage }} style={styles.profileGradient} />
                     ) : (
-                      <LinearGradient
-                        colors={['#4E54C8', '#8B5CF6']}
-                        style={styles.profileGradient}
-                      >
+                      <LinearGradient colors={['#4E54C8', '#8B5CF6']} style={styles.profileGradient}>
                         <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>
                           {userProfile?.name?.charAt(0) || 'U'}
                         </Text>
@@ -1347,7 +1312,9 @@ const Dashboard: React.FC = () => {
 
                 {/* Greeting Section */}
                 <View style={styles.modernGreetingSection}>
-                  <Text style={styles.modernGreeting}>{getTimeBasedGreeting()}, {userName}!</Text>
+                  <Text style={styles.modernGreeting}>
+                    {getTimeBasedGreeting()}, {userName}!
+                  </Text>
                   <Text style={styles.modernDate}>{currentDate}</Text>
                 </View>
 
@@ -1381,7 +1348,7 @@ const Dashboard: React.FC = () => {
                           <LinearGradient
                             colors={[
                               hexToRgba(activity.color || '#4E54C8', 0.13),
-                              hexToRgba(activity.color || '#4E54C8', 0.07)
+                              hexToRgba(activity.color || '#4E54C8', 0.07),
                             ]}
                             style={styles.modernActivityIcon}
                           >
@@ -1429,7 +1396,7 @@ const Dashboard: React.FC = () => {
                       setLoadingLeaderboard(true);
                       try {
                         const userPointsSnap = await getDocs(
-                          query(collection(db, 'user_points'), orderBy('totalPoints', 'desc'), limit(50))
+                          query(collection(db, 'user_points'), orderBy('totalPoints', 'desc'), limit(50)),
                         );
                         const leaderboard = [];
                         for (const docSnap of userPointsSnap.docs) {
@@ -1463,19 +1430,32 @@ const Dashboard: React.FC = () => {
                       {loadingAllChats ? (
                         <ActivityIndicator size="small" color="#4E54C8" style={{ marginTop: 20 }} />
                       ) : allChats.length === 0 ? (
-                        <Text style={{ color: '#8E8E93', fontSize: 15, marginTop: 12, marginLeft: 12 }}>No conversations yet</Text>
+                        <Text style={{ color: '#8E8E93', fontSize: 15, marginTop: 12, marginLeft: 12 }}>
+                          No conversations yet
+                        </Text>
                       ) : (
                         <FlatList
                           data={allChats}
-                          keyExtractor={item => item.chatId}
+                          keyExtractor={(item) => item.chatId}
                           renderItem={({ item }) => (
                             <TouchableOpacity
-                              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8F9FA', borderRadius: 10, padding: 10, marginBottom: 10 }}
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                backgroundColor: '#F8F9FA',
+                                borderRadius: 10,
+                                padding: 10,
+                                marginBottom: 10,
+                              }}
                               onPress={() => {
                                 if (item.type === 'product') {
                                   navigation.navigate('ProductChat', {
                                     chatId: item.chatId,
-                                    product: { id: item.productId, title: item.productTitle, images: [item.productImage] },
+                                    product: {
+                                      id: item.productId,
+                                      title: item.productTitle,
+                                      images: [item.productImage],
+                                    },
                                     buyer: { id: item.buyerId, name: item.buyerName },
                                     seller: { id: item.sellerId, name: item.sellerName },
                                   });
@@ -1490,7 +1470,16 @@ const Dashboard: React.FC = () => {
                               }}
                             >
                               {item.type === 'product' && item.productImage ? (
-                                <Image source={{ uri: item.productImage }} style={{ width: 40, height: 40, borderRadius: 8, marginRight: 10, backgroundColor: '#F2F2F7' }} />
+                                <Image
+                                  source={{ uri: item.productImage }}
+                                  style={{
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: 8,
+                                    marginRight: 10,
+                                    backgroundColor: '#F2F2F7',
+                                  }}
+                                />
                               ) : item.type === 'roommate' ? (
                                 <Ionicons name="bed-outline" size={40} color="#C7C7CC" style={{ marginRight: 10 }} />
                               ) : (
@@ -1500,9 +1489,13 @@ const Dashboard: React.FC = () => {
                                 <Text style={{ fontSize: 15, fontWeight: '600', color: '#1C1C1E' }}>
                                   {item.type === 'product' ? item.productTitle : 'Roommate Listing'}
                                 </Text>
-                                <Text style={{ fontSize: 13, color: '#8E8E93', marginTop: 2 }} numberOfLines={1}>{item.otherUser.name}: {item.lastMessage}</Text>
+                                <Text style={{ fontSize: 13, color: '#8E8E93', marginTop: 2 }} numberOfLines={1}>
+                                  {item.otherUser.name}: {item.lastMessage}
+                                </Text>
                               </View>
-                              <Text style={{ fontSize: 11, color: '#8E8E93', marginLeft: 8 }}>{item.lastMessageTime ? new Date(item.lastMessageTime).toLocaleTimeString() : ''}</Text>
+                              <Text style={{ fontSize: 11, color: '#8E8E93', marginLeft: 8 }}>
+                                {item.lastMessageTime ? new Date(item.lastMessageTime).toLocaleTimeString() : ''}
+                              </Text>
                             </TouchableOpacity>
                           )}
                         />
@@ -1520,23 +1513,19 @@ const Dashboard: React.FC = () => {
                     onPress={() => navigation.navigate('AskAIBot')}
                   >
                     <View style={styles.aiAssistantHeader}>
-                      <LinearGradient
-                        colors={['#4E54C870', '#8F94FB50']}
-                        style={styles.aiAssistantIcon}
-                      >
+                      <LinearGradient colors={['#4E54C870', '#8F94FB50']} style={styles.aiAssistantIcon}>
                         <Ionicons name="chatbubble-ellipses" size={24} color="#4E54C8" />
                       </LinearGradient>
                       <View style={styles.aiAssistantContent}>
                         <Text style={styles.aiAssistantTitle}>Ask AI</Text>
                         <Text style={styles.aiAssistantSubtitle}>
-                          Get instant answers to your questions about campus, courses, and more. Try our Video Assistant AI for face-to-face conversations!
+                          Get instant answers to your questions about campus, courses, and more. Try our Video Assistant
+                          AI for face-to-face conversations!
                         </Text>
                       </View>
                     </View>
                     <View style={styles.aiAssistantPrompt}>
-                      <Text style={styles.aiAssistantPromptText}>
-                        "Tap to ask the AI assistant..."
-                      </Text>
+                      <Text style={styles.aiAssistantPromptText}>"Tap to ask the AI assistant..."</Text>
                       <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
                     </View>
                   </TouchableOpacity>
@@ -1546,53 +1535,75 @@ const Dashboard: React.FC = () => {
                 <AcademicCalendarEventCard navigation={navigation} />
 
                 {/* Points System */}
-                {pointsLoading ? null : userPoints && (
-                  <View style={styles.pointsCardContainer}>
-                    <LinearGradient
-                      colors={["#E6F9ED", "#C8F7DC"]}
-                      style={styles.pointsCard}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                    >
-                      <View style={styles.pointsCardContent}>
-                        <Image
-                          source={(rankThresholds.find(r => userPoints.totalPoints >= r.min && userPoints.totalPoints <= r.max) || rankThresholds[0]).badge}
-                          style={styles.pointsBadgeImage}
-                        />
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.pointsRankText}>
-                            {(rankThresholds.find(r => userPoints.totalPoints >= r.min && userPoints.totalPoints <= r.max) || rankThresholds[0]).name} Rank
-                          </Text>
-                          <Text style={styles.pointsValueText}>{userPoints.totalPoints} Points</Text>
-                          <View style={styles.pointsProgressBarContainer}>
-                            {(() => {
-                              const currentRank = rankThresholds.find(r => userPoints.totalPoints >= r.min && userPoints.totalPoints <= r.max) || rankThresholds[0];
-                              const nextRank = rankThresholds[rankThresholds.indexOf(currentRank) + 1];
-                              const min = currentRank.min;
-                              const max = currentRank.max === Infinity ? userPoints.totalPoints + 1 : currentRank.max;
-                              const progress = Math.min(1, (userPoints.totalPoints - min) / (max - min));
-                              return (
-                                <RNView style={styles.progressBarBg}>
-                                  <RNView style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
-                                </RNView>
-                              );
-                            })()}
+                {pointsLoading
+                  ? null
+                  : userPoints && (
+                      <View style={styles.pointsCardContainer}>
+                        <LinearGradient
+                          colors={['#E6F9ED', '#C8F7DC']}
+                          style={styles.pointsCard}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                        >
+                          <View style={styles.pointsCardContent}>
+                            <Image
+                              source={
+                                (
+                                  rankThresholds.find(
+                                    (r) => userPoints.totalPoints >= r.min && userPoints.totalPoints <= r.max,
+                                  ) || rankThresholds[0]
+                                ).badge
+                              }
+                              style={styles.pointsBadgeImage}
+                            />
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.pointsRankText}>
+                                {
+                                  (
+                                    rankThresholds.find(
+                                      (r) => userPoints.totalPoints >= r.min && userPoints.totalPoints <= r.max,
+                                    ) || rankThresholds[0]
+                                  ).name
+                                }{' '}
+                                Rank
+                              </Text>
+                              <Text style={styles.pointsValueText}>{userPoints.totalPoints} Points</Text>
+                              <View style={styles.pointsProgressBarContainer}>
+                                {(() => {
+                                  const currentRank =
+                                    rankThresholds.find(
+                                      (r) => userPoints.totalPoints >= r.min && userPoints.totalPoints <= r.max,
+                                    ) || rankThresholds[0];
+                                  const nextRank = rankThresholds[rankThresholds.indexOf(currentRank) + 1];
+                                  const min = currentRank.min;
+                                  const max =
+                                    currentRank.max === Infinity ? userPoints.totalPoints + 1 : currentRank.max;
+                                  const progress = Math.min(1, (userPoints.totalPoints - min) / (max - min));
+                                  return (
+                                    <RNView style={styles.progressBarBg}>
+                                      <RNView style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
+                                    </RNView>
+                                  );
+                                })()}
+                              </View>
+                              <Text style={styles.pointsToNextText}>
+                                {(() => {
+                                  const currentRank =
+                                    rankThresholds.find(
+                                      (r) => userPoints.totalPoints >= r.min && userPoints.totalPoints <= r.max,
+                                    ) || rankThresholds[0];
+                                  if (currentRank.name === 'Legend') return 'Top Rank!';
+                                  const nextRank = rankThresholds[rankThresholds.indexOf(currentRank) + 1];
+                                  if (!nextRank) return '';
+                                  return `${nextRank.min - userPoints.totalPoints} points to ${nextRank.name}`;
+                                })()}
+                              </Text>
+                              <Text style={styles.pointsStreakText}>🔥 {userPoints.streak || 0} day streak</Text>
+                            </View>
                           </View>
-                          <Text style={styles.pointsToNextText}>
-                            {(() => {
-                              const currentRank = rankThresholds.find(r => userPoints.totalPoints >= r.min && userPoints.totalPoints <= r.max) || rankThresholds[0];
-                              if (currentRank.name === 'Legend') return 'Top Rank!';
-                              const nextRank = rankThresholds[rankThresholds.indexOf(currentRank) + 1];
-                              if (!nextRank) return '';
-                              return `${nextRank.min - userPoints.totalPoints} points to ${nextRank.name}`;
-                            })()}
-                          </Text>
-                          <Text style={styles.pointsStreakText}>🔥 {userPoints.streak || 0} day streak</Text>
-                        </View>
+                        </LinearGradient>
                       </View>
-                    </LinearGradient>
-                  </View>
-                )}
+                    )}
                 {/* Badges Earned Card */}
                 {userPoints && (
                   <View style={styles.badgeCardContainer}>
@@ -1604,7 +1615,7 @@ const Dashboard: React.FC = () => {
                         showsHorizontalScrollIndicator={false}
                         style={{ width: '100%' }}
                         contentContainerStyle={{ width: Dimensions.get('window').width * 2 }}
-                        onScroll={e => {
+                        onScroll={(e) => {
                           const x = e.nativeEvent.contentOffset.x;
                           const idx = Math.round(x / Dimensions.get('window').width);
                           if (badgeCarouselIndex !== idx) setBadgeCarouselIndex(idx);
@@ -1617,7 +1628,10 @@ const Dashboard: React.FC = () => {
                             <TouchableOpacity
                               style={styles.badgeCard}
                               activeOpacity={0.85}
-                              onPress={() => { setSelectedBadge('planner'); setBadgeModalVisible(true); }}
+                              onPress={() => {
+                                setSelectedBadge('planner');
+                                setBadgeModalVisible(true);
+                              }}
                             >
                               <View style={styles.badgeCardContent}>
                                 <Image
@@ -1629,21 +1643,50 @@ const Dashboard: React.FC = () => {
                                   <Text style={styles.badgeCriteria}>Criteria: Used timetable 7 days in a row</Text>
                                   <View style={styles.badgeProgressBarContainer}>
                                     <RNView style={styles.progressBarBg}>
-                                      <RNView style={[styles.progressBarFill, { width: `${Math.min(1, (userPoints.timetableStreak || 0) / 7) * 100}%`, backgroundColor: (userPoints.timetableStreak || 0) >= 7 ? '#34C759' : '#4E54C8' }]} />
+                                      <RNView
+                                        style={[
+                                          styles.progressBarFill,
+                                          {
+                                            width: `${Math.min(1, (userPoints.timetableStreak || 0) / 7) * 100}%`,
+                                            backgroundColor:
+                                              (userPoints.timetableStreak || 0) >= 7 ? '#34C759' : '#4E54C8',
+                                          },
+                                        ]}
+                                      />
                                     </RNView>
                                   </View>
-                                  <Text style={styles.badgeProgressText}>{Math.min(userPoints.timetableStreak || 0, 7)}/7 days</Text>
-                                  <Text style={[styles.badgeUnlockText, { color: (userPoints.timetableStreak || 0) >= 7 ? '#34C759' : '#8E8E93', fontSize: 18, marginTop: 8 }]}> 
+                                  <Text style={styles.badgeProgressText}>
+                                    {Math.min(userPoints.timetableStreak || 0, 7)}/7 days
+                                  </Text>
+                                  <Text
+                                    style={[
+                                      styles.badgeUnlockText,
+                                      {
+                                        color: (userPoints.timetableStreak || 0) >= 7 ? '#34C759' : '#8E8E93',
+                                        fontSize: 18,
+                                        marginTop: 8,
+                                      },
+                                    ]}
+                                  >
                                     {(userPoints.timetableStreak || 0) >= 7 ? 'Unlocked!' : 'Locked'}
                                   </Text>
                                 </View>
                                 {/* Next arrow button, absolutely positioned inside the card */}
                                 {badgeCarouselIndex === 0 && (
                                   <TouchableOpacity
-                                    style={{ position: 'absolute', right: 16, top: '50%', transform: [{ translateY: -16 }], zIndex: 10 }}
+                                    style={{
+                                      position: 'absolute',
+                                      right: 16,
+                                      top: '50%',
+                                      transform: [{ translateY: -16 }],
+                                      zIndex: 10,
+                                    }}
                                     onPress={() => {
                                       setBadgeCarouselIndex(1);
-                                      badgeCarouselRef.current?.scrollTo({ x: Dimensions.get('window').width, animated: true });
+                                      badgeCarouselRef.current?.scrollTo({
+                                        x: Dimensions.get('window').width,
+                                        animated: true,
+                                      });
                                     }}
                                   >
                                     <Ionicons name="arrow-forward-circle" size={32} color="#4E54C8" />
@@ -1659,36 +1702,44 @@ const Dashboard: React.FC = () => {
                             <TouchableOpacity
                               style={styles.badgeCard}
                               activeOpacity={0.85}
-                              onPress={() => { setSelectedBadge('oguser'); setBadgeModalVisible(true); }}
+                              onPress={() => {
+                                setSelectedBadge('oguser');
+                                setBadgeModalVisible(true);
+                              }}
                             >
                               <View style={styles.badgeCardContent}>
-                                <Image
-                                  source={OGUserBadge}
-                                  style={styles.badgeImage}
-                                />
+                                <Image source={OGUserBadge} style={styles.badgeImage} />
                                 <View style={{ flex: 1, marginLeft: 16 }}>
                                   <Text style={styles.badgeTitleMain}>OG User</Text>
                                   <Text style={styles.badgeCriteria}>Criteria: First 500 Users</Text>
                                   <View style={styles.badgeProgressBarContainer}>
                                     <RNView style={styles.progressBarBg}>
-                                      <RNView style={[
-                                        styles.progressBarFill,
-                                        { width: `${(isOGUser ? 1 : 0) * 100}%`, backgroundColor: isOGUser ? '#34C759' : '#4E54C8' }
-                                      ]} />
+                                      <RNView
+                                        style={[
+                                          styles.progressBarFill,
+                                          {
+                                            width: `${(isOGUser ? 1 : 0) * 100}%`,
+                                            backgroundColor: isOGUser ? '#34C759' : '#4E54C8',
+                                          },
+                                        ]}
+                                      />
                                     </RNView>
                                   </View>
                                   <Text style={styles.badgeProgressText}>{isOGUser ? '500/500' : '0/500'}</Text>
-                                  <Text style={[
-                                    styles.badgeUnlockText,
-                                    { color: isOGUser ? '#34C759' : '#8E8E93' }
-                                  ]}>
+                                  <Text style={[styles.badgeUnlockText, { color: isOGUser ? '#34C759' : '#8E8E93' }]}>
                                     {isOGUser ? 'Unlocked!' : 'Locked'}
                                   </Text>
                                 </View>
                                 {/* Previous arrow button, absolutely positioned inside the card */}
                                 {badgeCarouselIndex === 1 && (
                                   <TouchableOpacity
-                                    style={{ position: 'absolute', left: 16, top: '50%', transform: [{ translateY: -16 }], zIndex: 10 }}
+                                    style={{
+                                      position: 'absolute',
+                                      left: 16,
+                                      top: '50%',
+                                      transform: [{ translateY: -16 }],
+                                      zIndex: 10,
+                                    }}
                                     onPress={() => {
                                       setBadgeCarouselIndex(0);
                                       badgeCarouselRef.current?.scrollTo({ x: 0, animated: true });
@@ -1725,35 +1776,58 @@ const Dashboard: React.FC = () => {
                               <Text style={styles.badgeModalCriteria}>Criteria: Used timetable 7 days in a row</Text>
                               <View style={styles.badgeProgressBarContainer}>
                                 <RNView style={styles.progressBarBg}>
-                                  <RNView style={[
-                                    styles.progressBarFill,
-                                    { width: `${Math.min(1, (userPoints.timetableStreak || 0) / 7) * 100}%`, backgroundColor: (userPoints.timetableStreak || 0) >= 7 ? '#34C759' : '#4E54C8' }
-                                  ]} />
+                                  <RNView
+                                    style={[
+                                      styles.progressBarFill,
+                                      {
+                                        width: `${Math.min(1, (userPoints.timetableStreak || 0) / 7) * 100}%`,
+                                        backgroundColor: (userPoints.timetableStreak || 0) >= 7 ? '#34C759' : '#4E54C8',
+                                      },
+                                    ]}
+                                  />
                                 </RNView>
                               </View>
-                              <Text style={styles.badgeProgressText}>{Math.min(userPoints.timetableStreak || 0, 7)}/7 days</Text>
-                              <Text style={[styles.badgeUnlockText, { color: (userPoints.timetableStreak || 0) >= 7 ? '#34C759' : '#8E8E93', fontSize: 18, marginTop: 8 }]}> 
+                              <Text style={styles.badgeProgressText}>
+                                {Math.min(userPoints.timetableStreak || 0, 7)}/7 days
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.badgeUnlockText,
+                                  {
+                                    color: (userPoints.timetableStreak || 0) >= 7 ? '#34C759' : '#8E8E93',
+                                    fontSize: 18,
+                                    marginTop: 8,
+                                  },
+                                ]}
+                              >
                                 {(userPoints.timetableStreak || 0) >= 7 ? 'Unlocked!' : 'Locked'}
                               </Text>
                             </>
                           ) : (
                             <>
-                              <Image
-                                source={OGUserBadge}
-                                style={styles.badgeModalImage}
-                              />
+                              <Image source={OGUserBadge} style={styles.badgeModalImage} />
                               <Text style={styles.badgeModalTitle}>OG User</Text>
                               <Text style={styles.badgeModalCriteria}>Criteria: First 500 Users</Text>
                               <View style={styles.badgeProgressBarContainer}>
                                 <RNView style={styles.progressBarBg}>
-                                  <RNView style={[
-                                    styles.progressBarFill,
-                                    { width: `${(isOGUser ? 1 : 0) * 100}%`, backgroundColor: isOGUser ? '#34C759' : '#4E54C8' }
-                                  ]} />
+                                  <RNView
+                                    style={[
+                                      styles.progressBarFill,
+                                      {
+                                        width: `${(isOGUser ? 1 : 0) * 100}%`,
+                                        backgroundColor: isOGUser ? '#34C759' : '#4E54C8',
+                                      },
+                                    ]}
+                                  />
                                 </RNView>
                               </View>
                               <Text style={styles.badgeProgressText}>{isOGUser ? '500/500' : '0/500'}</Text>
-                              <Text style={[styles.badgeUnlockText, { color: isOGUser ? '#34C759' : '#8E8E93', fontSize: 18, marginTop: 8 }]}> 
+                              <Text
+                                style={[
+                                  styles.badgeUnlockText,
+                                  { color: isOGUser ? '#34C759' : '#8E8E93', fontSize: 18, marginTop: 8 },
+                                ]}
+                              >
                                 {isOGUser ? 'Unlocked!' : 'Locked'}
                               </Text>
                             </>
@@ -1780,11 +1854,9 @@ const Dashboard: React.FC = () => {
                 </View>
 
                 <Text style={styles.sectionTitle}>All Features</Text>
-                
+
                 <FlatList
-                  data={features.filter(feature => 
-                    feature.name.toLowerCase().includes(searchQuery.toLowerCase())
-                  )}
+                  data={features.filter((feature) => feature.name.toLowerCase().includes(searchQuery.toLowerCase()))}
                   renderItem={renderFeatureItem}
                   keyExtractor={(item) => item.id}
                   numColumns={2}
@@ -1794,12 +1866,10 @@ const Dashboard: React.FC = () => {
               </ScrollView>
             )}
 
-            {activeTab === 'notifications' && (
-              <Alerts />
-            )}
+            {activeTab === 'notifications' && <Alerts />}
           </View>
         </View>
-        
+
         {renderTabBar()}
       </LinearGradient>
       {/* Leaderboard Modal */}
@@ -1809,25 +1879,31 @@ const Dashboard: React.FC = () => {
         transparent={true}
         onRequestClose={() => setLeaderboardVisible(false)}
       >
-        <View style={{
-          flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.3)',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}>
-          <View style={{
-            backgroundColor: '#fff',
-            borderRadius: 20,
-            width: '90%',
-            maxHeight: '80%',
-            padding: 20,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.15,
-            shadowRadius: 16,
-            elevation: 8,
-          }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.3)',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: 20,
+              width: '90%',
+              maxHeight: '80%',
+              padding: 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.15,
+              shadowRadius: 16,
+              elevation: 8,
+            }}
+          >
+            <View
+              style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}
+            >
               <Text style={{ fontSize: 22, fontWeight: '700', color: '#4E54C8' }}>Leaderboard</Text>
               <TouchableOpacity onPress={() => setLeaderboardVisible(false)}>
                 <Ionicons name="close" size={24} color="#4E54C8" />
@@ -1838,15 +1914,17 @@ const Dashboard: React.FC = () => {
             ) : (
               <FlatList
                 data={leaderboardData}
-                keyExtractor={item => item.uid}
+                keyExtractor={(item) => item.uid}
                 renderItem={({ item, index }) => (
-                  <View style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    paddingVertical: 10,
-                    borderBottomWidth: 1,
-                    borderBottomColor: '#F2F2F7',
-                  }}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 10,
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#F2F2F7',
+                    }}
+                  >
                     <Text style={{ width: 32, fontWeight: '700', color: '#4E54C8', fontSize: 16 }}>{index + 1}</Text>
                     <Text style={{ flex: 1, fontSize: 16, color: '#1C1C1E', fontWeight: '600' }}>{item.name}</Text>
                     <Text style={{ fontSize: 16, color: '#8E8E93', fontWeight: '500' }}>{item.points}</Text>
@@ -2584,7 +2662,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'Inter',
   },
-  
+
   // AI Assistant Widget Styles
   aiAssistantContainer: {
     marginTop: 32,
@@ -2832,7 +2910,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     shadowColor: '#34C759',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.10,
+    shadowOpacity: 0.1,
     shadowRadius: 18,
     elevation: 8,
     backgroundColor: 'transparent',
@@ -2911,7 +2989,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     shadowColor: '#4E54C8',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.10,
+    shadowOpacity: 0.1,
     shadowRadius: 18,
     elevation: 8,
     backgroundColor: 'transparent',
@@ -3028,21 +3106,26 @@ const AcademicCalendarEventCard = ({ navigation }: { navigation: any }) => {
   const { event: nextEvent, monthName: nextMonth, daysRemaining: minDays } = upcoming;
   // Card UI (PURPLE THEME)
   return (
-    <View style={[styles.academicCardContainerEnhanced, { backgroundColor: 'transparent' }]}> {/* Remove default bg */}
+    <View style={[styles.academicCardContainerEnhanced, { backgroundColor: 'transparent' }]}>
+      {' '}
+      {/* Remove default bg */}
       <LinearGradient
-        colors={["#F8FAFF", "#EDE7F6"]} // Soft purple gradient
-        style={[styles.academicCardEnhanced, {
-          backgroundColor: undefined, // Remove fallback bg
-          borderColor: '#E0D7FF', // Soft purple border
-          borderWidth: 1,
-          shadowColor: '#8B5CF6',
-          shadowOpacity: 0.10,
-          shadowRadius: 18,
-        }]}
+        colors={['#F8FAFF', '#EDE7F6']} // Soft purple gradient
+        style={[
+          styles.academicCardEnhanced,
+          {
+            backgroundColor: undefined, // Remove fallback bg
+            borderColor: '#E0D7FF', // Soft purple border
+            borderWidth: 1,
+            shadowColor: '#8B5CF6',
+            shadowOpacity: 0.1,
+            shadowRadius: 18,
+          },
+        ]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        <View style={{ width: "100%", maxWidth: 400 }}>
+        <View style={{ width: '100%', maxWidth: 400 }}>
           {/* Title */}
           <Text style={[styles.academicCardTitleEnhanced, { color: '#4E54C8' }]}>Academic Calendar Events</Text>
           {/* Subtext */}
@@ -3052,11 +3135,14 @@ const AcademicCalendarEventCard = ({ navigation }: { navigation: any }) => {
           {/* Date Row + Today Badge */}
           <View style={styles.academicDateRowEnhanced}>
             <Ionicons name="calendar-outline" size={18} color="#8B5CF6" style={{ marginRight: 6 }} />
-            <Text style={[styles.academicDateTextEnhanced, { color: '#4E54C8' }]}> 
-              {nextEvent.date}{nextEvent.day ? ` | ${nextEvent.day}` : ''}
+            <Text style={[styles.academicDateTextEnhanced, { color: '#4E54C8' }]}>
+              {nextEvent.date}
+              {nextEvent.day ? ` | ${nextEvent.day}` : ''}
             </Text>
             {minDays === 0 && (
-              <View style={[styles.todayBadgeEnhanced, { backgroundColor: '#E0D7FF' }]}> {/* Purple badge */}
+              <View style={[styles.todayBadgeEnhanced, { backgroundColor: '#E0D7FF' }]}>
+                {' '}
+                {/* Purple badge */}
                 <Text style={[styles.todayBadgeTextEnhanced, { color: '#4E54C8' }]}>Today</Text>
               </View>
             )}

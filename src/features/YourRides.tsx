@@ -13,9 +13,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { db, auth, collection, query, where, getDocs, doc, getDoc, updateDoc } from '../services/firebase';
-import { 
-} from 'firebase/firestore';
+import { db, auth, collection, query, where, getDocs, doc, getDoc } from '../services/firebase';
+import {} from 'firebase/firestore';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -82,17 +81,14 @@ const YourRides: React.FC = () => {
       }
 
       // Get user rides - simplified query to avoid index requirements
-      const userRidesQuery = query(
-        collection(db, 'user_rides'),
-        where('userId', '==', currentUser.uid)
-      );
-      
+      const userRidesQuery = query(collection(db, 'user_rides'), where('userId', '==', currentUser.uid));
+
       const userRidesSnapshot = await getDocs(userRidesQuery);
       const rideDetailsPromises: Promise<RideDetails | null>[] = [];
-      
+
       userRidesSnapshot.forEach((doc) => {
         const userRideData = { id: doc.id, ...doc.data() } as UserRide;
-        
+
         // Filter for active rides on the client side to avoid index requirements
         if (userRideData.status === 'active') {
           // Fetch ride details
@@ -100,10 +96,10 @@ const YourRides: React.FC = () => {
           rideDetailsPromises.push(rideDetailPromise);
         }
       });
-      
+
       const rideDetailsResults = await Promise.all(rideDetailsPromises);
       const validRideDetails = rideDetailsResults.filter((ride): ride is RideDetails => ride !== null);
-      
+
       // Sort by created date on client side (simple fallback sorting)
       validRideDetails.sort((a, b) => {
         try {
@@ -115,7 +111,7 @@ const YourRides: React.FC = () => {
           return b.id.localeCompare(a.id);
         }
       });
-      
+
       setUserRides(validRideDetails);
     } catch (error) {
       console.error('Error fetching user rides:', error);
@@ -138,17 +134,14 @@ const YourRides: React.FC = () => {
       }
 
       // Get user auto rides
-      const userRidesQuery = query(
-        collection(db, 'user_auto_rides'),
-        where('userId', '==', currentUser.uid)
-      );
-      
+      const userRidesQuery = query(collection(db, 'user_auto_rides'), where('userId', '==', currentUser.uid));
+
       const userRidesSnapshot = await getDocs(userRidesQuery);
       const rideDetailsPromises: Promise<AutoRideDetails | null>[] = [];
-      
+
       userRidesSnapshot.forEach((doc) => {
         const userRideData = { id: doc.id, ...doc.data() } as UserRide;
-        
+
         // Filter for active rides on the client side to avoid index requirements
         if (userRideData.status === 'active') {
           // Fetch ride details
@@ -156,10 +149,10 @@ const YourRides: React.FC = () => {
           rideDetailsPromises.push(rideDetailPromise);
         }
       });
-      
+
       const rideDetailsResults = await Promise.all(rideDetailsPromises);
       const validRideDetails = rideDetailsResults.filter((ride): ride is AutoRideDetails => ride !== null);
-      
+
       // Sort by created date on client side (simple fallback sorting)
       validRideDetails.sort((a, b) => {
         try {
@@ -171,7 +164,7 @@ const YourRides: React.FC = () => {
           return b.id.localeCompare(a.id);
         }
       });
-      
+
       setUserAutoRides(validRideDetails);
     } catch (error) {
       console.error('Error fetching user auto rides:', error);
@@ -185,16 +178,16 @@ const YourRides: React.FC = () => {
   const fetchRideDetails = async (rideId: string, role: 'creator' | 'passenger'): Promise<RideDetails | null> => {
     try {
       const rideDoc = await getDoc(doc(db, 'cab_rides', rideId));
-      
+
       if (rideDoc.exists()) {
         const rideData = { id: rideDoc.id, ...rideDoc.data() } as any;
         return {
           ...rideData,
           role: role,
-          createdAt: rideData.createdAt || rideData.timestamp // Include createdAt from the document
+          createdAt: rideData.createdAt || rideData.timestamp, // Include createdAt from the document
         } as RideDetails;
       }
-      
+
       return null;
     } catch (error) {
       console.error('Error fetching ride details:', error);
@@ -202,19 +195,22 @@ const YourRides: React.FC = () => {
     }
   };
 
-  const fetchAutoRideDetails = async (rideId: string, role: 'creator' | 'passenger'): Promise<AutoRideDetails | null> => {
+  const fetchAutoRideDetails = async (
+    rideId: string,
+    role: 'creator' | 'passenger',
+  ): Promise<AutoRideDetails | null> => {
     try {
       const rideDoc = await getDoc(doc(db, 'auto_rides', rideId));
-      
+
       if (rideDoc.exists()) {
         const rideData = { id: rideDoc.id, ...rideDoc.data() } as any;
         return {
           ...rideData,
           role: role,
-          createdAt: rideData.createdAt || rideData.timestamp // Include createdAt from the document
+          createdAt: rideData.createdAt || rideData.timestamp, // Include createdAt from the document
         } as AutoRideDetails;
       }
-      
+
       return null;
     } catch (error) {
       console.error('Error fetching auto ride details:', error);
@@ -245,7 +241,7 @@ const YourRides: React.FC = () => {
       weekday: 'short',
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
@@ -254,7 +250,7 @@ const YourRides: React.FC = () => {
     return timeObj.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: true
+      hour12: true,
     });
   };
 
@@ -298,10 +294,7 @@ const YourRides: React.FC = () => {
       onPress={() => navigation.navigate('CabRideDetails', { rideId: ride.id })}
       activeOpacity={0.8}
     >
-      <LinearGradient
-        colors={['#ffffff', '#f8f9fa']}
-        style={styles.cardGradient}
-      >
+      <LinearGradient colors={['#ffffff', '#f8f9fa']} style={styles.cardGradient}>
         {/* Header with role and status */}
         <View style={styles.cardHeader}>
           <View style={styles.roleContainer}>
@@ -321,9 +314,9 @@ const YourRides: React.FC = () => {
               {ride.pickupLocation}
             </Text>
           </View>
-          
+
           <View style={styles.routeLine} />
-          
+
           <View style={styles.locationRow}>
             <Ionicons name="location" size={16} color="#dc3545" />
             <Text style={styles.locationText} numberOfLines={1}>
@@ -368,10 +361,7 @@ const YourRides: React.FC = () => {
       onPress={() => navigation.navigate('AutoRideDetails', { rideId: ride.id })}
       activeOpacity={0.8}
     >
-      <LinearGradient
-        colors={['#ffffff', '#f8f9fa']}
-        style={styles.cardGradient}
-      >
+      <LinearGradient colors={['#ffffff', '#f8f9fa']} style={styles.cardGradient}>
         {/* Header with role and status */}
         <View style={styles.cardHeader}>
           <View style={styles.roleContainer}>
@@ -391,9 +381,9 @@ const YourRides: React.FC = () => {
               {ride.pickupLocation}
             </Text>
           </View>
-          
+
           <View style={styles.routeLine} />
-          
+
           <View style={styles.locationRow}>
             <Ionicons name="location" size={16} color="#dc3545" />
             <Text style={styles.locationText} numberOfLines={1}>
@@ -448,7 +438,7 @@ const YourRides: React.FC = () => {
           <Text style={styles.headerTitle}>Your Rides</Text>
           <View style={styles.headerRight} />
         </View>
-        
+
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007bff" />
           <Text style={styles.loadingText}>Loading your rides...</Text>
@@ -472,11 +462,7 @@ const YourRides: React.FC = () => {
           <Ionicons name="arrow-back" size={24} color="#2c3e50" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Your Rides</Text>
-        <TouchableOpacity
-          style={styles.refreshButton}
-          onPress={onRefresh}
-          disabled={refreshing}
-        >
+        <TouchableOpacity style={styles.refreshButton} onPress={onRefresh} disabled={refreshing}>
           {refreshing ? (
             <ActivityIndicator size="small" color="#007bff" />
           ) : (
@@ -491,16 +477,14 @@ const YourRides: React.FC = () => {
           style={[styles.toggleButton, viewMode === 'cab' && styles.activeToggleButton]}
           onPress={() => toggleViewMode('cab')}
         >
-          <Ionicons name="car" size={18} color={viewMode === 'cab' ? "#fff" : "#6c757d"} />
-          <Text style={[styles.toggleButtonText, viewMode === 'cab' && styles.activeToggleButtonText]}>
-            Cab Rides
-          </Text>
+          <Ionicons name="car" size={18} color={viewMode === 'cab' ? '#fff' : '#6c757d'} />
+          <Text style={[styles.toggleButtonText, viewMode === 'cab' && styles.activeToggleButtonText]}>Cab Rides</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.toggleButton, viewMode === 'auto' && styles.activeToggleButton]}
           onPress={() => toggleViewMode('auto')}
         >
-          <Ionicons name="car-sport" size={18} color={viewMode === 'auto' ? "#fff" : "#6c757d"} />
+          <Ionicons name="car-sport" size={18} color={viewMode === 'auto' ? '#fff' : '#6c757d'} />
           <Text style={[styles.toggleButtonText, viewMode === 'auto' && styles.activeToggleButtonText]}>
             Auto Rides
           </Text>
@@ -511,12 +495,7 @@ const YourRides: React.FC = () => {
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#007bff']}
-            tintColor="#007bff"
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#007bff']} tintColor="#007bff" />
         }
       >
         {(viewMode === 'cab' ? userRides.length === 0 : userAutoRides.length === 0) ? (
@@ -524,28 +503,29 @@ const YourRides: React.FC = () => {
             <Text style={styles.emptyIcon}>{viewMode === 'cab' ? '🚗' : '🛺'}</Text>
             <Text style={styles.emptyTitle}>No Rides Yet</Text>
             <Text style={styles.emptyMessage}>
-              You haven't created or joined any {viewMode === 'cab' ? 'cab' : 'auto'} rides yet. Start by publishing a ride or finding one to join!
+              You haven't created or joined any {viewMode === 'cab' ? 'cab' : 'auto'} rides yet. Start by publishing a
+              ride or finding one to join!
             </Text>
             <TouchableOpacity
               style={styles.createRideButton}
               onPress={() => navigation.navigate(viewMode === 'cab' ? 'CabShare' : 'AutoShare')}
             >
-              <Text style={styles.createRideButtonText}>Find or Create a {viewMode === 'cab' ? 'Cab' : 'Auto'} Ride</Text>
+              <Text style={styles.createRideButtonText}>
+                Find or Create a {viewMode === 'cab' ? 'Cab' : 'Auto'} Ride
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.ridesContainer}>
             <Text style={styles.sectionTitle}>
-              {viewMode === 'cab' ? userRides.length : userAutoRides.length} {viewMode === 'cab' ? 'Cab' : 'Auto'} Ride{(viewMode === 'cab' ? userRides.length : userAutoRides.length) !== 1 ? 's' : ''}
+              {viewMode === 'cab' ? userRides.length : userAutoRides.length} {viewMode === 'cab' ? 'Cab' : 'Auto'} Ride
+              {(viewMode === 'cab' ? userRides.length : userAutoRides.length) !== 1 ? 's' : ''}
             </Text>
-            
-            {viewMode === 'cab' 
-              ? userRides.map(renderRideCard)
-              : userAutoRides.map(renderAutoRideCard)
-            }
+
+            {viewMode === 'cab' ? userRides.map(renderRideCard) : userAutoRides.map(renderAutoRideCard)}
           </View>
         )}
-        
+
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </SafeAreaView>

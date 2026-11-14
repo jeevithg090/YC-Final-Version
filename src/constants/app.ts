@@ -31,14 +31,14 @@ export const FIREBASE_COLLECTIONS = {
   CLASS_TIMETABLES: 'class_timetables',
   EXTRACTED_TIMETABLES: 'extracted_timetables',
   NOTIFICATION_SETTINGS: 'notification_settings',
-  USERS: 'users'
+  USERS: 'users',
 };
 
 // Default notification settings
 export const DEFAULT_NOTIFICATION_SETTINGS = {
   enabled: true,
   reminderMinutes: 15,
-  soundEnabled: true
+  soundEnabled: true,
 };
 
 // Time formats
@@ -55,14 +55,14 @@ export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 export const IMAGE_PROCESSING = {
   MAX_DIMENSION: 1024,
   COMPRESSION_QUALITY: 0.85,
-  DEFAULT_CROP_RATIO: 1.414 // A4 aspect ratio
+  DEFAULT_CROP_RATIO: 1.414, // A4 aspect ratio
 };
 
 // AI Processing settings
 export const AI_PROCESSING = {
   MAX_RETRIES: 3,
   TIMEOUT_MS: 30000, // 30 seconds
-  MIN_CONFIDENCE_THRESHOLD: 0.7
+  MIN_CONFIDENCE_THRESHOLD: 0.7,
 };
 
 // Error messages
@@ -71,12 +71,12 @@ export const ERROR_MESSAGES = {
   IMAGE_TOO_LARGE: 'Image file is too large. Please select a smaller image.',
   UNSUPPORTED_FORMAT: 'Unsupported file format. Please select a valid image or PDF file.',
   NETWORK_ERROR: 'Network error. Please check your internet connection.',
-  AI_PROCESSING_FAILED: 'Failed to extract timetable data. Please try with a clearer image.'
+  AI_PROCESSING_FAILED: 'Failed to extract timetable data. Please try with a clearer image.',
 };
 
 // Success messages
 export const SUCCESS_MESSAGES = {
   TIMETABLE_UPLOADED: 'Timetable uploaded successfully!',
   AI_PROCESSING_COMPLETE: 'Timetable processed successfully!',
-  SETTINGS_SAVED: 'Settings saved successfully!'
+  SETTINGS_SAVED: 'Settings saved successfully!',
 };

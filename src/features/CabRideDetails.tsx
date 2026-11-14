@@ -15,7 +15,16 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { addDoc, arrayUnion, collection, doc, onSnapshot, serverTimestamp, Timestamp, updateDoc } from 'firebase/firestore';
+import {
+  addDoc,
+  arrayUnion,
+  collection,
+  doc,
+  onSnapshot,
+  serverTimestamp,
+  Timestamp,
+  updateDoc,
+} from 'firebase/firestore';
 
 import { db } from '../services/firebase';
 import { getCurrentUserIdentity } from '../services/currentUser';
@@ -282,7 +291,11 @@ const CabRideDetails: React.FC = () => {
             accessibilityRole="button"
             accessibilityState={{ disabled: joining, busy: joining }}
           >
-            {joining ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Join this ride</Text>}
+            {joining ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.primaryButtonText}>Join this ride</Text>
+            )}
           </TouchableOpacity>
         ) : null}
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,14 +15,22 @@ import {
   ActivityIndicator,
   Modal,
   FlatList,
-  Switch,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
-import { db, collection, addDoc, serverTimestamp, storage, storageRef, uploadBytes, getDownloadURL, auth } from '../services/firebase';
+import {
+  db,
+  collection,
+  addDoc,
+  serverTimestamp,
+  storage,
+  storageRef,
+  uploadBytes,
+  getDownloadURL,
+  auth,
+} from '../services/firebase';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/router';
 import { getDoc, doc } from 'firebase/firestore';
@@ -72,14 +80,16 @@ interface ProductListing {
 const SellMarketplace: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const windowWidth = Dimensions.get('window').width;
-  
+
   // Form state
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [price, setPrice] = useState<string>('');
   const [isNegotiable, setIsNegotiable] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [selectedCondition, setSelectedCondition] = useState<'Brand New' | 'Used - Like New' | 'Good Condition' | 'Fair'>('Good Condition');
+  const [selectedCondition, setSelectedCondition] = useState<
+    'Brand New' | 'Used - Like New' | 'Good Condition' | 'Fair'
+  >('Good Condition');
   const [photos, setPhotos] = useState<string[]>([]);
   const [selectedPickupLocation, setSelectedPickupLocation] = useState<string>('');
   const [contactModes, setContactModes] = useState<ContactMode[]>([
@@ -89,7 +99,7 @@ const SellMarketplace: React.FC = () => {
   ]);
   const [whatsappNumber, setWhatsappNumber] = useState<string>('');
   const [phoneNumber, setPhoneNumber] = useState<string>('');
-  
+
   // UI state
   const [showCategoryModal, setShowCategoryModal] = useState<boolean>(false);
   const [showLocationModal, setShowLocationModal] = useState<boolean>(false);
@@ -158,9 +168,7 @@ const SellMarketplace: React.FC = () => {
 
   // Toggle contact mode
   const toggleContactMode = (id: string) => {
-    setContactModes(contactModes.map(mode => 
-      mode.id === id ? { ...mode, enabled: !mode.enabled } : mode
-    ));
+    setContactModes(contactModes.map((mode) => (mode.id === id ? { ...mode, enabled: !mode.enabled } : mode)));
   };
 
   // Validate form
@@ -185,15 +193,15 @@ const SellMarketplace: React.FC = () => {
       Alert.alert('Missing Information', 'Please add at least one photo');
       return false;
     }
-    
+
     // Check if WhatsApp is enabled but no number provided
-    if (contactModes.find(m => m.id === 'whatsapp')?.enabled && !whatsappNumber.trim()) {
+    if (contactModes.find((m) => m.id === 'whatsapp')?.enabled && !whatsappNumber.trim()) {
       Alert.alert('Missing Information', 'Please enter your WhatsApp number');
       return false;
     }
-    
+
     // Check if phone is enabled but no number provided
-    if (contactModes.find(m => m.id === 'phone')?.enabled && !phoneNumber.trim()) {
+    if (contactModes.find((m) => m.id === 'phone')?.enabled && !phoneNumber.trim()) {
       Alert.alert('Missing Information', 'Please enter your phone number');
       return false;
     }
@@ -253,8 +261,8 @@ const SellMarketplace: React.FC = () => {
       };
 
       // Only add contact numbers if they are enabled and have values
-      const whatsappEnabled = contactModes.find(m => m.id === 'whatsapp')?.enabled;
-      const phoneEnabled = contactModes.find(m => m.id === 'phone')?.enabled;
+      const whatsappEnabled = contactModes.find((m) => m.id === 'whatsapp')?.enabled;
+      const phoneEnabled = contactModes.find((m) => m.id === 'phone')?.enabled;
       if (whatsappEnabled && whatsappNumber.trim()) {
         listingData.whatsappNumber = whatsappNumber.trim();
       }
@@ -266,16 +274,12 @@ const SellMarketplace: React.FC = () => {
       const productsCollection = collection(db, 'products');
       await addDoc(productsCollection, listingData);
 
-      Alert.alert(
-        'Success!', 
-        'Your item has been listed successfully!',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack()
-          }
-        ]
-      );
+      Alert.alert('Success!', 'Your item has been listed successfully!', [
+        {
+          text: 'OK',
+          onPress: () => navigation.goBack(),
+        },
+      ]);
     } catch (error) {
       console.error('Error publishing listing:', error);
       Alert.alert('Error', 'Failed to publish your listing. Please try again.');
@@ -286,12 +290,12 @@ const SellMarketplace: React.FC = () => {
 
   // Get selected category
   const getSelectedCategory = () => {
-    return categories.find(cat => cat.id === selectedCategory);
+    return categories.find((cat) => cat.id === selectedCategory);
   };
 
   // Get selected pickup location
   const getSelectedPickupLocation = () => {
-    return pickupLocations.find(loc => loc.id === selectedPickupLocation);
+    return pickupLocations.find((loc) => loc.id === selectedPickupLocation);
   };
 
   // Render category modal
@@ -323,9 +327,7 @@ const SellMarketplace: React.FC = () => {
                 }}
               >
                 <Ionicons name={item.icon as any} size={32} color={item.color} />
-                <Text style={[styles.categoryModalText, { color: item.color }]}>
-                  {item.name}
-                </Text>
+                <Text style={[styles.categoryModalText, { color: item.color }]}>{item.name}</Text>
               </TouchableOpacity>
             )}
           />
@@ -374,7 +376,7 @@ const SellMarketplace: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f5f7fa" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -384,16 +386,13 @@ const SellMarketplace: React.FC = () => {
         <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Hero Section */}
-        <LinearGradient
-          colors={['rgba(78, 84, 200, 0.1)', 'rgba(143, 148, 251, 0.05)']}
-          style={styles.heroSection}
-        >
+        <LinearGradient colors={['rgba(78, 84, 200, 0.1)', 'rgba(143, 148, 251, 0.05)']} style={styles.heroSection}>
           <Text style={styles.heroTitle}>List Your Item</Text>
           <Text style={styles.heroSubtitle}>
             Share details about your item to find the perfect buyer in your campus community
@@ -401,21 +400,14 @@ const SellMarketplace: React.FC = () => {
         </LinearGradient>
 
         {/* Form Sections */}
-        
+
         {/* 1. Category Selection */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>📱 Category</Text>
-          <TouchableOpacity
-            style={styles.categoryButton}
-            onPress={() => setShowCategoryModal(true)}
-          >
+          <TouchableOpacity style={styles.categoryButton} onPress={() => setShowCategoryModal(true)}>
             {selectedCategory ? (
               <View style={styles.categoryContent}>
-                <Ionicons 
-                  name={getSelectedCategory()?.icon as any} 
-                  size={24} 
-                  color={getSelectedCategory()?.color} 
-                />
+                <Ionicons name={getSelectedCategory()?.icon as any} size={24} color={getSelectedCategory()?.color} />
                 <Text style={styles.categoryText}>{getSelectedCategory()?.name}</Text>
               </View>
             ) : (
@@ -432,16 +424,10 @@ const SellMarketplace: React.FC = () => {
             {(['Brand New', 'Used - Like New', 'Good Condition', 'Fair'] as const).map((condition) => (
               <TouchableOpacity
                 key={condition}
-                style={[
-                  styles.conditionButton,
-                  selectedCondition === condition && styles.selectedConditionButton
-                ]}
+                style={[styles.conditionButton, selectedCondition === condition && styles.selectedConditionButton]}
                 onPress={() => setSelectedCondition(condition)}
               >
-                <Text style={[
-                  styles.conditionText,
-                  selectedCondition === condition && styles.selectedConditionText
-                ]}>
+                <Text style={[styles.conditionText, selectedCondition === condition && styles.selectedConditionText]}>
                   {condition}
                 </Text>
               </TouchableOpacity>
@@ -491,14 +477,11 @@ const SellMarketplace: React.FC = () => {
               keyboardType="numeric"
             />
           </View>
-          <TouchableOpacity
-            style={styles.negotiableToggle}
-            onPress={() => setIsNegotiable(!isNegotiable)}
-          >
-            <Ionicons 
-              name={isNegotiable ? "checkbox" : "square-outline"} 
-              size={20} 
-              color={isNegotiable ? "#4E54C8" : "#666"} 
+          <TouchableOpacity style={styles.negotiableToggle} onPress={() => setIsNegotiable(!isNegotiable)}>
+            <Ionicons
+              name={isNegotiable ? 'checkbox' : 'square-outline'}
+              size={20}
+              color={isNegotiable ? '#4E54C8' : '#666'}
             />
             <Text style={styles.negotiableText}>Price is negotiable</Text>
           </TouchableOpacity>
@@ -512,10 +495,7 @@ const SellMarketplace: React.FC = () => {
               {photos.map((photo, index) => (
                 <View key={index} style={styles.photoItem}>
                   <Image source={{ uri: photo }} style={styles.photo} />
-                  <TouchableOpacity
-                    style={styles.removePhotoButton}
-                    onPress={() => removePhoto(index)}
-                  >
+                  <TouchableOpacity style={styles.removePhotoButton} onPress={() => removePhoto(index)}>
                     <Ionicons name="close-circle" size={20} color="#ff4444" />
                   </TouchableOpacity>
                 </View>
@@ -533,17 +513,10 @@ const SellMarketplace: React.FC = () => {
         {/* 6. Pickup Location */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>📍 Pickup Location (Optional)</Text>
-          <TouchableOpacity
-            style={styles.categoryButton}
-            onPress={() => setShowLocationModal(true)}
-          >
+          <TouchableOpacity style={styles.categoryButton} onPress={() => setShowLocationModal(true)}>
             {selectedPickupLocation ? (
               <View style={styles.categoryContent}>
-                <Ionicons 
-                  name={getSelectedPickupLocation()?.icon as any} 
-                  size={24} 
-                  color="#4E54C8" 
-                />
+                <Ionicons name={getSelectedPickupLocation()?.icon as any} size={24} color="#4E54C8" />
                 <Text style={styles.categoryText}>{getSelectedPickupLocation()?.name}</Text>
               </View>
             ) : (
@@ -558,19 +531,16 @@ const SellMarketplace: React.FC = () => {
           <Text style={styles.sectionTitle}>📞 Preferred Contact Mode</Text>
           {contactModes.map((mode) => (
             <View key={mode.id} style={styles.contactModeItem}>
-              <TouchableOpacity
-                style={styles.contactModeToggle}
-                onPress={() => toggleContactMode(mode.id)}
-              >
-                <Ionicons 
-                  name={mode.enabled ? "checkbox" : "square-outline"} 
-                  size={20} 
-                  color={mode.enabled ? "#4E54C8" : "#666"} 
+              <TouchableOpacity style={styles.contactModeToggle} onPress={() => toggleContactMode(mode.id)}>
+                <Ionicons
+                  name={mode.enabled ? 'checkbox' : 'square-outline'}
+                  size={20}
+                  color={mode.enabled ? '#4E54C8' : '#666'}
                 />
                 <Ionicons name={mode.icon as any} size={20} color="#4E54C8" style={styles.contactIcon} />
                 <Text style={styles.contactModeText}>{mode.name}</Text>
               </TouchableOpacity>
-              
+
               {/* Show input fields for WhatsApp and Phone when enabled */}
               {mode.id === 'whatsapp' && mode.enabled && (
                 <TextInput

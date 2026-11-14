@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   StatusBar,
   ActivityIndicator,
   SafeAreaView,
@@ -35,7 +34,7 @@ const Forgot: React.FC = () => {
       setError('Please enter your email address');
       return;
     }
-    
+
     if (!/\S+@\S+\.\S+/.test(email)) {
       setError('Please enter a valid email address');
       return;
@@ -43,7 +42,7 @@ const Forgot: React.FC = () => {
 
     setLoading(true);
     setError('');
-    
+
     try {
       await sendPasswordResetEmail(auth, email);
       setSuccess(true);
@@ -58,10 +57,7 @@ const Forgot: React.FC = () => {
   };
 
   return (
-    <LinearGradient
-      colors={["#f5f7fa", "#c3cfe2"]}
-      style={styles.gradientBackground}
-    >
+    <LinearGradient colors={['#f5f7fa', '#c3cfe2']} style={styles.gradientBackground}>
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
         <KeyboardAvoidingView
@@ -78,9 +74,7 @@ const Forgot: React.FC = () => {
 
             {success ? (
               <View style={styles.successContainer}>
-                <Text style={styles.successMessage}>
-                  Reset instructions sent! Please check your email inbox.
-                </Text>
+                <Text style={styles.successMessage}>Reset instructions sent! Please check your email inbox.</Text>
                 <TouchableOpacity
                   style={styles.button}
                   onPress={() => navigation.navigate('Login')}

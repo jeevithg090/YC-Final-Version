@@ -27,14 +27,14 @@ interface OpenRouterResponse {
   object: string;
   created: number;
   model: string;
-  choices: Array<{
+  choices: {
     index: number;
     message: {
       role: string;
       content: string;
     };
     finish_reason: string;
-  }>;
+  }[];
   usage: {
     prompt_tokens: number;
     completion_tokens: number;
@@ -44,16 +44,16 @@ interface OpenRouterResponse {
 
 export class OpenRouterService {
   private static API_KEY = process.env.EXPO_PUBLIC_OPENROUTER_API_KEY ?? '';
-  private static readonly MODEL = "google/gemma-2-9b-it:free";
-  private static readonly BASE_URL = "https://openrouter.ai/api/v1";
+  private static readonly MODEL = 'google/gemma-2-9b-it:free';
+  private static readonly BASE_URL = 'https://openrouter.ai/api/v1';
 
   // Alternative free models to try if the primary fails
   private static readonly FALLBACK_MODELS = [
-    "google/gemma-2-9b-it:free",
-    "meta-llama/llama-3.1-8b-instruct:free",
-    "microsoft/phi-3-medium-128k-instruct:free",
-    "microsoft/phi-3-mini-128k-instruct:free",
-    "nousresearch/nous-capybara-7b:free"
+    'google/gemma-2-9b-it:free',
+    'meta-llama/llama-3.1-8b-instruct:free',
+    'microsoft/phi-3-medium-128k-instruct:free',
+    'microsoft/phi-3-mini-128k-instruct:free',
+    'nousresearch/nous-capybara-7b:free',
   ];
 
   /**
@@ -77,24 +77,23 @@ export class OpenRouterService {
     try {
       // Initialize API key if needed
       await this.initializeApiKey();
-      
+
       // Primary: Use OCR-based regex parsing (more reliable)
       console.log('Using primary OCR-based parsing...');
       const ocrResult = this.fallbackParsing(ocrText);
-      
+
       // If OCR parsing finds sufficient items, return it
       if (ocrResult.items.length > 0) {
         console.log(`OCR parsing found ${ocrResult.items.length} items`);
         return ocrResult;
       }
-      
+
       // Secondary: Try AI parsing only if OCR finds no items
       console.log('OCR found no items, trying AI parsing as fallback...');
       return await this.parseWithFallback(ocrText);
-      
     } catch (error) {
       console.error('All parsing methods failed:', error);
-      
+
       // Final fallback: Return empty structure
       return {
         items: [],
@@ -103,7 +102,7 @@ export class OpenRouterService {
         cgstAmount: 0,
         sgstAmount: 0,
         gstAmount: 0,
-        serviceChargeAmount: 0
+        serviceChargeAmount: 0,
       };
     }
   }
@@ -181,15 +180,15 @@ Return only the JSON object with no additional text:`;
       // Find JSON in the response
       const jsonStart = response.indexOf('{');
       const jsonEnd = response.lastIndexOf('}') + 1;
-      
+
       if (jsonStart === -1 || jsonEnd === 0) {
         console.log('No JSON found in response:', response);
         return null;
       }
-      
+
       const jsonString = response.substring(jsonStart, jsonEnd);
       const parsed = JSON.parse(jsonString);
-      
+
       return parsed;
     } catch (error) {
       console.error('Error extracting JSON from AI response:', error);
@@ -209,7 +208,7 @@ Return only the JSON object with no additional text:`;
       cgstAmount: 0,
       sgstAmount: 0,
       gstAmount: 0,
-      serviceChargeAmount: 0
+      serviceChargeAmount: 0,
     };
 
     // Validate items
@@ -220,17 +219,17 @@ Return only the JSON object with no additional text:`;
           const quantity = Number(item.quantity) || 1;
           const rate = Number(item.rate) || undefined;
           const price = Number(item.price) || 0;
-          
+
           // If rate is provided, ensure price = rate * quantity
           const calculatedPrice = rate ? rate * quantity : price;
-          
+
           return {
             id: item.id || `item_${index + 1}`,
             name: String(item.name).trim(),
             price: calculatedPrice,
             rate: rate,
             quantity: quantity,
-            selectedBy: []
+            selectedBy: [],
           };
         });
     }
@@ -242,7 +241,7 @@ Return only the JSON object with no additional text:`;
     validatedData.sgstAmount = Number(data.sgstAmount) || 0;
     validatedData.gstAmount = Number(data.gstAmount) || 0;
     validatedData.serviceChargeAmount = Number(data.serviceChargeAmount) || 0;
-    
+
     // Ensure taxAmount is the sum of individual components
     const calculatedTax = validatedData.cgstAmount + validatedData.sgstAmount + validatedData.gstAmount;
     if (calculatedTax > 0) {
@@ -257,8 +256,11 @@ Return only the JSON object with no additional text:`;
    */
   private static fallbackParsing(ocrText: string): ParsedBillData {
     console.log('Using primary OCR-based regex parsing for OCR text:', ocrText.substring(0, 200) + '...');
-    
-    const lines = ocrText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+    const lines = ocrText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
     const items: BillItem[] = [];
     let totalAmount = 0;
     let serviceChargeAmount = 0;
@@ -267,54 +269,54 @@ Return only the JSON object with no additional text:`;
     const itemLinePatterns = [
       // Format: "Item Name    Qty    Rate    Amount" (with multiple spaces)
       /^([A-Za-z][A-Za-z\s&'./-]{1,40}?)\s+(\d+)\s+(\d+(?:\.\d{1,2})?)\s+(\d+(?:\.\d{1,2})?)$/,
-      
+
       // Format: "Item Name    Amount" (when qty and rate are missing, amount only)
       /^([A-Za-z][A-Za-z\s&'./-]{2,40}?)\s+(\d+(?:\.\d{1,2})?)$/,
-      
+
       // Format: "Item Name x Qty ₹Rate ₹Total" (e.g., "Masala Dosa x 2 ₹120 ₹240")
       /^(.+?)\s+x\s+(\d+)\s+₹?\s*(\d+(?:\.\d{1,2})?)\s+₹?\s*(\d+(?:\.\d{1,2})?)$/i,
-      
+
       // Format: "Item Name Qty x ₹Rate ₹Total" (e.g., "Coffee 2 x ₹50 ₹100")
       /^(.+?)\s+(\d+)\s*x\s*₹?\s*(\d+(?:\.\d{1,2})?)\s+₹?\s*(\d+(?:\.\d{1,2})?)$/i,
-      
+
       // Format: "Item Name @ ₹Rate Qty ₹Total" (e.g., "Tea @ ₹20 3 ₹60")
       /^(.+?)\s*@\s*₹?\s*(\d+(?:\.\d{1,2})?)\s+(\d+)\s+₹?\s*(\d+(?:\.\d{1,2})?)$/i,
-      
+
       // Format: "Item Name Rate Qty Amount" (e.g., "Samosa 15 3 45")
       /^([A-Za-z][A-Za-z\s&'-]{1,30}?)\s+(\d+(?:\.\d{1,2})?)\s+(\d+)\s+(\d+(?:\.\d{1,2})?)$/,
-      
+
       // Format: "Item Name Rt Rate Qt Qty Am Amount" (abbreviated)
       /^(.+?)\s+(?:rt|rate)\s+(\d+(?:\.\d{1,2})?)\s+(?:qt|qty)\s+(\d+)\s+(?:am|amt)\s+(\d+(?:\.\d{1,2})?)$/i,
-      
+
       // Format: "Item Name Qt Qty Am Amount" (no rate)
       /^(.+?)\s+(?:qt|qty)\s+(\d+)\s+(?:am|amt)\s+(\d+(?:\.\d{1,2})?)$/i,
-      
+
       // Format: "Item Name Qty Amount" (simple quantity format)
       /^([A-Za-z][A-Za-z\s&'-]{1,30}?)\s+(?:qty\s+)?(\d+)\s+₹?\s*(\d+(?:\.\d{1,2})?)$/i,
-      
+
       // Format: "Item Name ₹Price" (simple format, quantity = 1)
       /^([A-Za-z][A-Za-z\s&'-]{1,40}?)\s+₹?\s*(\d+(?:\.\d{1,2})?)$/,
-      
+
       // Format: "Item Name Price" (no currency symbol)
-      /^([A-Za-z][A-Za-z\s&'-]{2,40})\s+(\d{2,4}(?:\.\d{1,2})?)$/
+      /^([A-Za-z][A-Za-z\s&'-]{2,40})\s+(\d{2,4}(?:\.\d{1,2})?)$/,
     ];
-    
+
     const totalPatterns = [
       /(?:total|grand\s*total|net\s*total|amount\s*payable|final\s*amount|bill\s*total|tot|amt\s*payable)\s*:?\s*₹?\s*(\d+(?:\.\d{1,2})?)/i,
       /(?:amount|total|amt|tot)\s*₹?\s*(\d+(?:\.\d{1,2})?)\s*$/i,
     ];
-    
+
     const taxPatterns = [
       // CGST patterns
       /(?:cgst|central\s*gst)\s*[\(@]?[\d.%]*\s*[\)%]?\s*:?\s*₹?\s*(\d+(?:\.\d{1,2})?)/i,
-      // SGST patterns  
+      // SGST patterns
       /(?:sgst|state\s*gst)\s*[\(@]?[\d.%]*\s*[\)%]?\s*:?\s*₹?\s*(\d+(?:\.\d{1,2})?)/i,
       // General GST/VAT patterns
       /(?:gst|vat|tax)\s*[\(@]?[\d.%]*\s*[\)%]?\s*:?\s*₹?\s*(\d+(?:\.\d{1,2})?)/i,
       // IGST patterns
       /(?:igst|integrated\s*gst)\s*[\(@]?[\d.%]*\s*[\)%]?\s*:?\s*₹?\s*(\d+(?:\.\d{1,2})?)/i,
     ];
-    
+
     const servicePatterns = [
       /(?:service\s*charge|service\s*chg|svc\s*charge|svc\s*chg|delivery\s*charge|delivery\s*chg|del\s*chg|packing\s*charge|packing\s*chg|pack\s*chg|convenience\s*fee|conv\s*fee)\s*:?\s*₹?\s*(\d+(?:\.\d{1,2})?)/i,
     ];
@@ -329,7 +331,7 @@ Return only the JSON object with no additional text:`;
     // Process each line
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      
+
       // Check for total amount
       for (const pattern of totalPatterns) {
         const match = line.match(pattern);
@@ -371,22 +373,24 @@ Return only the JSON object with no additional text:`;
       }
 
       // Check for items (exclude tax and service lines)
-      if (line.toLowerCase().includes('receipt') ||
-          line.toLowerCase().includes('bill') ||
-          line.toLowerCase().includes('total') ||
-          line.toLowerCase().includes('tax') ||
-          line.toLowerCase().includes('gst') ||
-          line.toLowerCase().includes('cgst') ||
-          line.toLowerCase().includes('sgst') ||
-          line.toLowerCase().includes('igst') ||
-          line.toLowerCase().includes('vat') ||
-          line.toLowerCase().includes('service') ||
-          line.toLowerCase().includes('charge') ||
-          line.toLowerCase().includes('discount') ||
-          line.toLowerCase().includes('subtotal') ||
-          line.toLowerCase().includes('date') ||
-          line.toLowerCase().includes('time') ||
-          line.length < 3) {
+      if (
+        line.toLowerCase().includes('receipt') ||
+        line.toLowerCase().includes('bill') ||
+        line.toLowerCase().includes('total') ||
+        line.toLowerCase().includes('tax') ||
+        line.toLowerCase().includes('gst') ||
+        line.toLowerCase().includes('cgst') ||
+        line.toLowerCase().includes('sgst') ||
+        line.toLowerCase().includes('igst') ||
+        line.toLowerCase().includes('vat') ||
+        line.toLowerCase().includes('service') ||
+        line.toLowerCase().includes('charge') ||
+        line.toLowerCase().includes('discount') ||
+        line.toLowerCase().includes('subtotal') ||
+        line.toLowerCase().includes('date') ||
+        line.toLowerCase().includes('time') ||
+        line.length < 3
+      ) {
         continue;
       }
 
@@ -394,7 +398,7 @@ Return only the JSON object with no additional text:`;
       for (let patternIndex = 0; patternIndex < itemLinePatterns.length; patternIndex++) {
         const pattern = itemLinePatterns[patternIndex];
         const match = line.match(pattern);
-        
+
         if (match) {
           // Always get the exact item name as written in the bill (no trimming extra spaces)
           let itemName = match[1].replace(/\s+/g, ' ').trim();
@@ -407,44 +411,44 @@ Return only the JSON object with no additional text:`;
             case 0: // "Item Name    Qty    Rate    Amount" (with multiple spaces)
               quantity = parseInt(match[2]) || 1;
               rate = parseFloat(match[3]) || 0;
-              itemPrice = parseFloat(match[4]) || (rate * quantity);
+              itemPrice = parseFloat(match[4]) || rate * quantity;
               break;
-              
+
             case 1: // "Item Name    Amount" (when qty and rate missing)
               quantity = 1;
               itemPrice = parseFloat(match[2]) || 0;
               break;
-              
+
             case 2: // "Item Name x Qty ₹Rate ₹Total"
               quantity = parseInt(match[2]) || 1;
               rate = parseFloat(match[3]) || 0;
-              itemPrice = parseFloat(match[4]) || (rate * quantity);
+              itemPrice = parseFloat(match[4]) || rate * quantity;
               break;
-              
+
             case 3: // "Item Name Qty x ₹Rate ₹Total"
               quantity = parseInt(match[2]) || 1;
               rate = parseFloat(match[3]) || 0;
-              itemPrice = parseFloat(match[4]) || (rate * quantity);
+              itemPrice = parseFloat(match[4]) || rate * quantity;
               break;
-              
+
             case 4: // "Item Name @ ₹Rate Qty ₹Total"
               rate = parseFloat(match[2]) || 0;
               quantity = parseInt(match[3]) || 1;
-              itemPrice = parseFloat(match[4]) || (rate * quantity);
+              itemPrice = parseFloat(match[4]) || rate * quantity;
               break;
-              
+
             case 5: // "Item Name Rate Qty Amount"
               rate = parseFloat(match[2]) || 0;
               quantity = parseInt(match[3]) || 1;
-              itemPrice = parseFloat(match[4]) || (rate * quantity);
+              itemPrice = parseFloat(match[4]) || rate * quantity;
               break;
-              
+
             case 6: // "Item Name Rt Rate Qt Qty Am Amount"
               rate = parseFloat(match[2]) || 0;
               quantity = parseInt(match[3]) || 1;
-              itemPrice = parseFloat(match[4]) || (rate * quantity);
+              itemPrice = parseFloat(match[4]) || rate * quantity;
               break;
-              
+
             case 7: // "Item Name Qt Qty Am Amount"
               quantity = parseInt(match[2]) || 1;
               itemPrice = parseFloat(match[3]) || 0;
@@ -452,20 +456,20 @@ Return only the JSON object with no additional text:`;
                 rate = itemPrice / quantity;
               }
               break;
-              
-            case 8: // "Item Name Qty Amount" 
+
+            case 8: // "Item Name Qty Amount"
               quantity = parseInt(match[2]) || 1;
               itemPrice = parseFloat(match[3]) || 0;
               if (quantity > 1) {
                 rate = itemPrice / quantity;
               }
               break;
-              
+
             case 9: // "Item Name ₹Price" (quantity = 1)
               quantity = 1;
               itemPrice = parseFloat(match[2]) || 0;
               break;
-              
+
             case 10: // "Item Name Price" (no currency symbol)
               quantity = 1;
               itemPrice = parseFloat(match[2]) || 0;
@@ -473,36 +477,41 @@ Return only the JSON object with no additional text:`;
           }
 
           // Validate the extracted data with stricter validation
-          if (itemName && 
-              itemPrice > 0 && 
-              itemPrice < 50000 && 
-              quantity > 0 && 
-              quantity <= 50 && 
-              itemName.length >= 2) {
-            
+          if (
+            itemName &&
+            itemPrice > 0 &&
+            itemPrice < 50000 &&
+            quantity > 0 &&
+            quantity <= 50 &&
+            itemName.length >= 2
+          ) {
             // Exclude lines that are clearly not food items (more precise filtering)
-            const excludePatterns = /^(tax|gst|cgst|sgst|igst|vat|service|charge|discount|subtotal|total|amount|payable|net|bill|receipt|address|phone|table|order|time|date|chg|amt|tot|svc|del|conv|fee|disc|sub|grand|final)$/i;
-            const isValidFoodItem = !excludePatterns.test(itemName.toLowerCase()) && 
-                                  !itemName.toLowerCase().includes('total') &&
-                                  !itemName.toLowerCase().includes('tax') &&
-                                  !itemName.toLowerCase().includes('service');
-            
+            const excludePatterns =
+              /^(tax|gst|cgst|sgst|igst|vat|service|charge|discount|subtotal|total|amount|payable|net|bill|receipt|address|phone|table|order|time|date|chg|amt|tot|svc|del|conv|fee|disc|sub|grand|final)$/i;
+            const isValidFoodItem =
+              !excludePatterns.test(itemName.toLowerCase()) &&
+              !itemName.toLowerCase().includes('total') &&
+              !itemName.toLowerCase().includes('tax') &&
+              !itemName.toLowerCase().includes('service');
+
             if (isValidFoodItem) {
               // Calculate rate if not provided but we have quantity > 1
               if (!rate && quantity > 1 && itemPrice > 0) {
                 rate = Math.round((itemPrice / quantity) * 100) / 100; // Round to 2 decimal places
               }
-              
+
               items.push({
                 id: `item_${items.length + 1}`,
                 name: itemName, // Preserve exact name from bill
                 price: itemPrice,
                 rate: rate,
                 quantity: quantity,
-                selectedBy: []
+                selectedBy: [],
               });
-              
-              console.log(`✓ Parsed: "${itemName}" | Qty: ${quantity} | Price: ₹${itemPrice}${rate ? ` | Rate: ₹${rate}` : ''}`);
+
+              console.log(
+                `✓ Parsed: "${itemName}" | Qty: ${quantity} | Price: ₹${itemPrice}${rate ? ` | Rate: ₹${rate}` : ''}`,
+              );
             }
           }
           break; // Found a match, stop trying other patterns
@@ -515,7 +524,7 @@ Return only the JSON object with no additional text:`;
 
     // If no total found, calculate from items + taxes + service charges
     if (totalAmount === 0) {
-      const itemsTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const itemsTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
       totalAmount = itemsTotal + taxAmount + serviceChargeAmount;
     }
 
@@ -526,7 +535,7 @@ Return only the JSON object with no additional text:`;
       cgstAmount,
       sgstAmount,
       gstAmount: gstAmount + igstAmount, // Combine GST and IGST
-      serviceChargeAmount
+      serviceChargeAmount,
     };
   }
 
@@ -542,31 +551,31 @@ Return only the JSON object with no additional text:`;
    */
   static getErrorMessage(error: Error): string {
     const message = error.message;
-    
+
     if (message.includes('401') || message.includes('authentication')) {
       return 'OpenRouter API authentication failed. Please check your API key.';
     }
-    
+
     if (message.includes('402') || message.includes('credit')) {
       return 'OpenRouter API credits exhausted. Please add credits to your account.';
     }
-    
+
     if (message.includes('429') || message.includes('rate_limit')) {
       return 'OpenRouter API rate limit exceeded. Please try again later.';
     }
-    
+
     if (message.includes('not a valid model') || message.includes('Model not available')) {
       return 'AI model is not available. The app will use fallback parsing instead.';
     }
-    
+
     if (message.includes('quota') || message.includes('limit')) {
       return 'API quota exceeded. Using fallback parsing instead.';
     }
-    
+
     if (message.includes('All AI models failed')) {
       return 'All AI models are currently unavailable. Using basic text parsing instead.';
     }
-    
+
     return message || 'An unknown error occurred during AI processing. Using fallback parsing.';
   }
 
@@ -575,7 +584,7 @@ Return only the JSON object with no additional text:`;
    */
   private static async parseWithFallback(ocrText: string): Promise<ParsedBillData> {
     let lastError: Error | null = null;
-    
+
     // Try primary model first
     try {
       return await this.parseWithModel(ocrText, this.MODEL);
@@ -583,11 +592,11 @@ Return only the JSON object with no additional text:`;
       console.warn(`Primary model ${this.MODEL} failed:`, error);
       lastError = error as Error;
     }
-    
+
     // Try fallback models
     for (const model of this.FALLBACK_MODELS) {
       if (model === this.MODEL) continue; // Skip if same as primary
-      
+
       try {
         console.log(`Trying fallback model: ${model}`);
         return await this.parseWithModel(ocrText, model);
@@ -596,7 +605,7 @@ Return only the JSON object with no additional text:`;
         lastError = error as Error;
       }
     }
-    
+
     // If all models fail, throw the last error
     throw lastError || new Error('All AI models failed to parse the bill text');
   }
@@ -606,11 +615,11 @@ Return only the JSON object with no additional text:`;
    */
   private static async parseWithModel(ocrText: string, model: string): Promise<ParsedBillData> {
     const prompt = this.createBillParsingPrompt(ocrText);
-    
+
     const response = await fetch(`${this.BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.API_KEY}`,
+        Authorization: `Bearer ${this.API_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://yogo-campus.app',
         'X-Title': 'YOGO Campus Bill Splitter',
@@ -620,50 +629,53 @@ Return only the JSON object with no additional text:`;
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful assistant that parses restaurant bills and extracts structured data. Always respond with valid JSON only.'
+            content:
+              'You are a helpful assistant that parses restaurant bills and extracts structured data. Always respond with valid JSON only.',
           },
           {
             role: 'user',
-            content: prompt
-          }
+            content: prompt,
+          },
         ],
         max_tokens: 2000,
         temperature: 0.1,
         top_p: 1,
         frequency_penalty: 0,
-        presence_penalty: 0
-      })
+        presence_penalty: 0,
+      }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('OpenRouter API Error Response:', errorText);
-      
+
       try {
         const errorData = JSON.parse(errorText);
         if (errorData.error?.message?.includes('not a valid model')) {
           throw new Error(`Model not available: ${model}`);
         }
-        if (errorData.error?.message?.includes('insufficient_quota') || 
-            errorData.error?.message?.includes('rate_limit')) {
+        if (
+          errorData.error?.message?.includes('insufficient_quota') ||
+          errorData.error?.message?.includes('rate_limit')
+        ) {
           throw new Error(`Quota exceeded for model: ${model}`);
         }
       } catch (parseError) {
         // If we can't parse the error, just use the raw text
       }
-      
+
       throw new Error(`API error for model ${model}: ${response.status} ${response.statusText}`);
     }
 
     const data: OpenRouterResponse = await response.json();
-    
+
     if (!data.choices || data.choices.length === 0) {
       throw new Error(`No response from model: ${model}`);
     }
 
     const aiResponse = data.choices[0].message.content;
     const parsedData = this.extractJSONFromResponse(aiResponse);
-    
+
     if (!parsedData) {
       throw new Error(`Failed to parse JSON response from model: ${model}`);
     }
@@ -676,10 +688,10 @@ Return only the JSON object with no additional text:`;
    */
   static async testAvailableModels(): Promise<string[]> {
     const availableModels: string[] = [];
-    const testText = "Test bill: Item 1 ₹100, Tax ₹10, Total ₹110";
-    
+    const testText = 'Test bill: Item 1 ₹100, Tax ₹10, Total ₹110';
+
     const modelsToTest = [this.MODEL, ...this.FALLBACK_MODELS];
-    
+
     for (const model of modelsToTest) {
       try {
         console.log(`Testing model: ${model}`);
@@ -690,7 +702,7 @@ Return only the JSON object with no additional text:`;
         console.log(`✗ Model ${model} failed:`, error);
       }
     }
-    
+
     console.log('Available models:', availableModels);
     return availableModels;
   }

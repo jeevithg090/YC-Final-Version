@@ -10,7 +10,6 @@ import {
   TextInput,
   Image,
   ActivityIndicator,
-  FlatList,
   Platform,
   Dimensions,
   Alert,
@@ -20,16 +19,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { db } from '../services/firebase';
-import {
-  collection,
-  onSnapshot,
-  query,
-  orderBy,
-  where,
-  addDoc,
-  getDocs,
-  deleteDoc,
-} from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc, getDocs } from 'firebase/firestore';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -69,7 +59,20 @@ const Restaurants = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
 
-  const cuisineFilters = ['All', 'Indian', 'Chinese', 'Italian', 'Fast Food', 'Desserts', 'Beverages', 'South Indian', 'Mexican', 'Bakery', 'Multi-Cuisine', 'Healthy'];
+  const cuisineFilters = [
+    'All',
+    'Indian',
+    'Chinese',
+    'Italian',
+    'Fast Food',
+    'Desserts',
+    'Beverages',
+    'South Indian',
+    'Mexican',
+    'Bakery',
+    'Multi-Cuisine',
+    'Healthy',
+  ];
 
   // Function to seed restaurants data to Firebase if needed
   const seedRestaurantsData = async () => {
@@ -77,10 +80,10 @@ const Restaurants = () => {
       // Check if restaurants collection already has data
       const restaurantsRef = collection(db, 'restaurants');
       const snapshot = await getDocs(restaurantsRef);
-      
+
       if (snapshot.empty) {
         console.log('Seeding restaurants data to Firebase...');
-        
+
         // Restaurant data from user input - each restaurant needs a unique ID
         const restaurantsData = [
           {
@@ -145,7 +148,7 @@ const Restaurants = () => {
             featured: true,
           },
           {
-            name: 'Flurry\'s Baken Bru',
+            name: "Flurry's Baken Bru",
             phoneNumber: '+91 99801 44033',
             cuisine: 'Bakery',
             rating: 4.5,
@@ -268,7 +271,7 @@ const Restaurants = () => {
             tags: ['Mexican', 'Tacos'],
           },
         ];
-        
+
         // Add each restaurant to Firestore
         for (const restaurant of restaurantsData) {
           await addDoc(restaurantsRef, restaurant);
@@ -282,11 +285,11 @@ const Restaurants = () => {
     }
   };
 
-  /* Firebase Console Action: 
+  /* Firebase Console Action:
    * This query requires a composite index on the 'restaurants' collection.
    * Create the index by visiting this URL:
    * https://console.firebase.google.com/v1/r/project/yogo-campus/firestore/indexes?create_composite=Ck9wcm9qZWN0cy95b2dvLWNhbXB1cy9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvcmVzdGF1cmFudHMvaW5kZXhlcy9fEAEaDAoIZmVhdHVyZWQQAhoKCgZyYXRpbmcQAhoMCghfX25hbWVfXxAC
-   * 
+   *
    * Or manually create an index with:
    * - Collection: restaurants
    * - Fields to index: featured (Ascending), rating (Descending)
@@ -296,33 +299,37 @@ const Restaurants = () => {
   useEffect(() => {
     // Set up real-time listener for restaurant data
     const restaurantsRef = collection(db, 'restaurants');
-    
+
     // Use a simple query that doesn't require a composite index
     // This ensures all restaurants are retrieved regardless of index status
     const q = query(restaurantsRef);
-    
+
     // First check if any data exists
-    getDocs(q).then((snapshot) => {
-      if (snapshot.empty) {
-        console.log('No restaurants found, seeding data...');
-        seedRestaurantsData().then(() => {
-          console.log('Seeding complete, data should be available now');
-        }).catch(error => {
-          console.error('Error seeding data:', error);
-          setLoading(false);
-        });
-      }
-    }).catch(error => {
-      console.error('Error checking for restaurants:', error);
-    });
-    
+    getDocs(q)
+      .then((snapshot) => {
+        if (snapshot.empty) {
+          console.log('No restaurants found, seeding data...');
+          seedRestaurantsData()
+            .then(() => {
+              console.log('Seeding complete, data should be available now');
+            })
+            .catch((error) => {
+              console.error('Error seeding data:', error);
+              setLoading(false);
+            });
+        }
+      })
+      .catch((error) => {
+        console.error('Error checking for restaurants:', error);
+      });
+
     // Set up the listener for real-time updates
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
         try {
           console.log(`Retrieved ${snapshot.docs.length} restaurants from Firestore`);
-          
+
           // Extract all restaurants with proper error checking
           let restaurantsData = snapshot.docs.map((doc) => {
             const data = doc.data();
@@ -342,7 +349,7 @@ const Restaurants = () => {
               phoneNumber: data.phoneNumber || 'N/A',
             } as Restaurant;
           });
-          
+
           // Sort manually - featured restaurants first, then by rating
           restaurantsData = restaurantsData.sort((a, b) => {
             // Sort by featured first
@@ -351,7 +358,7 @@ const Restaurants = () => {
             // Then by rating
             return b.rating - a.rating;
           });
-          
+
           console.log(`Processed ${restaurantsData.length} restaurants`);
           setRestaurants(restaurantsData);
           setFilteredRestaurants(restaurantsData);
@@ -365,58 +372,48 @@ const Restaurants = () => {
       },
       (error) => {
         console.error('Firebase connection failed:', error);
-        
+
         // Check if the restaurants collection exists
         getDocs(restaurantsRef)
           .then((snapshot) => {
             if (snapshot.empty) {
-              Alert.alert(
-                'No Restaurants Found',
-                'Would you like to seed the restaurant data now?',
-                [
-                  {
-                    text: 'Cancel',
-                    style: 'cancel',
-                    onPress: () => setLoading(false)
-                  },
-                  {
-                    text: 'Yes',
-                    onPress: async () => {
-                      try {
-                        await seedRestaurantsData();
-                        Alert.alert(
-                          'Success',
-                          'Restaurant data has been seeded. Please restart the app.'
-                        );
-                      } catch (seedError) {
-                        console.error('Error seeding data:', seedError);
-                        Alert.alert(
-                          'Error',
-                          'Failed to seed restaurant data. Please check your connection and try again.'
-                        );
-                      } finally {
-                        setLoading(false);
-                      }
+              Alert.alert('No Restaurants Found', 'Would you like to seed the restaurant data now?', [
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                  onPress: () => setLoading(false),
+                },
+                {
+                  text: 'Yes',
+                  onPress: async () => {
+                    try {
+                      await seedRestaurantsData();
+                      Alert.alert('Success', 'Restaurant data has been seeded. Please restart the app.');
+                    } catch (seedError) {
+                      console.error('Error seeding data:', seedError);
+                      Alert.alert(
+                        'Error',
+                        'Failed to seed restaurant data. Please check your connection and try again.',
+                      );
+                    } finally {
+                      setLoading(false);
                     }
-                  }
-                ]
-              );
+                  },
+                },
+              ]);
             } else {
-              Alert.alert(
-                'Connection Error',
-                `Failed to connect to Firebase. Error: ${error.message || error}`
-              );
+              Alert.alert('Connection Error', `Failed to connect to Firebase. Error: ${error.message || error}`);
               setLoading(false);
             }
           })
           .catch(() => {
             Alert.alert(
               'Connection Error',
-              'Failed to connect to Firebase. Please check your internet connection and try again.'
+              'Failed to connect to Firebase. Please check your internet connection and try again.',
             );
             setLoading(false);
           });
-      }
+      },
     );
 
     return () => unsubscribe();
@@ -428,23 +425,24 @@ const Restaurants = () => {
       setFilteredRestaurants([]);
       return;
     }
-    
+
     let filtered = [...restaurants];
 
     // Filter by cuisine
     if (selectedFilter !== 'all') {
-      filtered = filtered.filter(restaurant => 
-        restaurant.cuisine && restaurant.cuisine.toLowerCase() === selectedFilter.toLowerCase()
+      filtered = filtered.filter(
+        (restaurant) => restaurant.cuisine && restaurant.cuisine.toLowerCase() === selectedFilter.toLowerCase(),
       );
     }
 
     // Search functionality
     if (searchQuery && searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(restaurant =>
-        (restaurant.name && restaurant.name.toLowerCase().includes(query)) ||
-        (restaurant.cuisine && restaurant.cuisine.toLowerCase().includes(query)) ||
-        (restaurant.tags && restaurant.tags.some(tag => tag.toLowerCase().includes(query)))
+      filtered = filtered.filter(
+        (restaurant) =>
+          (restaurant.name && restaurant.name.toLowerCase().includes(query)) ||
+          (restaurant.cuisine && restaurant.cuisine.toLowerCase().includes(query)) ||
+          (restaurant.tags && restaurant.tags.some((tag) => tag.toLowerCase().includes(query))),
       );
     }
 
@@ -454,29 +452,25 @@ const Restaurants = () => {
 
   // Function to handle calling restaurant
   const handleCallPress = (phoneNumber: string, restaurantName: string) => {
-    Alert.alert(
-      restaurantName,
-      `Call ${phoneNumber}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Call", 
-          onPress: () => {
-            // Format phone number for linking
-            const phoneUrl = `tel:${phoneNumber.replace(/\s/g, '')}`;
-            Linking.canOpenURL(phoneUrl)
-              .then(supported => {
-                if (supported) {
-                  Linking.openURL(phoneUrl);
-                } else {
-                  Alert.alert("Phone not supported", "Your device doesn't support making phone calls");
-                }
-              })
-              .catch(err => console.error('Error with phone call:', err));
-          }
-        }
-      ]
-    );
+    Alert.alert(restaurantName, `Call ${phoneNumber}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Call',
+        onPress: () => {
+          // Format phone number for linking
+          const phoneUrl = `tel:${phoneNumber.replace(/\s/g, '')}`;
+          Linking.canOpenURL(phoneUrl)
+            .then((supported) => {
+              if (supported) {
+                Linking.openURL(phoneUrl);
+              } else {
+                Alert.alert('Phone not supported', "Your device doesn't support making phone calls");
+              }
+            })
+            .catch((err) => console.error('Error with phone call:', err));
+        },
+      },
+    ]);
   };
 
   const renderRestaurantCard = ({ item }: { item: Restaurant }) => {
@@ -485,9 +479,9 @@ const Restaurants = () => {
       console.warn('Attempted to render a restaurant with missing data:', item);
       return null;
     }
-    
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.restaurantCard}
         activeOpacity={0.95}
         onPress={() => {
@@ -496,12 +490,12 @@ const Restaurants = () => {
           Alert.alert(item.name, `You selected ${item.name}`);
         }}
       >
-        <Image 
-          source={{ uri: item.imageUrl }} 
-          style={styles.restaurantImage} 
+        <Image
+          source={{ uri: item.imageUrl }}
+          style={styles.restaurantImage}
           defaultSource={require('../../assets/images/campus-life.png')}
         />
-        
+
         {item.featured && (
           <View style={styles.featuredBadge}>
             <Ionicons name="star" size={12} color="white" />
@@ -511,7 +505,9 @@ const Restaurants = () => {
 
         <View style={styles.restaurantInfo}>
           <View style={styles.restaurantHeader}>
-            <Text style={styles.restaurantName} numberOfLines={1}>{item.name}</Text>
+            <Text style={styles.restaurantName} numberOfLines={1}>
+              {item.name}
+            </Text>
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={14} color="#FFD700" />
               <Text style={styles.rating}>{item.rating}</Text>
@@ -519,7 +515,7 @@ const Restaurants = () => {
           </View>
 
           <Text style={styles.cuisine}>{item.cuisine || 'Various'}</Text>
-          
+
           <View style={styles.restaurantMeta}>
             <View style={styles.metaItem}>
               <Ionicons name="time-outline" size={14} color="#8E8E93" />
@@ -535,21 +531,22 @@ const Restaurants = () => {
           </View>
 
           <View style={styles.tagsContainer}>
-            {item.tags && item.tags.slice(0, 2).map((tag, index) => (
-              <View key={index} style={styles.tag}>
-                <Text style={styles.tagText}>{tag}</Text>
-              </View>
-            ))}
+            {item.tags &&
+              item.tags.slice(0, 2).map((tag, index) => (
+                <View key={index} style={styles.tag}>
+                  <Text style={styles.tagText}>{tag}</Text>
+                </View>
+              ))}
             {item.isOpen === false && (
               <View style={[styles.tag, styles.closedTag]}>
                 <Text style={[styles.tagText, styles.closedTagText]}>Closed</Text>
               </View>
             )}
           </View>
-          
+
           {/* Phone button */}
-          <TouchableOpacity 
-            style={styles.phoneButton} 
+          <TouchableOpacity
+            style={styles.phoneButton}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               handleCallPress(item.phoneNumber, item.name);
@@ -577,9 +574,9 @@ const Restaurants = () => {
   const headerOpacity = scrollY.interpolate({
     inputRange: [0, 100],
     outputRange: [1, 0.9],
-    extrapolate: 'clamp'
+    extrapolate: 'clamp',
   });
-  
+
   const handleBackPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.goBack();
@@ -588,21 +585,17 @@ const Restaurants = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
-      
+
       {/* App Logo and Name with Back Button */}
       <View style={styles.appLogoContainer}>
-        <TouchableOpacity 
-          style={styles.backButtonContainer} 
-          onPress={handleBackPress}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.backButtonContainer} onPress={handleBackPress} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={24} color="#4E54C8" />
         </TouchableOpacity>
-        
+
         <Image source={appLogoImage} style={styles.appLogo} />
         <Text style={styles.appName}>YOGO Campus</Text>
       </View>
-      
+
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
@@ -610,8 +603,8 @@ const Restaurants = () => {
             <LinearGradient
               colors={['#FF8C00', '#FF6347']}
               style={styles.iconContainer}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
             >
               <Ionicons name="restaurant" size={24} color="white" />
             </LinearGradient>
@@ -634,37 +627,27 @@ const Restaurants = () => {
         </View>
 
         {/* Filter Chips */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
           style={styles.filtersContainer}
           contentContainerStyle={styles.filtersContent}
         >
           {cuisineFilters.map((filter, index) => {
             const filterValue = filter.toLowerCase();
             const isActive = selectedFilter === (filterValue === 'all' ? 'all' : filterValue);
-            
+
             return (
               <TouchableOpacity
                 key={index}
-                style={[
-                  styles.filterChip,
-                  isActive && styles.activeFilterChip
-                ]}
+                style={[styles.filterChip, isActive && styles.activeFilterChip]}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   setSelectedFilter(filterValue === 'all' ? 'all' : filterValue);
                 }}
                 activeOpacity={0.7}
               >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    isActive && styles.activeFilterChipText
-                  ]}
-                >
-                  {filter}
-                </Text>
+                <Text style={[styles.filterChipText, isActive && styles.activeFilterChipText]}>{filter}</Text>
               </TouchableOpacity>
             );
           })}
@@ -679,10 +662,7 @@ const Restaurants = () => {
         style={styles.restaurantsList}
         contentContainerStyle={styles.restaurantsListContent}
         showsVerticalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
         bounces={true}
         bouncesZoom={true}

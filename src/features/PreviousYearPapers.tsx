@@ -9,7 +9,6 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  Platform,
   SafeAreaView,
   Dimensions,
   Linking,
@@ -52,24 +51,24 @@ const PreviousYearPapers: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalPapers, setTotalPapers] = useState<number>(0);
-  
+
   // Filter states
   const [selectedYear, setSelectedYear] = useState<string>('');
   const [selectedProgramme, setSelectedProgramme] = useState<string>('');
   const [selectedTerm, setSelectedTerm] = useState<string>('');
   const [selectedSemester, setSelectedSemester] = useState<string>('');
   const [selectedBranch, setSelectedBranch] = useState<string>('');
-  
+
   // Filter options
   const [yearOptions, setYearOptions] = useState<string[]>([]);
   const [programmeOptions, setProgrammeOptions] = useState<string[]>([]);
   const [termOptions, setTermOptions] = useState<string[]>([]);
   const [semesterOptions, setSemesterOptions] = useState<string[]>([]);
   const [branchOptions, setBranchOptions] = useState<string[]>([]);
-  
+
   // Loading states
   const [loadingFilterOptions, setLoadingFilterOptions] = useState<boolean>(false);
-  
+
   // Dropdown visibility states
   const [showYearDropdown, setShowYearDropdown] = useState<boolean>(false);
   const [showProgrammeDropdown, setShowProgrammeDropdown] = useState<boolean>(false);
@@ -99,13 +98,12 @@ const PreviousYearPapers: React.FC = () => {
         semestersRes.ok ? semestersRes.json() : { options: [] },
         branchesRes.ok ? branchesRes.json() : { options: [] },
       ]);
-      
+
       setYearOptions(yearsData.options || []);
       setProgrammeOptions(programmesData.options || []);
       setTermOptions(termsData.options || []);
       setSemesterOptions(semestersData.options || []);
       setBranchOptions(branchesData.options || []);
-      
     } catch (error) {
       console.error('Error loading initial filter options:', error);
       // Fallback to common values if API fails
@@ -121,9 +119,9 @@ const PreviousYearPapers: React.FC = () => {
   const loadCascadingFilterOptions = async () => {
     try {
       setLoadingFilterOptions(true);
-      
+
       const params = new URLSearchParams();
-      
+
       // Build params for context - only include filters that have values
       if (selectedYear) params.set('year', selectedYear);
       if (selectedProgramme) params.set('programme', selectedProgramme);
@@ -133,23 +131,23 @@ const PreviousYearPapers: React.FC = () => {
 
       // Fetch options for each level with current context
       const optionsPromises = [];
-      
+
       // Always fetch year options (no dependencies)
       optionsPromises.push(
         fetch(`${PAPERS_API_BASE}/filter-options?level=year`)
-          .then(res => res.ok ? res.json() : { options: [] })
-          .then(data => ({ level: 'year', options: data.options || [] }))
+          .then((res) => (res.ok ? res.json() : { options: [] }))
+          .then((data) => ({ level: 'year', options: data.options || [] })),
       );
 
       // Programme options depend on year
       const programmeParams = new URLSearchParams();
       if (selectedYear) programmeParams.set('year', selectedYear);
       programmeParams.set('level', 'programme');
-      
+
       optionsPromises.push(
         fetch(`${PAPERS_API_BASE}/filter-options?${programmeParams.toString()}`)
-          .then(res => res.ok ? res.json() : { options: [] })
-          .then(data => ({ level: 'programme', options: data.options || [] }))
+          .then((res) => (res.ok ? res.json() : { options: [] }))
+          .then((data) => ({ level: 'programme', options: data.options || [] })),
       );
 
       // Term options depend on year and programme
@@ -157,11 +155,11 @@ const PreviousYearPapers: React.FC = () => {
       if (selectedYear) termParams.set('year', selectedYear);
       if (selectedProgramme) termParams.set('programme', selectedProgramme);
       termParams.set('level', 'term');
-      
+
       optionsPromises.push(
         fetch(`${PAPERS_API_BASE}/filter-options?${termParams.toString()}`)
-          .then(res => res.ok ? res.json() : { options: [] })
-          .then(data => ({ level: 'term', options: data.options || [] }))
+          .then((res) => (res.ok ? res.json() : { options: [] }))
+          .then((data) => ({ level: 'term', options: data.options || [] })),
       );
 
       // Semester options depend on year, programme, and term
@@ -170,11 +168,11 @@ const PreviousYearPapers: React.FC = () => {
       if (selectedProgramme) semesterParams.set('programme', selectedProgramme);
       if (selectedTerm) semesterParams.set('term', selectedTerm);
       semesterParams.set('level', 'semester');
-      
+
       optionsPromises.push(
         fetch(`${PAPERS_API_BASE}/filter-options?${semesterParams.toString()}`)
-          .then(res => res.ok ? res.json() : { options: [] })
-          .then(data => ({ level: 'semester', options: data.options || [] }))
+          .then((res) => (res.ok ? res.json() : { options: [] }))
+          .then((data) => ({ level: 'semester', options: data.options || [] })),
       );
 
       // Branch options depend on all previous selections
@@ -184,17 +182,17 @@ const PreviousYearPapers: React.FC = () => {
       if (selectedTerm) branchParams.set('term', selectedTerm);
       if (selectedSemester) branchParams.set('semester', selectedSemester);
       branchParams.set('level', 'branch');
-      
+
       optionsPromises.push(
         fetch(`${PAPERS_API_BASE}/filter-options?${branchParams.toString()}`)
-          .then(res => res.ok ? res.json() : { options: [] })
-          .then(data => ({ level: 'branch', options: data.options || [] }))
+          .then((res) => (res.ok ? res.json() : { options: [] }))
+          .then((data) => ({ level: 'branch', options: data.options || [] })),
       );
 
       const results = await Promise.all(optionsPromises);
-      
+
       // Update state with new options
-      results.forEach(result => {
+      results.forEach((result) => {
         switch (result.level) {
           case 'year':
             setYearOptions(result.options);
@@ -213,7 +211,6 @@ const PreviousYearPapers: React.FC = () => {
             break;
         }
       });
-      
     } catch (error) {
       console.error('Error loading cascading filter options:', error);
       // Keep existing options on error
@@ -226,38 +223,37 @@ const PreviousYearPapers: React.FC = () => {
   const loadPapers = async (page: number = 1) => {
     try {
       setLoading(true);
-      
+
       // Build query parameters
       const params = new URLSearchParams({
         page: page.toString(),
         pageSize: '24', // Match the API default
       });
-      
+
       // Add search query if present
       if (searchQuery.trim()) {
         params.set('search', searchQuery.trim());
       }
-      
+
       // Add filters if selected
       if (selectedYear) params.set('year', selectedYear);
       if (selectedProgramme) params.set('programme', selectedProgramme);
       if (selectedTerm) params.set('term', selectedTerm);
       if (selectedSemester) params.set('semester', selectedSemester);
       if (selectedBranch) params.set('branch', selectedBranch);
-      
+
       const response = await fetch(`${PAPERS_API_BASE}/papers?${params.toString()}`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data: APIResponse = await response.json();
-      
+
       setPapers(data.results);
       setCurrentPage(data.page);
       setTotalPages(data.totalPages);
       setTotalPapers(data.total);
-      
     } catch (error) {
       console.error('Error loading papers:', error);
       Alert.alert('Error', 'Failed to load papers. Please check your internet connection and try again.');
@@ -323,7 +319,7 @@ const PreviousYearPapers: React.FC = () => {
   const handleFilterSelect = (filterType: string, value: string) => {
     // Close all dropdowns first
     closeAllDropdowns();
-    
+
     // Clear dependent filters when a parent filter changes
     switch (filterType) {
       case 'year':
@@ -372,14 +368,12 @@ const PreviousYearPapers: React.FC = () => {
     loadPapers(1);
   }, []);
 
-
-  useEffect(() => {
-
-  }, [yearOptions, programmeOptions, termOptions, semesterOptions, branchOptions]);
+  useEffect(() => {}, [yearOptions, programmeOptions, termOptions, semesterOptions, branchOptions]);
 
   // Update filter options when any filter changes (cascading effect)
   useEffect(() => {
-    if (yearOptions.length > 0) { // Only run cascading after initial load
+    if (yearOptions.length > 0) {
+      // Only run cascading after initial load
       loadCascadingFilterOptions();
     }
   }, [selectedYear, selectedProgramme, selectedTerm, selectedSemester]);
@@ -398,19 +392,14 @@ const PreviousYearPapers: React.FC = () => {
 
   const renderPaperCard = (paper: PaperFromAPI) => (
     <View key={paper.id} style={styles.paperCard}>
-      <LinearGradient
-        colors={['#FFFFFF', '#F8FAFF']}
-        style={styles.paperGradient}
-      >
+      <LinearGradient colors={['#FFFFFF', '#F8FAFF']} style={styles.paperGradient}>
         <View style={styles.paperHeader}>
           <View style={styles.paperIconContainer}>
             <Ionicons name="document-text" size={24} color="#4E54C8" />
           </View>
           <View style={styles.paperInfo}>
             <Text style={styles.paperTitle}>{paper.name}</Text>
-            <Text style={styles.paperSubject}>
-              {paper.path.join(' › ')}
-            </Text>
+            <Text style={styles.paperSubject}>{paper.path.join(' › ')}</Text>
           </View>
         </View>
 
@@ -425,7 +414,7 @@ const PreviousYearPapers: React.FC = () => {
               <Text style={styles.detailValue}>{paper.term}</Text>
             </View>
           </View>
-          
+
           <View style={styles.detailRow}>
             <View style={styles.detailItem}>
               <Text style={styles.detailLabel}>Programme</Text>
@@ -450,15 +439,9 @@ const PreviousYearPapers: React.FC = () => {
             <Ionicons name="document-outline" size={16} color="#8E8E93" />
             <Text style={styles.downloadCount}>Papers Please</Text>
           </View>
-          
-          <TouchableOpacity
-            style={styles.downloadButton}
-            onPress={() => openPaper(paper)}
-          >
-            <LinearGradient
-              colors={['#4E54C8', '#6366F1']}
-              style={styles.downloadButtonGradient}
-            >
+
+          <TouchableOpacity style={styles.downloadButton} onPress={() => openPaper(paper)}>
+            <LinearGradient colors={['#4E54C8', '#6366F1']} style={styles.downloadButtonGradient}>
               <Ionicons name="open-outline" size={18} color="#FFFFFF" />
               <Text style={styles.downloadButtonText}>View</Text>
             </LinearGradient>
@@ -470,28 +453,20 @@ const PreviousYearPapers: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={['#F8FAFF', '#FFFFFF', '#F0F8FF']}
-        style={styles.gradient}
-      >
+      <LinearGradient colors={['#F8FAFF', '#FFFFFF', '#F0F8FF']} style={styles.gradient}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#4E54C8" />
           </TouchableOpacity>
-          
+
           <View style={styles.headerLeft}>
             <View style={styles.headerIconContainer}>
               <Ionicons name="document-text" size={28} color="#4E54C8" />
             </View>
             <View>
               <Text style={styles.headerTitle}>Previous Year Papers</Text>
-              <Text style={styles.headerSubtitle}>
-                {totalPapers} papers available
-              </Text>
+              <Text style={styles.headerSubtitle}>{totalPapers} papers available</Text>
             </View>
           </View>
         </View>
@@ -516,10 +491,7 @@ const PreviousYearPapers: React.FC = () => {
 
           {/* Vertical Filters */}
           <View style={styles.filtersContainer}>
-            <TouchableOpacity
-              style={styles.expandMinimizeButton}
-              onPress={handleToggleFilters}
-            >
+            <TouchableOpacity style={styles.expandMinimizeButton} onPress={handleToggleFilters}>
               <Ionicons name={filtersExpanded ? 'chevron-up' : 'chevron-down'} size={20} color="#4E54C8" />
               <Text style={styles.expandMinimizeText}>{filtersExpanded ? 'Minimize Filters' : 'Expand Filters'}</Text>
             </TouchableOpacity>
@@ -529,10 +501,7 @@ const PreviousYearPapers: React.FC = () => {
                 <View style={styles.filterItem}>
                   <Text style={styles.filterLabel}>Year</Text>
                   <TouchableOpacity
-                    style={[
-                      styles.filterSelectButton,
-                      selectedYear && styles.filterButtonActive
-                    ]}
+                    style={[styles.filterSelectButton, selectedYear && styles.filterButtonActive]}
                     onPress={() => {
                       if (!loadingFilterOptions) {
                         closeAllDropdowns();
@@ -541,20 +510,13 @@ const PreviousYearPapers: React.FC = () => {
                     }}
                     disabled={loadingFilterOptions}
                   >
-                    <Text style={[
-                      styles.filterSelectText,
-                      selectedYear && styles.filterButtonTextActive
-                    ]}>
+                    <Text style={[styles.filterSelectText, selectedYear && styles.filterButtonTextActive]}>
                       {selectedYear || 'Select Year'}
                     </Text>
                     {loadingFilterOptions ? (
                       <ActivityIndicator size="small" color="#8E8E93" />
                     ) : (
-                      <Ionicons 
-                        name={showYearDropdown ? "chevron-up" : "chevron-down"} 
-                        size={16} 
-                        color="#8E8E93" 
-                      />
+                      <Ionicons name={showYearDropdown ? 'chevron-up' : 'chevron-down'} size={16} color="#8E8E93" />
                     )}
                   </TouchableOpacity>
                   {showYearDropdown && (
@@ -563,16 +525,15 @@ const PreviousYearPapers: React.FC = () => {
                         {yearOptions.map((year) => (
                           <TouchableOpacity
                             key={year}
-                            style={[
-                              styles.dropdownItem,
-                              selectedYear === year && styles.dropdownItemSelected
-                            ]}
+                            style={[styles.dropdownItem, selectedYear === year && styles.dropdownItemSelected]}
                             onPress={() => handleFilterSelect('year', year)}
                           >
-                            <Text style={[
-                              styles.dropdownItemText,
-                              selectedYear === year && styles.dropdownItemTextSelected
-                            ]}>
+                            <Text
+                              style={[
+                                styles.dropdownItemText,
+                                selectedYear === year && styles.dropdownItemTextSelected,
+                              ]}
+                            >
                               {year}
                             </Text>
                           </TouchableOpacity>
@@ -589,7 +550,7 @@ const PreviousYearPapers: React.FC = () => {
                     style={[
                       styles.filterSelectButton,
                       selectedProgramme && styles.filterButtonActive,
-                      !selectedYear && styles.filterButtonDisabled
+                      !selectedYear && styles.filterButtonDisabled,
                     ]}
                     onPress={() => {
                       if (selectedYear && !loadingFilterOptions) {
@@ -599,19 +560,16 @@ const PreviousYearPapers: React.FC = () => {
                     }}
                     disabled={!selectedYear || loadingFilterOptions}
                   >
-                    <Text style={[
-                      styles.filterSelectText,
-                      selectedProgramme && styles.filterButtonTextActive
-                    ]}>
+                    <Text style={[styles.filterSelectText, selectedProgramme && styles.filterButtonTextActive]}>
                       {selectedProgramme || 'Select Programme'}
                     </Text>
                     {loadingFilterOptions ? (
                       <ActivityIndicator size="small" color="#8E8E93" />
                     ) : (
-                      <Ionicons 
-                        name={showProgrammeDropdown ? "chevron-up" : "chevron-down"} 
-                        size={16} 
-                        color="#8E8E93" 
+                      <Ionicons
+                        name={showProgrammeDropdown ? 'chevron-up' : 'chevron-down'}
+                        size={16}
+                        color="#8E8E93"
                       />
                     )}
                   </TouchableOpacity>
@@ -623,14 +581,16 @@ const PreviousYearPapers: React.FC = () => {
                             key={programme}
                             style={[
                               styles.dropdownItem,
-                              selectedProgramme === programme && styles.dropdownItemSelected
+                              selectedProgramme === programme && styles.dropdownItemSelected,
                             ]}
                             onPress={() => handleFilterSelect('programme', programme)}
                           >
-                            <Text style={[
-                              styles.dropdownItemText,
-                              selectedProgramme === programme && styles.dropdownItemTextSelected
-                            ]}>
+                            <Text
+                              style={[
+                                styles.dropdownItemText,
+                                selectedProgramme === programme && styles.dropdownItemTextSelected,
+                              ]}
+                            >
                               {programme}
                             </Text>
                           </TouchableOpacity>
@@ -647,7 +607,7 @@ const PreviousYearPapers: React.FC = () => {
                     style={[
                       styles.filterSelectButton,
                       selectedTerm && styles.filterButtonActive,
-                      (!selectedYear || !selectedProgramme) && styles.filterButtonDisabled
+                      (!selectedYear || !selectedProgramme) && styles.filterButtonDisabled,
                     ]}
                     onPress={() => {
                       if (selectedYear && selectedProgramme && !loadingFilterOptions) {
@@ -657,20 +617,13 @@ const PreviousYearPapers: React.FC = () => {
                     }}
                     disabled={!selectedYear || !selectedProgramme || loadingFilterOptions}
                   >
-                    <Text style={[
-                      styles.filterSelectText,
-                      selectedTerm && styles.filterButtonTextActive
-                    ]}>
+                    <Text style={[styles.filterSelectText, selectedTerm && styles.filterButtonTextActive]}>
                       {selectedTerm || 'Select Term'}
                     </Text>
                     {loadingFilterOptions ? (
                       <ActivityIndicator size="small" color="#8E8E93" />
                     ) : (
-                      <Ionicons 
-                        name={showTermDropdown ? "chevron-up" : "chevron-down"} 
-                        size={16} 
-                        color="#8E8E93" 
-                      />
+                      <Ionicons name={showTermDropdown ? 'chevron-up' : 'chevron-down'} size={16} color="#8E8E93" />
                     )}
                   </TouchableOpacity>
                   {showTermDropdown && (
@@ -679,16 +632,15 @@ const PreviousYearPapers: React.FC = () => {
                         {termOptions.map((term) => (
                           <TouchableOpacity
                             key={term}
-                            style={[
-                              styles.dropdownItem,
-                              selectedTerm === term && styles.dropdownItemSelected
-                            ]}
+                            style={[styles.dropdownItem, selectedTerm === term && styles.dropdownItemSelected]}
                             onPress={() => handleFilterSelect('term', term)}
                           >
-                            <Text style={[
-                              styles.dropdownItemText,
-                              selectedTerm === term && styles.dropdownItemTextSelected
-                            ]}>
+                            <Text
+                              style={[
+                                styles.dropdownItemText,
+                                selectedTerm === term && styles.dropdownItemTextSelected,
+                              ]}
+                            >
                               {term}
                             </Text>
                           </TouchableOpacity>
@@ -705,7 +657,7 @@ const PreviousYearPapers: React.FC = () => {
                     style={[
                       styles.filterSelectButton,
                       selectedSemester && styles.filterButtonActive,
-                      (!selectedYear || !selectedProgramme || !selectedTerm) && styles.filterButtonDisabled
+                      (!selectedYear || !selectedProgramme || !selectedTerm) && styles.filterButtonDisabled,
                     ]}
                     onPress={() => {
                       if (selectedYear && selectedProgramme && selectedTerm && !loadingFilterOptions) {
@@ -715,20 +667,13 @@ const PreviousYearPapers: React.FC = () => {
                     }}
                     disabled={!selectedYear || !selectedProgramme || !selectedTerm || loadingFilterOptions}
                   >
-                    <Text style={[
-                      styles.filterSelectText,
-                      selectedSemester && styles.filterButtonTextActive
-                    ]}>
+                    <Text style={[styles.filterSelectText, selectedSemester && styles.filterButtonTextActive]}>
                       {selectedSemester || 'Select Semester'}
                     </Text>
                     {loadingFilterOptions ? (
                       <ActivityIndicator size="small" color="#8E8E93" />
                     ) : (
-                      <Ionicons 
-                        name={showSemesterDropdown ? "chevron-up" : "chevron-down"} 
-                        size={16} 
-                        color="#8E8E93" 
-                      />
+                      <Ionicons name={showSemesterDropdown ? 'chevron-up' : 'chevron-down'} size={16} color="#8E8E93" />
                     )}
                   </TouchableOpacity>
                   {showSemesterDropdown && (
@@ -737,16 +682,15 @@ const PreviousYearPapers: React.FC = () => {
                         {semesterOptions.map((semester) => (
                           <TouchableOpacity
                             key={semester}
-                            style={[
-                              styles.dropdownItem,
-                              selectedSemester === semester && styles.dropdownItemSelected
-                            ]}
+                            style={[styles.dropdownItem, selectedSemester === semester && styles.dropdownItemSelected]}
                             onPress={() => handleFilterSelect('semester', semester)}
                           >
-                            <Text style={[
-                              styles.dropdownItemText,
-                              selectedSemester === semester && styles.dropdownItemTextSelected
-                            ]}>
+                            <Text
+                              style={[
+                                styles.dropdownItemText,
+                                selectedSemester === semester && styles.dropdownItemTextSelected,
+                              ]}
+                            >
                               {semester}
                             </Text>
                           </TouchableOpacity>
@@ -763,30 +707,32 @@ const PreviousYearPapers: React.FC = () => {
                     style={[
                       styles.filterSelectButton,
                       selectedBranch && styles.filterButtonActive,
-                      (!selectedYear || !selectedProgramme || !selectedTerm || !selectedSemester) && styles.filterButtonDisabled
+                      (!selectedYear || !selectedProgramme || !selectedTerm || !selectedSemester) &&
+                        styles.filterButtonDisabled,
                     ]}
                     onPress={() => {
-                      if (selectedYear && selectedProgramme && selectedTerm && selectedSemester && !loadingFilterOptions) {
+                      if (
+                        selectedYear &&
+                        selectedProgramme &&
+                        selectedTerm &&
+                        selectedSemester &&
+                        !loadingFilterOptions
+                      ) {
                         closeAllDropdowns();
                         setShowBranchDropdown(!showBranchDropdown);
                       }
                     }}
-                    disabled={!selectedYear || !selectedProgramme || !selectedTerm || !selectedSemester || loadingFilterOptions}
+                    disabled={
+                      !selectedYear || !selectedProgramme || !selectedTerm || !selectedSemester || loadingFilterOptions
+                    }
                   >
-                    <Text style={[
-                      styles.filterSelectText,
-                      selectedBranch && styles.filterButtonTextActive
-                    ]}>
+                    <Text style={[styles.filterSelectText, selectedBranch && styles.filterButtonTextActive]}>
                       {selectedBranch || 'Select Branch'}
                     </Text>
                     {loadingFilterOptions ? (
                       <ActivityIndicator size="small" color="#8E8E93" />
                     ) : (
-                      <Ionicons 
-                        name={showBranchDropdown ? "chevron-up" : "chevron-down"} 
-                        size={16} 
-                        color="#8E8E93" 
-                      />
+                      <Ionicons name={showBranchDropdown ? 'chevron-up' : 'chevron-down'} size={16} color="#8E8E93" />
                     )}
                   </TouchableOpacity>
                   {showBranchDropdown && (
@@ -795,16 +741,15 @@ const PreviousYearPapers: React.FC = () => {
                         {branchOptions.map((branch) => (
                           <TouchableOpacity
                             key={branch}
-                            style={[
-                              styles.dropdownItem,
-                              selectedBranch === branch && styles.dropdownItemSelected
-                            ]}
+                            style={[styles.dropdownItem, selectedBranch === branch && styles.dropdownItemSelected]}
                             onPress={() => handleFilterSelect('branch', branch)}
                           >
-                            <Text style={[
-                              styles.dropdownItemText,
-                              selectedBranch === branch && styles.dropdownItemTextSelected
-                            ]}>
+                            <Text
+                              style={[
+                                styles.dropdownItemText,
+                                selectedBranch === branch && styles.dropdownItemTextSelected,
+                              ]}
+                            >
                               {branch}
                             </Text>
                           </TouchableOpacity>
@@ -816,10 +761,7 @@ const PreviousYearPapers: React.FC = () => {
 
                 {/* Clear Filters Button */}
                 {(selectedYear || selectedProgramme || selectedTerm || selectedSemester || selectedBranch) && (
-                  <TouchableOpacity
-                    style={styles.clearFiltersButton}
-                    onPress={clearFilters}
-                  >
+                  <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
                     <Ionicons name="close-circle" size={20} color="#4E54C8" />
                     <Text style={styles.clearFiltersText}>Clear Filters</Text>
                   </TouchableOpacity>
@@ -830,19 +772,14 @@ const PreviousYearPapers: React.FC = () => {
         </View>
 
         {/* Papers List */}
-        <ScrollView 
-          style={styles.papersContainer}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView style={styles.papersContainer} showsVerticalScrollIndicator={false}>
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#4E54C8" />
               <Text style={styles.loadingText}>Loading papers...</Text>
             </View>
           ) : papers.length > 0 ? (
-            <View style={styles.papersGrid}>
-              {papers.map(renderPaperCard)}
-            </View>
+            <View style={styles.papersGrid}>{papers.map(renderPaperCard)}</View>
           ) : (
             <View style={styles.noResultsContainer}>
               <Ionicons name="document-text-outline" size={48} color="#8E8E93" />
@@ -1165,7 +1102,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end', // Move to right
-    alignSelf: 'flex-end',      // Move to right
+    alignSelf: 'flex-end', // Move to right
     paddingVertical: 8,
     marginBottom: 8,
     backgroundColor: '#FFFFFF',

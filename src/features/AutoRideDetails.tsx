@@ -13,16 +13,23 @@ import {
   Modal,
   FlatList,
   TextInput,
-  Image,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { db, auth } from '../services/firebase';
-import { 
-  collection, doc, getDoc, onSnapshot, updateDoc, arrayRemove,
-  arrayUnion, addDoc, serverTimestamp, query, where, getDocs
+import {
+  collection,
+  doc,
+  onSnapshot,
+  updateDoc,
+  arrayRemove,
+  arrayUnion,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
 } from 'firebase/firestore';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/router';
@@ -72,7 +79,7 @@ const AutoRideDetails: React.FC = () => {
   const insets = useSafeAreaInsets();
   const route = useRoute();
   const { rideId } = route.params as { rideId: string };
-  
+
   const [rideData, setRideData] = useState<AutoRideData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDriverModal, setShowDriverModal] = useState(false);
@@ -83,12 +90,12 @@ const AutoRideDetails: React.FC = () => {
     name: '',
     driverName: '',
     driverNumber: '',
-    autoNumber: ''
+    autoNumber: '',
   });
-  
+
   // Get the current user ID from Firebase Auth
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  
+
   useEffect(() => {
     // Check if user is logged in
     const user = auth.currentUser;
@@ -99,42 +106,46 @@ const AutoRideDetails: React.FC = () => {
       navigation.goBack();
     }
   }, [navigation]);
-  
+
   useEffect(() => {
     const fetchRideDetails = async () => {
       try {
         const rideRef = doc(db, 'auto_rides', rideId);
-        
+
         // Set up real-time listener for ride data
-        const unsubscribe = onSnapshot(rideRef, (docSnap) => {
-          if (docSnap.exists()) {
-            const data = { id: docSnap.id, ...docSnap.data() } as AutoRideData;
-            setRideData(data);
-          } else {
-            Alert.alert('Error', 'This auto ride no longer exists');
-            navigation.goBack();
-          }
-          setLoading(false);
-        }, (error) => {
-          console.error('Error fetching ride details:', error);
-          Alert.alert('Error', 'Failed to load auto ride details');
-          setLoading(false);
-        });
-        
+        const unsubscribe = onSnapshot(
+          rideRef,
+          (docSnap) => {
+            if (docSnap.exists()) {
+              const data = { id: docSnap.id, ...docSnap.data() } as AutoRideData;
+              setRideData(data);
+            } else {
+              Alert.alert('Error', 'This auto ride no longer exists');
+              navigation.goBack();
+            }
+            setLoading(false);
+          },
+          (error) => {
+            console.error('Error fetching ride details:', error);
+            Alert.alert('Error', 'Failed to load auto ride details');
+            setLoading(false);
+          },
+        );
+
         return () => unsubscribe();
       } catch (error) {
         console.error('Error setting up listener:', error);
         setLoading(false);
       }
     };
-    
+
     fetchRideDetails();
   }, [rideId, navigation]);
-  
+
   const isCreator = rideData?.createdBy === currentUserId;
-  const isParticipant = rideData?.passengers.some(p => p.id === currentUserId);
+  const isParticipant = rideData?.passengers.some((p) => p.id === currentUserId);
   const canJoin = !isParticipant && (rideData?.passengers?.length || 0) < (rideData?.maxPassengers || 0);
-  
+
   const handleContactDriver = () => {
     if (rideData?.autoService?.driverNumber) {
       Linking.openURL(`tel:${rideData.autoService.driverNumber}`);
@@ -142,20 +153,20 @@ const AutoRideDetails: React.FC = () => {
       Alert.alert('No Driver Info', 'Driver contact information has not been added yet.');
     }
   };
-  
+
   const handleAddDriverInfo = async () => {
     if (!driverInfo.driverName || !driverInfo.driverNumber || !driverInfo.autoNumber) {
       Alert.alert('Missing Information', 'Please fill in all driver information fields.');
       return;
     }
-    
+
     try {
       const rideRef = doc(db, 'auto_rides', rideId);
       await updateDoc(rideRef, {
         autoService: driverInfo,
-        status: 'matched'
+        status: 'matched',
       });
-      
+
       setShowDriverModal(false);
       Alert.alert('Success', 'Driver information has been added.');
     } catch (error) {
@@ -163,37 +174,37 @@ const AutoRideDetails: React.FC = () => {
       Alert.alert('Error', 'Failed to add driver information. Please try again.');
     }
   };
-  
+
   const handleLeaveRide = async () => {
     if (!currentUserId) {
       Alert.alert('Login Required', 'Please log in to leave this ride.');
       return;
     }
-    
+
     try {
-      const passenger = rideData?.passengers.find(p => p.id === currentUserId);
+      const passenger = rideData?.passengers.find((p) => p.id === currentUserId);
       if (!passenger) return;
-      
+
       // Remove passenger from auto_rides document
       const rideRef = doc(db, 'auto_rides', rideId);
       await updateDoc(rideRef, {
-        passengers: arrayRemove(passenger)
+        passengers: arrayRemove(passenger),
       });
-      
+
       // Find and update the user_auto_rides document
       const userAutoRidesQuery = query(
         collection(db, 'user_auto_rides'),
         where('userId', '==', currentUserId),
-        where('rideId', '==', rideId)
+        where('rideId', '==', rideId),
       );
-      
+
       const querySnapshot = await getDocs(userAutoRidesQuery);
       querySnapshot.forEach(async (doc) => {
         await updateDoc(doc.ref, {
-          status: 'cancelled'
+          status: 'cancelled',
         });
       });
-      
+
       Alert.alert('Success', 'You have left the auto ride.');
       navigation.goBack();
     } catch (error) {
@@ -201,22 +212,22 @@ const AutoRideDetails: React.FC = () => {
       Alert.alert('Error', 'Failed to leave the auto ride. Please try again.');
     }
   };
-  
+
   const handleJoinRide = async () => {
     if (!canJoin) return;
     if (!currentUserId) {
       Alert.alert('Login Required', 'Please log in to join this ride.');
       return;
     }
-    
+
     try {
       // Use a Date object instead of serverTimestamp() for array elements
       const currentTimestamp = new Date();
-      
+
       // Get user details
       const user = auth.currentUser;
       const userName = user?.displayName || user?.email?.split('@')[0] || 'Anonymous User';
-      
+
       // Add current user as a passenger
       const newPassenger: Passenger = {
         id: currentUserId,
@@ -224,13 +235,13 @@ const AutoRideDetails: React.FC = () => {
         phoneNumber: user?.phoneNumber || 'No phone number',
         joinedAt: currentTimestamp,
       };
-      
+
       const rideRef = doc(db, 'auto_rides', rideId);
       await updateDoc(rideRef, {
         passengers: arrayUnion(newPassenger),
-        lastPassengerJoined: serverTimestamp() // Update this top-level field instead
+        lastPassengerJoined: serverTimestamp(), // Update this top-level field instead
       });
-      
+
       // Create a user_auto_rides document to track this user's ride
       if (rideData) {
         const userAutoRidesRef = collection(db, 'user_auto_rides');
@@ -243,49 +254,46 @@ const AutoRideDetails: React.FC = () => {
           pickupLocation: rideData.pickupLocation,
           dropLocation: rideData.dropLocation,
           travelDate: rideData.travelDate,
-          autoTravelTime: rideData.autoTravelTime
+          autoTravelTime: rideData.autoTravelTime,
         });
       }
-      
+
       Alert.alert('Success', 'You have joined the auto ride.');
     } catch (error) {
       console.error('Error joining ride:', error);
       Alert.alert('Error', 'Failed to join the auto ride. Please try again.');
     }
   };
-  
+
   const handleCancelRide = async () => {
     if (!currentUserId) {
       Alert.alert('Login Required', 'Please log in to cancel this ride.');
       return;
     }
-    
+
     try {
       // Update the auto_rides document
       const rideRef = doc(db, 'auto_rides', rideId);
       await updateDoc(rideRef, {
-        status: 'cancelled'
+        status: 'cancelled',
       });
-      
+
       // Update all user_auto_rides documents related to this ride
-      const userAutoRidesQuery = query(
-        collection(db, 'user_auto_rides'),
-        where('rideId', '==', rideId)
-      );
-      
+      const userAutoRidesQuery = query(collection(db, 'user_auto_rides'), where('rideId', '==', rideId));
+
       const querySnapshot = await getDocs(userAutoRidesQuery);
       const updatePromises: Promise<void>[] = [];
-      
+
       querySnapshot.forEach((doc) => {
         updatePromises.push(
           updateDoc(doc.ref, {
-            status: 'cancelled'
-          })
+            status: 'cancelled',
+          }),
         );
       });
-      
+
       await Promise.all(updatePromises);
-      
+
       setShowCancelModal(false);
       Alert.alert('Ride Cancelled', 'This auto ride has been cancelled.');
       navigation.goBack();
@@ -294,39 +302,36 @@ const AutoRideDetails: React.FC = () => {
       Alert.alert('Error', 'Failed to cancel the auto ride. Please try again.');
     }
   };
-  
+
   const handleCompleteRide = async () => {
     if (!currentUserId) {
       Alert.alert('Login Required', 'Please log in to complete this ride.');
       return;
     }
-    
+
     try {
       // Update the auto_rides document
       const rideRef = doc(db, 'auto_rides', rideId);
       await updateDoc(rideRef, {
-        status: 'completed'
+        status: 'completed',
       });
-      
+
       // Update all user_auto_rides documents related to this ride
-      const userAutoRidesQuery = query(
-        collection(db, 'user_auto_rides'),
-        where('rideId', '==', rideId)
-      );
-      
+      const userAutoRidesQuery = query(collection(db, 'user_auto_rides'), where('rideId', '==', rideId));
+
       const querySnapshot = await getDocs(userAutoRidesQuery);
       const updatePromises: Promise<void>[] = [];
-      
+
       querySnapshot.forEach((doc) => {
         updatePromises.push(
           updateDoc(doc.ref, {
-            status: 'completed'
-          })
+            status: 'completed',
+          }),
         );
       });
-      
+
       await Promise.all(updatePromises);
-      
+
       Alert.alert('Ride Completed', 'This auto ride has been marked as completed.');
     } catch (error) {
       console.error('Error completing ride:', error);
@@ -336,44 +341,44 @@ const AutoRideDetails: React.FC = () => {
 
   const handleOpenChat = () => {
     if (rideData) {
-      navigation.navigate('AutoRideGroupChat', { 
+      navigation.navigate('AutoRideGroupChat', {
         rideId: rideId,
-        rideName: `${getLocationName(rideData.pickupLocation)} → ${getLocationName(rideData.dropLocation)}`
+        rideName: `${getLocationName(rideData.pickupLocation)} → ${getLocationName(rideData.dropLocation)}`,
       });
     }
   };
-  
+
   const getLocationName = (locationId: string) => {
     // This would ideally come from a centralized location options list
-    const locationMap: {[key: string]: string} = {
+    const locationMap: { [key: string]: string } = {
       'mit-manipal': 'MIT Manipal',
-      'kmc': 'KMC',
+      kmc: 'KMC',
       'mangalore-airport': 'Mangaluru Airport',
-      'udupi-railway': 'Udupi Railway'
+      'udupi-railway': 'Udupi Railway',
     };
-    
+
     return locationMap[locationId] || locationId;
   };
-  
+
   const formatDate = (timestamp: any) => {
     if (!timestamp) return 'N/A';
-    
+
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
-  
+
   const formatTime = (timestamp: any) => {
     if (!timestamp) return 'N/A';
-    
+
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
-  
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -382,75 +387,59 @@ const AutoRideDetails: React.FC = () => {
       </View>
     );
   }
-  
+
   if (!rideData) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Auto ride not found</Text>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
   }
-  
+
   const statusColors = {
     active: '#28a745',
     matched: '#007bff',
     completed: '#6c757d',
-    cancelled: '#dc3545'
+    cancelled: '#dc3545',
   };
-  
+
   const statusText = {
     active: 'Looking for passengers',
     matched: 'Auto assigned',
     completed: 'Ride completed',
-    cancelled: 'Ride cancelled'
+    cancelled: 'Ride cancelled',
   };
-  
+
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="dark-content" />
-      
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Auto Share Details</Text>
         <View style={styles.headerRight} />
       </View>
-      
+
       <ScrollView style={styles.content}>
         {/* Status Card */}
-        <LinearGradient
-          colors={['#f8f9fa', '#e9ecef']}
-          style={styles.statusCard}
-        >
+        <LinearGradient colors={['#f8f9fa', '#e9ecef']} style={styles.statusCard}>
           <View style={styles.statusContainer}>
-            <View 
-              style={[
-                styles.statusIndicator,
-                { backgroundColor: statusColors[rideData.status] }
-              ]}
-            />
-            <Text style={styles.statusText}>
-              {statusText[rideData.status]}
-            </Text>
+            <View style={[styles.statusIndicator, { backgroundColor: statusColors[rideData.status] }]} />
+            <Text style={styles.statusText}>{statusText[rideData.status]}</Text>
           </View>
-          
+
           <View style={styles.routeContainer}>
             <Text style={styles.routeText}>
               {getLocationName(rideData.pickupLocation)} → {getLocationName(rideData.dropLocation)}
             </Text>
           </View>
-          
+
           <View style={styles.dateTimeContainer}>
             <View style={styles.dateContainer}>
               <Text style={styles.dateLabel}>Date</Text>
@@ -462,62 +451,56 @@ const AutoRideDetails: React.FC = () => {
             </View>
           </View>
         </LinearGradient>
-        
+
         {/* Auto Details Card */}
         <View style={styles.detailCard}>
           <Text style={styles.cardTitle}>Auto Details</Text>
-          
+
           {rideData.status === 'matched' && rideData.autoService ? (
             <View style={styles.driverInfo}>
               <View style={styles.driverDetail}>
                 <Text style={styles.driverLabel}>Auto Number</Text>
                 <Text style={styles.driverValue}>{rideData.autoService.autoNumber || 'N/A'}</Text>
               </View>
-              
+
               <View style={styles.driverDetail}>
                 <Text style={styles.driverLabel}>Driver Name</Text>
                 <Text style={styles.driverValue}>{rideData.autoService.driverName || 'N/A'}</Text>
               </View>
-              
-              <TouchableOpacity 
-                style={styles.contactButton}
-                onPress={handleContactDriver}
-              >
+
+              <TouchableOpacity style={styles.contactButton} onPress={handleContactDriver}>
                 <Text style={styles.contactButtonText}>Contact Driver</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.noDriverContainer}>
               <Text style={styles.noDriverText}>
-                {isCreator ? 
-                  'Add auto and driver details once confirmed' : 
-                  'Auto details will be added by the ride creator'}
+                {isCreator
+                  ? 'Add auto and driver details once confirmed'
+                  : 'Auto details will be added by the ride creator'}
               </Text>
-              
+
               {isCreator && rideData.status === 'active' && (
-                <TouchableOpacity 
-                  style={styles.addDriverButton}
-                  onPress={() => setShowDriverModal(true)}
-                >
+                <TouchableOpacity style={styles.addDriverButton} onPress={() => setShowDriverModal(true)}>
                   <Text style={styles.addDriverButtonText}>Add Auto Details</Text>
                 </TouchableOpacity>
               )}
             </View>
           )}
-          
+
           <View style={styles.rideDetailsList}>
             <View style={styles.rideDetailItem}>
               <Text style={styles.detailItemIcon}>💰</Text>
               <Text style={styles.detailItemLabel}>Estimated Cost:</Text>
               <Text style={styles.detailItemValue}>₹{rideData.autoCost}</Text>
             </View>
-            
+
             <View style={styles.rideDetailItem}>
               <Text style={styles.detailItemIcon}>⚡</Text>
               <Text style={styles.detailItemLabel}>Flexibility:</Text>
               <Text style={styles.detailItemValue}>±{rideData.flexibilityMinutes} mins</Text>
             </View>
-            
+
             <View style={styles.rideDetailItem}>
               <Text style={styles.detailItemIcon}>👥</Text>
               <Text style={styles.detailItemLabel}>Passengers:</Text>
@@ -530,57 +513,42 @@ const AutoRideDetails: React.FC = () => {
             </View>
           </View>
         </View>
-        
+
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            style={styles.chatButton}
-            onPress={handleOpenChat}
-          >
+          <TouchableOpacity style={styles.chatButton} onPress={handleOpenChat}>
             <Text style={styles.chatButtonIcon}>💬</Text>
             <Text style={styles.chatButtonText}>Group Chat</Text>
           </TouchableOpacity>
-          
+
           {isParticipant && !isCreator && rideData.status === 'active' && (
-            <TouchableOpacity 
-              style={styles.leaveButton}
-              onPress={handleLeaveRide}
-            >
+            <TouchableOpacity style={styles.leaveButton} onPress={handleLeaveRide}>
               <Text style={styles.leaveButtonText}>Leave Ride</Text>
             </TouchableOpacity>
           )}
-          
+
           {!isParticipant && canJoin && rideData.status === 'active' && (
-            <TouchableOpacity 
-              style={styles.joinButton}
-              onPress={handleJoinRide}
-            >
+            <TouchableOpacity style={styles.joinButton} onPress={handleJoinRide}>
               <Text style={styles.joinButtonText}>Join Ride</Text>
             </TouchableOpacity>
           )}
-          
+
           {isCreator && (rideData.status === 'active' || rideData.status === 'matched') && (
             <View style={styles.creatorButtons}>
               {rideData.status === 'matched' && (
-                <TouchableOpacity 
-                  style={styles.completeButton}
-                  onPress={handleCompleteRide}
-                >
+                <TouchableOpacity style={styles.completeButton} onPress={handleCompleteRide}>
                   <Text style={styles.completeButtonText}>Mark as Completed</Text>
                 </TouchableOpacity>
               )}
-              
-              <TouchableOpacity 
-                style={styles.cancelButton}
-                onPress={() => setShowCancelModal(true)}
-              >
+
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setShowCancelModal(true)}>
                 <Text style={styles.cancelButtonText}>Cancel Ride</Text>
               </TouchableOpacity>
             </View>
           )}
         </View>
       </ScrollView>
-      
+
       {/* Driver Info Modal */}
       <Modal
         visible={showDriverModal}
@@ -596,50 +564,47 @@ const AutoRideDetails: React.FC = () => {
                 <Text style={styles.modalClose}>×</Text>
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView style={styles.modalBody}>
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Auto Number</Text>
                 <TextInput
                   style={styles.input}
                   value={driverInfo.autoNumber}
-                  onChangeText={(text) => setDriverInfo({...driverInfo, autoNumber: text})}
+                  onChangeText={(text) => setDriverInfo({ ...driverInfo, autoNumber: text })}
                   placeholder="KA-19-AB-1234"
                 />
               </View>
-              
+
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Driver Name</Text>
                 <TextInput
                   style={styles.input}
                   value={driverInfo.driverName}
-                  onChangeText={(text) => setDriverInfo({...driverInfo, driverName: text})}
+                  onChangeText={(text) => setDriverInfo({ ...driverInfo, driverName: text })}
                   placeholder="Driver's name"
                 />
               </View>
-              
+
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Driver Phone</Text>
                 <TextInput
                   style={styles.input}
                   value={driverInfo.driverNumber}
-                  onChangeText={(text) => setDriverInfo({...driverInfo, driverNumber: text})}
+                  onChangeText={(text) => setDriverInfo({ ...driverInfo, driverNumber: text })}
                   placeholder="Driver's phone number"
                   keyboardType="phone-pad"
                 />
               </View>
-              
-              <TouchableOpacity 
-                style={styles.saveButton}
-                onPress={handleAddDriverInfo}
-              >
+
+              <TouchableOpacity style={styles.saveButton} onPress={handleAddDriverInfo}>
                 <Text style={styles.saveButtonText}>Save Auto Details</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
         </View>
       </Modal>
-      
+
       {/* Passengers Modal */}
       <Modal
         visible={showPassengersModal}
@@ -655,38 +620,34 @@ const AutoRideDetails: React.FC = () => {
                 <Text style={styles.modalClose}>×</Text>
               </TouchableOpacity>
             </View>
-            
+
             <FlatList
               data={rideData.passengers}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <View style={styles.passengerItem}>
                   <View style={styles.passengerAvatar}>
-                    <Text style={styles.avatarText}>
-                      {item.name.charAt(0).toUpperCase()}
-                    </Text>
+                    <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
                   </View>
                   <View style={styles.passengerInfo}>
                     <Text style={styles.passengerName}>{item.name}</Text>
                     <Text style={styles.passengerPhone}>{item.phoneNumber}</Text>
                   </View>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.callButton}
                     onPress={() => Linking.openURL(`tel:${item.phoneNumber}`)}
-                     accessibilityLabel={`Call ${item.name}`}
+                    accessibilityLabel={`Call ${item.name}`}
                   >
                     <Text style={styles.callButtonText}>Call</Text>
                   </TouchableOpacity>
                 </View>
               )}
-              ListEmptyComponent={
-                <Text style={styles.emptyListText}>No passengers yet</Text>
-              }
+              ListEmptyComponent={<Text style={styles.emptyListText}>No passengers yet</Text>}
             />
           </View>
         </View>
       </Modal>
-      
+
       {/* Cancel Confirmation Modal */}
       <Modal
         visible={showCancelModal}
@@ -702,16 +663,10 @@ const AutoRideDetails: React.FC = () => {
               Are you sure you want to cancel this auto ride? This action cannot be undone.
             </Text>
             <View style={styles.confirmModalButtons}>
-              <TouchableOpacity
-                style={styles.confirmModalCancel}
-                onPress={() => setShowCancelModal(false)}
-              >
+              <TouchableOpacity style={styles.confirmModalCancel} onPress={() => setShowCancelModal(false)}>
                 <Text style={styles.confirmModalCancelText}>No, Keep It</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.confirmModalConfirm}
-                onPress={handleCancelRide}
-              >
+              <TouchableOpacity style={styles.confirmModalConfirm} onPress={handleCancelRide}>
                 <Text style={styles.confirmModalConfirmText}>Yes, Cancel Ride</Text>
               </TouchableOpacity>
             </View>

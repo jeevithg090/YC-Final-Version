@@ -1,25 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  SafeAreaView,
-  StatusBar,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { db } from '../services/firebase';
-import { 
-  collection, 
-  query, 
-  where, 
-  onSnapshot, 
-  addDoc,
-  serverTimestamp 
-} from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 
 // TypeScript interfaces
 interface MatchNotification {
@@ -43,10 +27,7 @@ interface RideMatchNotifierProps {
   onMatchFound?: (notification: MatchNotification) => void;
 }
 
-const RideMatchNotifier: React.FC<RideMatchNotifierProps> = ({ 
-  userId, 
-  onMatchFound 
-}) => {
+const RideMatchNotifier: React.FC<RideMatchNotifierProps> = ({ userId, onMatchFound }) => {
   const [notifications, setNotifications] = useState<MatchNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -55,12 +36,12 @@ const RideMatchNotifier: React.FC<RideMatchNotifierProps> = ({
     const notificationsQuery = query(
       collection(db, 'ride_match_notifications'),
       where('userId', '==', userId),
-      where('status', '==', 'pending')
+      where('status', '==', 'pending'),
     );
 
     const unsubscribe = onSnapshot(notificationsQuery, (snapshot) => {
       const newNotifications: MatchNotification[] = [];
-      
+
       snapshot.forEach((doc) => {
         const notificationData = { id: doc.id, ...doc.data() } as MatchNotification;
         newNotifications.push(notificationData);
@@ -71,7 +52,7 @@ const RideMatchNotifier: React.FC<RideMatchNotifierProps> = ({
 
       // Call callback for new notifications
       if (newNotifications.length > 0 && onMatchFound) {
-        newNotifications.forEach(notification => {
+        newNotifications.forEach((notification) => {
           onMatchFound(notification);
         });
       }
@@ -86,7 +67,7 @@ const RideMatchNotifier: React.FC<RideMatchNotifierProps> = ({
     rideId: string,
     matchedWithUserId: string,
     matchedWithUserName: string,
-    rideDetails: any
+    rideDetails: any,
   ) => {
     try {
       await addDoc(collection(db, 'ride_match_notifications'), {
@@ -96,7 +77,7 @@ const RideMatchNotifier: React.FC<RideMatchNotifierProps> = ({
         matchedWithUserName: matchedWithUserName,
         rideDetails: rideDetails,
         createdAt: serverTimestamp(),
-        status: 'pending'
+        status: 'pending',
       });
     } catch (error) {
       console.error('Error creating match notification:', error);
@@ -106,53 +87,45 @@ const RideMatchNotifier: React.FC<RideMatchNotifierProps> = ({
   const formatDateTime = (date: any, time: any) => {
     const dateObj = date.toDate ? date.toDate() : new Date(date);
     const timeObj = time.toDate ? time.toDate() : new Date(time);
-    
+
     const dateStr = dateObj.toLocaleDateString('en-US', {
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
-    
+
     const timeStr = timeObj.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: true
+      hour12: true,
     });
-    
+
     return `${dateStr} at ${timeStr}`;
   };
 
   const handleAcceptMatch = async (notification: MatchNotification) => {
-    Alert.alert(
-      'Accept Ride Match',
-      `Accept ride match with ${notification.matchedWithUserName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Accept',
-          onPress: () => {
-            // Handle acceptance logic here
-            Alert.alert('Match Accepted!', 'You can now chat with other passengers.');
-          }
-        }
-      ]
-    );
+    Alert.alert('Accept Ride Match', `Accept ride match with ${notification.matchedWithUserName}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Accept',
+        onPress: () => {
+          // Handle acceptance logic here
+          Alert.alert('Match Accepted!', 'You can now chat with other passengers.');
+        },
+      },
+    ]);
   };
 
   const handleDeclineMatch = async (notification: MatchNotification) => {
-    Alert.alert(
-      'Decline Ride Match',
-      'Are you sure you want to decline this match?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Decline',
-          style: 'destructive',
-          onPress: () => {
-            // Handle decline logic here
-          }
-        }
-      ]
-    );
+    Alert.alert('Decline Ride Match', 'Are you sure you want to decline this match?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Decline',
+        style: 'destructive',
+        onPress: () => {
+          // Handle decline logic here
+        },
+      },
+    ]);
   };
 
   if (loading) {
@@ -171,19 +144,16 @@ const RideMatchNotifier: React.FC<RideMatchNotifierProps> = ({
     <SafeAreaView style={styles.container}>
       {notifications.map((notification) => (
         <View key={notification.id} style={styles.notificationCard}>
-          <LinearGradient
-            colors={['#e3f2fd', '#ffffff']}
-            style={styles.cardGradient}
-          >
+          <LinearGradient colors={['#e3f2fd', '#ffffff']} style={styles.cardGradient}>
             <View style={styles.notificationHeader}>
               <Ionicons name="car" size={20} color="#007bff" />
               <Text style={styles.notificationTitle}>Ride Match Found! 🎉</Text>
             </View>
-            
+
             <Text style={styles.notificationText}>
               {notification.matchedWithUserName} wants to share a ride with you
             </Text>
-            
+
             <View style={styles.rideInfo}>
               <Text style={styles.routeText}>
                 {notification.rideDetails.pickupLocation} → {notification.rideDetails.dropLocation}
@@ -194,17 +164,11 @@ const RideMatchNotifier: React.FC<RideMatchNotifierProps> = ({
             </View>
 
             <View style={styles.actionButtons}>
-              <TouchableOpacity
-                style={styles.declineButton}
-                onPress={() => handleDeclineMatch(notification)}
-              >
+              <TouchableOpacity style={styles.declineButton} onPress={() => handleDeclineMatch(notification)}>
                 <Text style={styles.declineButtonText}>Decline</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.acceptButton}
-                onPress={() => handleAcceptMatch(notification)}
-              >
+
+              <TouchableOpacity style={styles.acceptButton} onPress={() => handleAcceptMatch(notification)}>
                 <Text style={styles.acceptButtonText}>Accept</Text>
               </TouchableOpacity>
             </View>

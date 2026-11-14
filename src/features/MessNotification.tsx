@@ -4,22 +4,19 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Image,
   ActivityIndicator,
   SafeAreaView,
   StatusBar,
-  Platform,
   Dimensions,
   FlatList,
-  RefreshControl
+  RefreshControl,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { db } from '../services/firebase';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 
 // TypeScript interfaces
 interface Dish {
@@ -84,15 +81,15 @@ const MessNotification: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Get data from InstaMess collection (new format)
       const messRef = doc(db, 'InstaMess', 'menu');
       const messDoc = await getDoc(messRef);
-      
+
       if (messDoc.exists()) {
         const data = messDoc.data() as MessData;
         setMessData(data);
-        
+
         // Set selected day to current day
         const currentDay = getCurrentDay();
         setSelectedDay(currentDay);
@@ -124,7 +121,7 @@ const MessNotification: React.FC = () => {
   const navigateToMessMenu = () => {
     navigation.navigate('MessMenu', {
       messName: 'Food Court 1',
-      mealType: selectedDiet
+      mealType: selectedDiet,
     });
   };
 
@@ -145,16 +142,10 @@ const MessNotification: React.FC = () => {
         {days.map((day) => (
           <TouchableOpacity
             key={day.id}
-            style={[
-              styles.dayButton,
-              selectedDay === day.id && styles.selectedDayButton
-            ]}
+            style={[styles.dayButton, selectedDay === day.id && styles.selectedDayButton]}
             onPress={() => setSelectedDay(day.id)}
           >
-            <Text style={[
-              styles.dayButtonText,
-              selectedDay === day.id && styles.selectedDayButtonText
-            ]}>
+            <Text style={[styles.dayButtonText, selectedDay === day.id && styles.selectedDayButtonText]}>
               {day.label}
             </Text>
           </TouchableOpacity>
@@ -177,21 +168,11 @@ const MessNotification: React.FC = () => {
         {meals.map((meal) => (
           <TouchableOpacity
             key={meal.id}
-            style={[
-              styles.mealButton,
-              selectedMeal === meal.id && styles.selectedMealButton
-            ]}
+            style={[styles.mealButton, selectedMeal === meal.id && styles.selectedMealButton]}
             onPress={() => setSelectedMeal(meal.id)}
           >
-            <Ionicons
-              name={meal.icon as any}
-              size={20}
-              color={selectedMeal === meal.id ? '#fff' : '#666'}
-            />
-            <Text style={[
-              styles.mealButtonText,
-              selectedMeal === meal.id && styles.selectedMealButtonText
-            ]}>
+            <Ionicons name={meal.icon as any} size={20} color={selectedMeal === meal.id ? '#fff' : '#666'} />
+            <Text style={[styles.mealButtonText, selectedMeal === meal.id && styles.selectedMealButtonText]}>
               {meal.label}
             </Text>
           </TouchableOpacity>
@@ -208,31 +189,23 @@ const MessNotification: React.FC = () => {
           style={[
             styles.dietButton,
             selectedDiet === 'veg' && styles.selectedDietButton,
-            { borderTopLeftRadius: 20, borderBottomLeftRadius: 20 }
+            { borderTopLeftRadius: 20, borderBottomLeftRadius: 20 },
           ]}
           onPress={() => setSelectedDiet('veg')}
         >
           <View style={styles.vegIndicator} />
-          <Text style={[
-            styles.dietButtonText,
-            selectedDiet === 'veg' && styles.selectedDietButtonText
-          ]}>
-            Veg
-          </Text>
+          <Text style={[styles.dietButtonText, selectedDiet === 'veg' && styles.selectedDietButtonText]}>Veg</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[
             styles.dietButton,
             selectedDiet === 'nonveg' && styles.selectedDietButton,
-            { borderTopRightRadius: 20, borderBottomRightRadius: 20 }
+            { borderTopRightRadius: 20, borderBottomRightRadius: 20 },
           ]}
           onPress={() => setSelectedDiet('nonveg')}
         >
           <View style={styles.nonVegIndicator} />
-          <Text style={[
-            styles.dietButtonText,
-            selectedDiet === 'nonveg' && styles.selectedDietButtonText
-          ]}>
+          <Text style={[styles.dietButtonText, selectedDiet === 'nonveg' && styles.selectedDietButtonText]}>
             Non-Veg
           </Text>
         </TouchableOpacity>
@@ -246,11 +219,7 @@ const MessNotification: React.FC = () => {
       <View style={styles.dishCard}>
         <View style={styles.dishImageContainer}>
           {item.imageUrl ? (
-            <Image
-              source={{ uri: item.imageUrl }}
-              style={styles.dishImage}
-              resizeMode="cover"
-            />
+            <Image source={{ uri: item.imageUrl }} style={styles.dishImage} resizeMode="cover" />
           ) : (
             <View style={styles.dishImagePlaceholder}>
               <Ionicons name="restaurant-outline" size={40} color="#ddd" />
@@ -262,11 +231,7 @@ const MessNotification: React.FC = () => {
         </View>
         <View style={styles.dishInfo}>
           <View style={styles.dishNameRow}>
-            {item.isVegetarian ? (
-              <View style={styles.vegIndicator} />
-            ) : (
-              <View style={styles.nonVegIndicator} />
-            )}
+            {item.isVegetarian ? <View style={styles.vegIndicator} /> : <View style={styles.nonVegIndicator} />}
             <Text style={styles.dishName}>{item.name}</Text>
           </View>
           <Text style={styles.dishType}>{item.type}</Text>
@@ -278,25 +243,38 @@ const MessNotification: React.FC = () => {
   // Get dishes for selected day, meal, and diet
   const getSelectedDishes = (): Dish[] => {
     if (!messData || !selectedDay) return [];
-    
+
     const menu = messData[selectedDiet];
     if (!menu || !menu[selectedMeal] || !menu[selectedMeal][selectedDay]) {
       return [];
     }
-    
+
     return menu[selectedMeal][selectedDay];
   };
 
   // Format date
   const formatDate = () => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
     const now = new Date();
     const dayName = days[now.getDay()];
     const monthName = months[now.getMonth()];
     const date = now.getDate();
-    
+
     return `${dayName}, ${monthName} ${date}`;
   };
 
@@ -330,20 +308,14 @@ const MessNotification: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-      
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Mess Notification</Text>
-        <TouchableOpacity 
-          style={styles.optionsButton}
-          onPress={navigateToMessMenu}
-        >
+        <TouchableOpacity style={styles.optionsButton} onPress={navigateToMessMenu}>
           <Ionicons name="options-outline" size={24} color="#333" />
         </TouchableOpacity>
       </View>
@@ -371,9 +343,7 @@ const MessNotification: React.FC = () => {
         contentContainerStyle={styles.dishesContainer}
         columnWrapperStyle={styles.dishesRow}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="restaurant-outline" size={64} color="#ddd" />

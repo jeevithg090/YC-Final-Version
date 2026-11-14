@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  Modal,
-  FlatList,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Modal, FlatList } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { db, auth } from '../services/firebase';
+import { db } from '../services/firebase';
 import { getCurrentUserIdentity } from '../services/currentUser';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+  arrayUnion,
+  Timestamp,
+} from 'firebase/firestore';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type NavigationProp = NativeStackNavigationProp<any>;
 
@@ -107,7 +107,7 @@ const FindACabShare: React.FC = () => {
   const calculateProgress = (): number => {
     const totalFields = 7; // Excluding travelType as it has default value
     let filledFields = 0;
-    
+
     if (formData.pickupLocation.trim()) filledFields++;
     if (formData.dropLocation.trim()) filledFields++;
     if (formData.travelDate) filledFields++;
@@ -116,13 +116,13 @@ const FindACabShare: React.FC = () => {
     if (formData.carryOnBags !== '0') filledFields++;
     if (formData.checkinBags !== '0') filledFields++;
     if (formData.laptopBags !== '0') filledFields++;
-    
+
     return (filledFields / totalFields) * 100;
   };
 
   const validateStep = (step: number): boolean => {
     const newErrors: ValidationErrors = {};
-    
+
     switch (step) {
       case 1:
         if (!formData.pickupLocation.trim()) {
@@ -149,7 +149,7 @@ const FindACabShare: React.FC = () => {
         // All luggage fields have default values, so no validation needed
         break;
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -167,27 +167,27 @@ const FindACabShare: React.FC = () => {
 
   // Function to check if two times match within flexibility
   const isTimeWithinFlexibility = (
-    publishedTime: Date, 
-    searchTime: Date, 
-    publishedFlexibility: number, 
+    publishedTime: Date,
+    searchTime: Date,
+    publishedFlexibility: number,
     searchFlexibility: number,
     publishedType: 'departure' | 'arrival',
-    searchType: 'departure' | 'arrival'
+    searchType: 'departure' | 'arrival',
   ): boolean => {
     const publishedTimeMs = publishedTime.getTime();
     const searchTimeMs = searchTime.getTime();
-    
+
     // Calculate total flexibility window in milliseconds
     const publishedFlexMs = publishedFlexibility * 60 * 1000;
     const searchFlexMs = searchFlexibility * 60 * 1000;
-    
+
     // For departure: can go earlier (prepone)
     // For arrival: can go later (postpone)
     let publishedEarliest = publishedTimeMs;
     let publishedLatest = publishedTimeMs;
     let searchEarliest = searchTimeMs;
     let searchLatest = searchTimeMs;
-    
+
     if (publishedType === 'departure') {
       publishedEarliest = publishedTimeMs - publishedFlexMs; // Can leave earlier
       publishedLatest = publishedTimeMs + publishedFlexMs; // Can leave later
@@ -195,7 +195,7 @@ const FindACabShare: React.FC = () => {
       publishedEarliest = publishedTimeMs - publishedFlexMs; // Can arrive earlier
       publishedLatest = publishedTimeMs + publishedFlexMs; // Can arrive later
     }
-    
+
     if (searchType === 'departure') {
       searchEarliest = searchTimeMs - searchFlexMs; // Can leave earlier
       searchLatest = searchTimeMs + searchFlexMs; // Can leave later
@@ -203,7 +203,7 @@ const FindACabShare: React.FC = () => {
       searchEarliest = searchTimeMs - searchFlexMs; // Can arrive earlier
       searchLatest = searchTimeMs + searchFlexMs; // Can arrive later
     }
-    
+
     // Check if time windows overlap
     return !(publishedLatest < searchEarliest || searchLatest < publishedEarliest);
   };
@@ -221,49 +221,53 @@ const FindACabShare: React.FC = () => {
       const q = query(
         publishedRidesRef,
         where('pickupLocation', '==', searchData.pickupLocation),
-        where('dropLocation', '==', searchData.dropLocation)
+        where('dropLocation', '==', searchData.dropLocation),
       );
-      
+
       const querySnapshot = await getDocs(q);
       const matchingRides: PublishedRide[] = [];
-      
+
       querySnapshot.forEach((doc) => {
         const rideData = { id: doc.id, ...doc.data() } as PublishedRide;
-        
+
         // Filter for active rides on client side to avoid index requirements
         if (rideData.status !== 'active') {
           return; // Skip non-active rides
         }
-        
+
         // Convert Firestore timestamps to Date objects
-        const publishedDate = rideData.travelDate instanceof Timestamp ? rideData.travelDate.toDate() : rideData.travelDate;
-        const publishedTime = rideData.cabTravelTime instanceof Timestamp ? rideData.cabTravelTime.toDate() : rideData.cabTravelTime;
-        
+        const publishedDate =
+          rideData.travelDate instanceof Timestamp ? rideData.travelDate.toDate() : rideData.travelDate;
+        const publishedTime =
+          rideData.cabTravelTime instanceof Timestamp ? rideData.cabTravelTime.toDate() : rideData.cabTravelTime;
+
         // Check if dates match
         if (isSameDate(publishedDate, searchData.travelDate)) {
           // Check if times match within flexibility
           const publishedFlexibility = parseInt(rideData.flexibilityMinutes);
           const searchFlexibility = parseInt(searchData.flexibilityMinutes);
-          
-          if (isTimeWithinFlexibility(
-            publishedTime,
-            searchData.cabTravelTime,
-            publishedFlexibility,
-            searchFlexibility,
-            rideData.travelType,
-            searchData.travelType
-          )) {
+
+          if (
+            isTimeWithinFlexibility(
+              publishedTime,
+              searchData.cabTravelTime,
+              publishedFlexibility,
+              searchFlexibility,
+              rideData.travelType,
+              searchData.travelType,
+            )
+          ) {
             // Check if ride has available seats
             const currentPassengers = rideData.passengers?.length || 0;
             const maxPassengers = rideData.maxPassengers || 4;
-            
+
             if (currentPassengers < maxPassengers) {
               matchingRides.push(rideData);
             }
           }
         }
       });
-      
+
       return matchingRides;
     } catch (error) {
       console.error('Error finding matching rides:', error);
@@ -276,18 +280,18 @@ const FindACabShare: React.FC = () => {
     try {
       const rideRef = doc(db, 'published_rides', rideId);
       await updateDoc(rideRef, {
-        passengers: arrayUnion(passengerData)
+        passengers: arrayUnion(passengerData),
       });
-      
+
       // Also create a user ride record for "Your Rides" feature
       await addDoc(collection(db, 'user_rides'), {
         userId: getCurrentUserIdentity().id,
         rideId: rideId,
         role: 'passenger',
         joinedAt: serverTimestamp(),
-        status: 'active'
+        status: 'active',
       });
-      
+
       return true;
     } catch (error) {
       console.error('Error joining ride:', error);
@@ -297,12 +301,12 @@ const FindACabShare: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!validateStep(3)) return;
-    
+
     setIsSubmitting(true);
     try {
       // First, find matching rides
       const matchingRides = await findMatchingRides(formData);
-      
+
       if (matchingRides.length > 0) {
         // Show matching rides to user
         Alert.alert(
@@ -316,7 +320,7 @@ const FindACabShare: React.FC = () => {
                 navigation.navigate('CabRideDetails', {
                   rideId: matchingRides[0].cabRideId ?? matchingRides[0].id,
                 });
-              }
+              },
             },
             {
               text: 'Create New Request',
@@ -328,15 +332,15 @@ const FindACabShare: React.FC = () => {
                   status: 'active',
                   userId: getCurrentUserIdentity().id,
                 });
-                
+
                 Alert.alert(
                   'Request Created!',
-                  'Your cab share request has been posted. We\'ll notify you when someone matches your route.',
-                  [{ text: 'OK', onPress: () => navigation.goBack() }]
+                  "Your cab share request has been posted. We'll notify you when someone matches your route.",
+                  [{ text: 'OK', onPress: () => navigation.goBack() }],
                 );
-              }
-            }
-          ]
+              },
+            },
+          ],
         );
       } else {
         // No matches found, create a new request
@@ -346,11 +350,11 @@ const FindACabShare: React.FC = () => {
           status: 'active',
           userId: getCurrentUserIdentity().id,
         });
-        
+
         Alert.alert(
           'Request Created!',
-          'No matching rides found at the moment. Your request has been posted and we\'ll notify you when someone matches your route.',
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
+          "No matching rides found at the moment. Your request has been posted and we'll notify you when someone matches your route.",
+          [{ text: 'OK', onPress: () => navigation.goBack() }],
         );
       }
     } catch (error) {
@@ -364,12 +368,12 @@ const FindACabShare: React.FC = () => {
   };
 
   const updateFormData = (field: keyof FormData, value: string | Date) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error for this field when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: '' }));
     }
-    
+
     // Show encouraging feedback as user fills the form
     const newProgress = calculateProgress();
     if (newProgress === 100 && field !== 'travelType') {
@@ -384,7 +388,7 @@ const FindACabShare: React.FC = () => {
       weekday: 'short',
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
@@ -392,7 +396,7 @@ const FindACabShare: React.FC = () => {
     return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: true
+      hour12: true,
     });
   };
 
@@ -418,11 +422,7 @@ const FindACabShare: React.FC = () => {
       animationType="slide"
       onRequestClose={() => setShowFlexibilityPicker(false)}
     >
-      <TouchableOpacity 
-        style={styles.modalOverlay} 
-        activeOpacity={1} 
-        onPress={() => setShowFlexibilityPicker(false)}
-      >
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowFlexibilityPicker(false)}>
         <View style={styles.flexibilityPickerContainer}>
           <Text style={styles.flexibilityPickerTitle}>
             Select Flexibility ({formData.travelType === 'departure' ? 'Prepone' : 'Postpone'})
@@ -433,26 +433,25 @@ const FindACabShare: React.FC = () => {
                 key={option.value}
                 style={[
                   styles.flexibilityOption,
-                  formData.flexibilityMinutes === option.value && styles.flexibilityOptionSelected
+                  formData.flexibilityMinutes === option.value && styles.flexibilityOptionSelected,
                 ]}
                 onPress={() => {
                   updateFormData('flexibilityMinutes', option.value);
                   setShowFlexibilityPicker(false);
                 }}
               >
-                <Text style={[
-                  styles.flexibilityOptionText,
-                  formData.flexibilityMinutes === option.value && styles.flexibilityOptionTextSelected
-                ]}>
+                <Text
+                  style={[
+                    styles.flexibilityOptionText,
+                    formData.flexibilityMinutes === option.value && styles.flexibilityOptionTextSelected,
+                  ]}
+                >
                   {option.label}
                 </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
-          <TouchableOpacity 
-            style={styles.flexibilityCloseButton} 
-            onPress={() => setShowFlexibilityPicker(false)}
-          >
+          <TouchableOpacity style={styles.flexibilityCloseButton} onPress={() => setShowFlexibilityPicker(false)}>
             <Text style={styles.flexibilityCloseText}>Cancel</Text>
           </TouchableOpacity>
         </View>
@@ -464,34 +463,19 @@ const FindACabShare: React.FC = () => {
     visible: boolean,
     onClose: () => void,
     onSelect: (location: LocationOption) => void,
-    title: string
+    title: string,
   ) => (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity 
-        style={styles.modalOverlay} 
-        activeOpacity={1} 
-        onPress={onClose}
-      >
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
         <View style={styles.dropdownContainer}>
           <Text style={styles.dropdownTitle}>{title}</Text>
           <FlatList
             data={LOCATION_OPTIONS}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.dropdownItem}
-                onPress={() => onSelect(item)}
-                activeOpacity={0.7}
-              >
+              <TouchableOpacity style={styles.dropdownItem} onPress={() => onSelect(item)} activeOpacity={0.7}>
                 <Text style={styles.dropdownItemName}>{item.name}</Text>
-                {item.description && (
-                  <Text style={styles.dropdownItemDescription}>{item.description}</Text>
-                )}
+                {item.description && <Text style={styles.dropdownItemDescription}>{item.description}</Text>}
               </TouchableOpacity>
             )}
             showsVerticalScrollIndicator={false}
@@ -506,33 +490,37 @@ const FindACabShare: React.FC = () => {
 
   const renderProgressBar = () => {
     const progress = calculateProgress();
-    const progressColor = progress === 0 ? '#e9ecef' : 
-                         progress < 50 ? '#ffc107' : 
-                         progress < 100 ? '#17a2b8' : '#28a745';
-    
+    const progressColor =
+      progress === 0 ? '#e9ecef' : progress < 50 ? '#ffc107' : progress < 100 ? '#17a2b8' : '#28a745';
+
     return (
       <View style={styles.progressContainer}>
         <View style={styles.progressHeader}>
           <Text style={styles.progressLabel}>Completion Progress</Text>
-          <Text style={[styles.progressText, { color: progressColor }]}>
-            {Math.round(progress)}% Complete
-          </Text>
+          <Text style={[styles.progressText, { color: progressColor }]}>{Math.round(progress)}% Complete</Text>
         </View>
         <View style={styles.progressBar}>
-          <View style={[
-            styles.progressFill, 
-            { 
-              width: `${progress}%`,
-              backgroundColor: progressColor
-            }
-          ]} />
+          <View
+            style={[
+              styles.progressFill,
+              {
+                width: `${progress}%`,
+                backgroundColor: progressColor,
+              },
+            ]}
+          />
         </View>
         <View style={styles.progressSteps}>
           <Text style={styles.progressStepText}>
-            {progress === 0 ? 'Let\'s get started!' : 
-             progress < 33 ? 'Great start! Keep going...' :
-             progress < 66 ? 'You\'re halfway there!' :
-             progress < 100 ? 'Almost done!' : 'Perfect! Ready to submit 🎉'}
+            {progress === 0
+              ? "Let's get started!"
+              : progress < 33
+                ? 'Great start! Keep going...'
+                : progress < 66
+                  ? "You're halfway there!"
+                  : progress < 100
+                    ? 'Almost done!'
+                    : 'Perfect! Ready to submit 🎉'}
           </Text>
         </View>
       </View>
@@ -558,31 +546,34 @@ const FindACabShare: React.FC = () => {
           const status = getStepStatus(step);
           return (
             <View key={step} style={styles.stepContainer}>
-              <View style={[
-                styles.stepCircle,
-                status === 'active' && styles.stepCircleActive,
-                status === 'completed' && styles.stepCircleCompleted
-              ]}>
-                <Text style={[
-                  styles.stepNumber,
-                  status === 'active' && styles.stepNumberActive,
-                  status === 'completed' && styles.stepNumberCompleted
-                ]}>
+              <View
+                style={[
+                  styles.stepCircle,
+                  status === 'active' && styles.stepCircleActive,
+                  status === 'completed' && styles.stepCircleCompleted,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.stepNumber,
+                    status === 'active' && styles.stepNumberActive,
+                    status === 'completed' && styles.stepNumberCompleted,
+                  ]}
+                >
                   {getStepIcon(step)}
                 </Text>
               </View>
-              <Text style={[
-                styles.stepLabel,
-                status === 'active' && styles.stepLabelActive,
-                status === 'completed' && styles.stepLabelCompleted
-              ]}>
+              <Text
+                style={[
+                  styles.stepLabel,
+                  status === 'active' && styles.stepLabelActive,
+                  status === 'completed' && styles.stepLabelCompleted,
+                ]}
+              >
                 {step === 1 ? 'Locations' : step === 2 ? 'Timing' : 'Luggage'}
               </Text>
               {step < 3 && (
-                <View style={[
-                  styles.stepConnector,
-                  status === 'completed' && styles.stepConnectorCompleted
-                ]} />
+                <View style={[styles.stepConnector, status === 'completed' && styles.stepConnectorCompleted]} />
               )}
             </View>
           );
@@ -595,7 +586,7 @@ const FindACabShare: React.FC = () => {
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>📍 Where are you traveling?</Text>
       <Text style={styles.stepSubtitle}>Enter your pickup and drop locations</Text>
-      
+
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Pick Up Location</Text>
         <TouchableOpacity
@@ -603,21 +594,16 @@ const FindACabShare: React.FC = () => {
             styles.input,
             styles.inputTouchable,
             errors.pickupLocation && styles.inputError,
-            formData.pickupLocation.trim() && styles.inputFilled
+            formData.pickupLocation.trim() && styles.inputFilled,
           ]}
           onPress={() => setShowPickupDropdown(true)}
         >
-          <Text style={[
-            styles.inputText,
-            !formData.pickupLocation && styles.placeholderText
-          ]}>
+          <Text style={[styles.inputText, !formData.pickupLocation && styles.placeholderText]}>
             {formData.pickupLocation || 'Select pickup location'}
           </Text>
           <Text style={styles.dropdownArrow}>▼</Text>
         </TouchableOpacity>
-        {errors.pickupLocation && (
-          <Text style={styles.errorText}>{errors.pickupLocation}</Text>
-        )}
+        {errors.pickupLocation && <Text style={styles.errorText}>{errors.pickupLocation}</Text>}
       </View>
 
       <View style={styles.inputGroup}>
@@ -627,21 +613,16 @@ const FindACabShare: React.FC = () => {
             styles.input,
             styles.inputTouchable,
             errors.dropLocation && styles.inputError,
-            formData.dropLocation.trim() && styles.inputFilled
+            formData.dropLocation.trim() && styles.inputFilled,
           ]}
           onPress={() => setShowDropDropdown(true)}
         >
-          <Text style={[
-            styles.inputText,
-            !formData.dropLocation && styles.placeholderText
-          ]}>
+          <Text style={[styles.inputText, !formData.dropLocation && styles.placeholderText]}>
             {formData.dropLocation || 'Select drop location'}
           </Text>
           <Text style={styles.dropdownArrow}>▼</Text>
         </TouchableOpacity>
-        {errors.dropLocation && (
-          <Text style={styles.errorText}>{errors.dropLocation}</Text>
-        )}
+        {errors.dropLocation && <Text style={styles.errorText}>{errors.dropLocation}</Text>}
       </View>
     </View>
   );
@@ -650,35 +631,23 @@ const FindACabShare: React.FC = () => {
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>⏰ Travel Timing</Text>
       <Text style={styles.stepSubtitle}>Set your travel preferences and flexibility</Text>
-      
+
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Travel Type</Text>
         <View style={styles.toggleContainer}>
           <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              formData.travelType === 'departure' && styles.toggleButtonActive
-            ]}
+            style={[styles.toggleButton, formData.travelType === 'departure' && styles.toggleButtonActive]}
             onPress={() => updateFormData('travelType', 'departure')}
           >
-            <Text style={[
-              styles.toggleText,
-              formData.travelType === 'departure' && styles.toggleTextActive
-            ]}>
+            <Text style={[styles.toggleText, formData.travelType === 'departure' && styles.toggleTextActive]}>
               ✈️ Departure
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              formData.travelType === 'arrival' && styles.toggleButtonActive
-            ]}
+            style={[styles.toggleButton, formData.travelType === 'arrival' && styles.toggleButtonActive]}
             onPress={() => updateFormData('travelType', 'arrival')}
           >
-            <Text style={[
-              styles.toggleText,
-              formData.travelType === 'arrival' && styles.toggleTextActive
-            ]}>
+            <Text style={[styles.toggleText, formData.travelType === 'arrival' && styles.toggleTextActive]}>
               🛬 Arrival
             </Text>
           </TouchableOpacity>
@@ -691,24 +660,17 @@ const FindACabShare: React.FC = () => {
           style={[
             styles.dateTimeButton,
             formData.travelDate && styles.dateTimeButtonFilled,
-            errors.travelDate && styles.inputError
+            errors.travelDate && styles.inputError,
           ]}
           onPress={() => setShowDatePicker(true)}
         >
-          <Text style={[
-            styles.dateTimeButtonText,
-            !formData.travelDate && styles.dateTimeButtonPlaceholder
-          ]}>
+          <Text style={[styles.dateTimeButtonText, !formData.travelDate && styles.dateTimeButtonPlaceholder]}>
             {formData.travelDate ? formatDate(formData.travelDate) : 'Select travel date'}
           </Text>
           <Text style={styles.dateTimeButtonIcon}>📅</Text>
         </TouchableOpacity>
-        {errors.travelDate && (
-          <Text style={styles.errorText}>{errors.travelDate}</Text>
-        )}
+        {errors.travelDate && <Text style={styles.errorText}>{errors.travelDate}</Text>}
       </View>
-
-
 
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Cab Travel Time</Text>
@@ -716,21 +678,16 @@ const FindACabShare: React.FC = () => {
           style={[
             styles.dateTimeButton,
             formData.cabTravelTime && styles.dateTimeButtonFilled,
-            errors.cabTravelTime && styles.inputError
+            errors.cabTravelTime && styles.inputError,
           ]}
           onPress={() => setShowCabTimePicker(true)}
         >
-          <Text style={[
-            styles.dateTimeButtonText,
-            !formData.cabTravelTime && styles.dateTimeButtonPlaceholder
-          ]}>
+          <Text style={[styles.dateTimeButtonText, !formData.cabTravelTime && styles.dateTimeButtonPlaceholder]}>
             {formData.cabTravelTime ? formatTime(formData.cabTravelTime) : 'Select cab time'}
           </Text>
           <Text style={styles.dateTimeButtonIcon}>🚗</Text>
         </TouchableOpacity>
-        {errors.cabTravelTime && (
-          <Text style={styles.errorText}>{errors.cabTravelTime}</Text>
-        )}
+        {errors.cabTravelTime && <Text style={styles.errorText}>{errors.cabTravelTime}</Text>}
       </View>
 
       <View style={styles.inputGroup}>
@@ -741,24 +698,20 @@ const FindACabShare: React.FC = () => {
           style={[
             styles.dateTimeButton,
             formData.flexibilityMinutes && styles.dateTimeButtonFilled,
-            errors.flexibilityMinutes && styles.inputError
+            errors.flexibilityMinutes && styles.inputError,
           ]}
           onPress={() => setShowFlexibilityPicker(true)}
         >
-          <Text style={[
-            styles.dateTimeButtonText,
-            !formData.flexibilityMinutes && styles.dateTimeButtonPlaceholder
-          ]}>
+          <Text style={[styles.dateTimeButtonText, !formData.flexibilityMinutes && styles.dateTimeButtonPlaceholder]}>
             {formData.flexibilityMinutes ? `${formData.flexibilityMinutes} minutes` : 'Select flexibility'}
           </Text>
           <Text style={styles.dateTimeButtonIcon}>⏱️</Text>
         </TouchableOpacity>
         <Text style={styles.helperText}>
-          How many minutes are you flexible to {formData.travelType === 'departure' ? 'leave before' : 'wait after'} your preferred cab time?
+          How many minutes are you flexible to {formData.travelType === 'departure' ? 'leave before' : 'wait after'}{' '}
+          your preferred cab time?
         </Text>
-        {errors.flexibilityMinutes && (
-          <Text style={styles.errorText}>{errors.flexibilityMinutes}</Text>
-        )}
+        {errors.flexibilityMinutes && <Text style={styles.errorText}>{errors.flexibilityMinutes}</Text>}
       </View>
     </View>
   );
@@ -767,7 +720,7 @@ const FindACabShare: React.FC = () => {
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>🧳 Luggage Details</Text>
       <Text style={styles.stepSubtitle}>Help us find the right cab size for your needs</Text>
-      
+
       <View style={styles.luggageContainer}>
         <View style={styles.luggageItem}>
           <Text style={styles.luggageLabel}>✈️ Carry-On Bags</Text>
@@ -831,8 +784,12 @@ const FindACabShare: React.FC = () => {
         <Text style={styles.summaryTitle}>📋 Summary</Text>
         <Text style={styles.summaryText}>From: {formData.pickupLocation || 'Not specified'}</Text>
         <Text style={styles.summaryText}>To: {formData.dropLocation || 'Not specified'}</Text>
-        <Text style={styles.summaryText}>Travel Date: {formData.travelDate ? formatDate(formData.travelDate) : 'Not specified'}</Text>
-        <Text style={styles.summaryText}>Cab Time: {formData.cabTravelTime ? formatTime(formData.cabTravelTime) : 'Not specified'}</Text>
+        <Text style={styles.summaryText}>
+          Travel Date: {formData.travelDate ? formatDate(formData.travelDate) : 'Not specified'}
+        </Text>
+        <Text style={styles.summaryText}>
+          Cab Time: {formData.cabTravelTime ? formatTime(formData.cabTravelTime) : 'Not specified'}
+        </Text>
         <Text style={styles.summaryText}>
           Total Bags: {parseInt(formData.carryOnBags) + parseInt(formData.checkinBags) + parseInt(formData.laptopBags)}
         </Text>
@@ -856,7 +813,7 @@ const FindACabShare: React.FC = () => {
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {renderProgressBar()}
           {renderStepIndicator()}
-          
+
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
@@ -868,23 +825,21 @@ const FindACabShare: React.FC = () => {
                 <Text style={styles.previousButtonText}>← Previous</Text>
               </TouchableOpacity>
             )}
-            
+
             {currentStep < 3 ? (
-              <TouchableOpacity 
-                style={[styles.nextButton, currentStep === 1 && styles.fullWidthButton]} 
+              <TouchableOpacity
+                style={[styles.nextButton, currentStep === 1 && styles.fullWidthButton]}
                 onPress={handleNext}
               >
                 <Text style={styles.nextButtonText}>Next →</Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
                 onPress={handleSubmit}
                 disabled={isSubmitting}
               >
-                <Text style={styles.submitButtonText}>
-                  {isSubmitting ? 'Posting...' : '🚀 Post Cab Share Request'}
-                </Text>
+                <Text style={styles.submitButtonText}>{isSubmitting ? 'Posting...' : '🚀 Post Cab Share Request'}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -897,14 +852,14 @@ const FindACabShare: React.FC = () => {
           showPickupDropdown,
           () => setShowPickupDropdown(false),
           (location) => handleLocationSelect('pickupLocation', location),
-          'Select Pickup Location'
+          'Select Pickup Location',
         )}
-        
+
         {renderLocationDropdown(
           showDropDropdown,
           () => setShowDropDropdown(false),
           (location) => handleLocationSelect('dropLocation', location),
-          'Select Drop Location'
+          'Select Drop Location',
         )}
 
         {renderFlexibilityPicker()}
@@ -916,9 +871,9 @@ const FindACabShare: React.FC = () => {
           animationType="fade"
           onRequestClose={() => setShowDatePicker(false)}
         >
-          <TouchableOpacity 
-            style={styles.dateTimePickerModal} 
-            activeOpacity={1} 
+          <TouchableOpacity
+            style={styles.dateTimePickerModal}
+            activeOpacity={1}
             onPress={() => setShowDatePicker(false)}
           >
             <View style={styles.dateTimePickerContainer}>
@@ -953,8 +908,6 @@ const FindACabShare: React.FC = () => {
           </TouchableOpacity>
         </Modal>
 
-
-
         {/* Cab Time Picker Modal */}
         <Modal
           visible={showCabTimePicker}
@@ -962,9 +915,9 @@ const FindACabShare: React.FC = () => {
           animationType="fade"
           onRequestClose={() => setShowCabTimePicker(false)}
         >
-          <TouchableOpacity 
-            style={styles.dateTimePickerModal} 
-            activeOpacity={1} 
+          <TouchableOpacity
+            style={styles.dateTimePickerModal}
+            activeOpacity={1}
             onPress={() => setShowCabTimePicker(false)}
           >
             <View style={styles.dateTimePickerContainer}>
