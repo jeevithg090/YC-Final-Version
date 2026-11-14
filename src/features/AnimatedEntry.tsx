@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, Image, StyleSheet, useWindowDimensions } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -7,14 +7,17 @@ import Animated, {
   withSequence,
   Easing,
   runOnJS,
+  useReducedMotion,
   type SharedValue,
 } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/router';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
-const { width, height } = Dimensions.get('window');
+import { Button } from '../components/ui';
+import { colors, radius, spacing, typography } from '../theme';
 
 const iconData = [
   { key: 'timetable', Icon: MaterialCommunityIcons, name: 'timetable', color: '#FFD700' },
@@ -27,12 +30,12 @@ const logo = require('../../assets/images/YOGOCampus.jpg');
 const SLOGAN = 'Your Campus, Simplified';
 type AnimatedEntryNavigationProp = StackNavigationProp<RootStackParamList>;
 
-// Corners the feature icons fly in from: TL, TR, BL, BR
+// Corners the feature icons fly in from (fractions of the screen size): TL, TR, BL, BR
 const ICON_START_POSITIONS = [
-  { x: -width * 0.35, y: -height * 0.35 },
-  { x: width * 0.35, y: -height * 0.35 },
-  { x: -width * 0.35, y: height * 0.35 },
-  { x: width * 0.35, y: height * 0.35 },
+  { x: -0.35, y: -0.35 },
+  { x: 0.35, y: -0.35 },
+  { x: -0.35, y: 0.35 },
+  { x: 0.35, y: 0.35 },
 ];
 
 interface FlyingIconProps {
@@ -44,14 +47,17 @@ interface FlyingIconProps {
 
 /** An icon that animates from a screen corner towards the centre. */
 const FlyingIcon: React.FC<FlyingIconProps> = ({ index, progress, opacity, children }) => {
+  const { width, height } = useWindowDimensions();
   const start = ICON_START_POSITIONS[index % ICON_START_POSITIONS.length];
+  const startX = start.x * Math.min(width, 900);
+  const startY = start.y * height;
   const style = useAnimatedStyle(() => ({
     position: 'absolute',
-    left: width / 2 - 28,
-    top: height / 2 - 28,
+    left: width / 2 - 22,
+    top: height / 2 - 22,
     transform: [
-      { translateX: start.x * (1 - progress.value) },
-      { translateY: start.y * (1 - progress.value) },
+      { translateX: startX * (1 - progress.value) },
+      { translateY: startY * (1 - progress.value) },
       { scale: 0.7 + 0.3 * progress.value },
     ],
     opacity: opacity.value,
@@ -61,7 +67,8 @@ const FlyingIcon: React.FC<FlyingIconProps> = ({ index, progress, opacity, child
 
 const AnimatedEntry = () => {
   const navigation = useNavigation<AnimatedEntryNavigationProp>();
-  const [showGetStarted, setShowGetStarted] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const [showGetStarted, setShowGetStarted] = useState(reduceMotion);
 
   // Lightweight: single shared values
   const scale = useSharedValue(0.7); // for logo & app name
@@ -70,6 +77,14 @@ const AnimatedEntry = () => {
   const iconsOpacity = useSharedValue(1); // opacity for all icons
 
   useEffect(() => {
+    if (reduceMotion) {
+      // Skip the intro animation for users who asked the OS to reduce motion.
+      scale.value = 1;
+      iconsOpacity.value = 0;
+      fadeIn.value = 1;
+      setShowGetStarted(true);
+      return;
+    }
     let timeout: ReturnType<typeof setTimeout> | undefined;
     // Step 1: Logo & App Name scale up
     scale.value = withSequence(
@@ -88,7 +103,8 @@ const AnimatedEntry = () => {
     return () => {
       if (timeout) clearTimeout(timeout as any);
     };
-  }, [navigation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reduceMotion]);
 
   // Animated styles
   const logoStyle = useAnimatedStyle(() => ({
@@ -103,111 +119,68 @@ const AnimatedEntry = () => {
   }));
 
   return (
-    <View style={styles.container}>
-      {/* Background gradient */}
-      <View style={StyleSheet.absoluteFill}>
-        <View style={styles.gradient} />
-      </View>
-      {/* Logo & App Name */}
+    <LinearGradient colors={colors.heroGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.container}>
       <View style={styles.centerContent}>
         <Animated.View style={logoStyle}>
-          <Image source={logo} style={styles.logo} resizeMode="contain" />
+          <Image
+            source={logo}
+            style={styles.logo}
+            resizeMode="cover"
+            accessible
+            accessibilityLabel="YOGO Campus logo"
+            accessibilityIgnoresInvertColors
+          />
         </Animated.View>
-        <Animated.Text style={[styles.appName, appNameStyle]}>YOGO Campus</Animated.Text>
-        {/* Slogan & Get Started Button */}
-        {showGetStarted && (
-          <Animated.View style={[styles.getStartedContainer, fadeInStyle]}>
-            <Text style={styles.slogan}>{SLOGAN}</Text>
-            <TouchableOpacity style={styles.getStartedButton} onPress={() => navigation.replace('LandingScreen')}>
-              <Text style={styles.getStartedButtonText}>Get Started</Text>
-            </TouchableOpacity>
-          </Animated.View>
-        )}
+        <Animated.Text style={[styles.appName, appNameStyle]} accessibilityRole="header">
+          YOGO Campus
+        </Animated.Text>
+        {/* Reserve the space so the logo doesn't jump when the button appears */}
+        <Animated.View style={[styles.getStartedContainer, fadeInStyle]}>
+          <Text style={styles.slogan}>{SLOGAN}</Text>
+          {showGetStarted ? (
+            <Button
+              title="Get started"
+              variant="inverse"
+              iconRight="arrow-forward"
+              fullWidth={false}
+              style={styles.getStartedButton}
+              onPress={() => navigation.replace('LandingScreen')}
+            />
+          ) : (
+            <View style={styles.buttonPlaceholder} />
+          )}
+        </Animated.View>
       </View>
-      {/* Animated Feature Icons */}
+      {/* Decorative feature icons */}
       {iconData.map((item, i) => (
         <FlyingIcon key={item.key} index={i} progress={iconsProgress} opacity={iconsOpacity}>
-          <item.Icon name={item.name as never} size={44} color={item.color} />
+          <item.Icon name={item.name as never} size={44} color={item.color} accessible={false} />
         </FlyingIcon>
       ))}
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a2980',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  gradient: {
-    flex: 1,
-    backgroundColor: '#1a2980',
-    opacity: 0.95,
-  },
+  container: { flex: 1, overflow: 'hidden' },
   centerContent: {
-    position: 'absolute',
-    top: height / 2 - 120,
-    left: 0,
-    right: 0,
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xl,
     zIndex: 2,
   },
   logo: {
-    width: 110,
-    height: 110,
-    borderRadius: 24,
-    marginBottom: 12,
-    backgroundColor: '#fff',
+    width: 112,
+    height: 112,
+    borderRadius: radius.xl,
+    marginBottom: spacing.lg,
   },
-  appName: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-    letterSpacing: 1.2,
-    textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
-    marginBottom: 0, // Add this to remove space below app name
-  },
-  slogan: {
-    fontSize: 14, // Smaller than app name
-    color: '#fff',
-    fontWeight: 'bold',
-    marginTop: 0, // No gap below app name
-    marginBottom: 10,
-    textAlign: 'center',
-    letterSpacing: 0.5,
-    textShadowColor: 'rgba(0,0,0,0.25)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
-    paddingHorizontal: 18,
-    paddingVertical: 6,
-  },
-  getStartedContainer: {
-    marginTop: 32,
-    alignItems: 'center',
-  },
-  getStartedButton: {
-    backgroundColor: '#4e54c8',
-    paddingHorizontal: 36,
-    paddingVertical: 14,
-    borderRadius: 28,
-    marginTop: 4,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  getStartedButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
+  appName: { ...typography.display, color: colors.onDark, textAlign: 'center' },
+  getStartedContainer: { marginTop: spacing.sm, alignItems: 'center' },
+  slogan: { ...typography.subheading, color: colors.onDarkMuted, textAlign: 'center' },
+  getStartedButton: { marginTop: spacing.xxl, minWidth: 220 },
+  buttonPlaceholder: { height: 52, marginTop: spacing.xxl },
 });
 
 export default AnimatedEntry;
