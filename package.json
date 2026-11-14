@@ -14,7 +14,9 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:ci": "jest --ci --coverage",
-    "build:web": "expo export --platform web"
+    "build:web": "expo export --platform web",
+    "seed:emulator": "node scripts/seed-emulator.mjs",
+    "emulators": "npx firebase-tools emulators:start --project demo-yogo"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",

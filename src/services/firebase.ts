@@ -1,8 +1,8 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getDatabase } from 'firebase/database';
-import { getStorage } from 'firebase/storage';
-import { getAuth, initializeAuth, type Auth, type Persistence } from 'firebase/auth';
+import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
+import { connectDatabaseEmulator, getDatabase } from 'firebase/database';
+import { connectStorageEmulator, getStorage } from 'firebase/storage';
+import { connectAuthEmulator, getAuth, initializeAuth, type Auth, type Persistence } from 'firebase/auth';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -63,6 +63,26 @@ function createAuth(): Auth {
 }
 
 export const auth = createAuth();
+
+/**
+ * Local development against the Firebase Emulator Suite
+ * (`npx firebase-tools emulators:start --project demo-yogo`).
+ * Opt in with EXPO_PUBLIC_USE_FIREBASE_EMULATOR=true; the host defaults to
+ * localhost (use your machine's LAN IP when testing on a physical device).
+ */
+export const usingEmulators = process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR === 'true';
+if (usingEmulators && isFirebaseConfigured) {
+  const host = process.env.EXPO_PUBLIC_FIREBASE_EMULATOR_HOST || '127.0.0.1';
+  try {
+    connectAuthEmulator(auth, `http://${host}:9099`, { disableWarnings: true });
+    connectFirestoreEmulator(db, host, 8080);
+    connectDatabaseEmulator(realtimeDb, host, 9000);
+    connectStorageEmulator(storage, host, 9199);
+  } catch (error) {
+    // Fast refresh re-runs this module after the SDKs are already connected.
+    console.warn('Firebase emulators already connected', error);
+  }
+}
 
 // Export Firebase app instance
 export default app;
