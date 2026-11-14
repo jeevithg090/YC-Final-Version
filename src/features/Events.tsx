@@ -7,7 +7,6 @@ import {
   SafeAreaView,
   RefreshControl,
   Alert,
-  ActivityIndicator,
   Image,
   Dimensions,
   Platform,
@@ -23,31 +22,10 @@ import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/router';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { 
-  collection,
-  query, 
-  orderBy, 
-  getDocs, 
-  updateDoc, 
-  doc, 
-  increment,
-} from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, updateDoc, doc, increment } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import Animated, {
-  FadeIn,
-  FadeOut,
-  SlideInRight,
-  SlideOutLeft,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-  Easing,
-  interpolate,
-  Extrapolate,
-} from 'react-native-reanimated';
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { MotiView, MotiText } from 'moti';
-import { BlurView } from 'expo-blur';
 import EventsDetails from './EventsDetails';
 import { quickAwardPoints } from '../services/pointsService';
 
@@ -105,22 +83,19 @@ export interface EventData extends Event {}
 
 export const getLatestEvent = async (): Promise<EventData | null> => {
   try {
-    const eventsQuery = query(
-      collection(db, 'events'),
-      orderBy('date', 'desc')
-    );
-    
+    const eventsQuery = query(collection(db, 'events'), orderBy('date', 'desc'));
+
     const querySnapshot = await getDocs(eventsQuery);
-    const eventsData = querySnapshot.docs.map(doc => ({
+    const eventsData = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
       date: doc.data().date?.toDate() || new Date(),
       registrationDeadline: doc.data().registrationDeadline?.toDate(),
     })) as EventData[];
-    
+
     // Filter out test events
-    const liveEvents = eventsData.filter(event => !event.isTest);
-    
+    const liveEvents = eventsData.filter((event) => !event.isTest);
+
     return liveEvents.length > 0 ? liveEvents[0] : null;
   } catch (error) {
     console.error('Failed to fetch latest event:', error);
@@ -141,7 +116,7 @@ const AnimatedEventCard: React.FC<{
   getCategoryColor: (category: string) => string;
   formatDate: (date: Date) => string;
   formatTime: (time: string) => string;
-  categories: { id: string; name: string; color: string; icon: string; }[];
+  categories: { id: string; name: string; color: string; icon: string }[];
 }> = ({
   event,
   index,
@@ -175,17 +150,11 @@ const AnimatedEventCard: React.FC<{
   };
 
   return (
-    <Animated.View
-      entering={FadeIn.delay(index * 100).duration(400)}
-      style={animatedStyle}
-    >
+    <Animated.View entering={FadeIn.delay(index * 100).duration(400)} style={animatedStyle}>
       <TouchableOpacity
         activeOpacity={0.9}
         key={event.id}
-        style={[
-          styles.eventCard,
-          viewMode === 'grid' ? styles.gridEventCard : styles.listEventCard
-        ]}
+        style={[styles.eventCard, viewMode === 'grid' ? styles.gridEventCard : styles.listEventCard]}
         onPress={() => onPress(event)}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
@@ -196,35 +165,31 @@ const AnimatedEventCard: React.FC<{
           transition={{ type: 'timing', duration: 500, delay: index * 80 }}
         >
           <View style={styles.imageContainer}>
-            <Image 
-              source={{ 
-                uri: event.posterUrl || event.imageUrl || 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=400'
+            <Image
+              source={{
+                uri:
+                  event.posterUrl ||
+                  event.imageUrl ||
+                  'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=400',
               }}
               style={viewMode === 'grid' ? styles.gridEventImage : styles.listEventImage}
               resizeMode="cover"
             />
-            
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.7)']}
-              style={styles.imageGradient}
-            />
-            
+
+            <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.imageGradient} />
+
             <View style={[styles.categoryContainer, { backgroundColor: getCategoryColor(event.category) }]}>
-              <Ionicons 
-                name={categories.find(c => c.id === event.category)?.icon as any || 'apps'} 
-                size={12} 
-                color="#fff" 
+              <Ionicons
+                name={(categories.find((c) => c.id === event.category)?.icon as any) || 'apps'}
+                size={12}
+                color="#fff"
                 style={{ marginRight: 4 }}
               />
-              <Text style={styles.eventCategory}>
-                {event.category.toUpperCase()}
-              </Text>
+              <Text style={styles.eventCategory}>{event.category.toUpperCase()}</Text>
             </View>
-            
+
             <View style={styles.dateChip}>
-              <Text style={styles.dateChipText}>
-                {formatDate(event.date)}
-              </Text>
+              <Text style={styles.dateChipText}>{formatDate(event.date)}</Text>
             </View>
           </View>
         </MotiView>
@@ -239,7 +204,7 @@ const AnimatedEventCard: React.FC<{
           >
             {event.title}
           </MotiText>
-          
+
           <Text style={styles.eventDescription} numberOfLines={viewMode === 'grid' ? 2 : 3}>
             {event.description}
           </Text>
@@ -250,11 +215,7 @@ const AnimatedEventCard: React.FC<{
               <Text style={styles.eventDetailText}>{event.time}</Text>
             </View>
             <View style={styles.eventDetailRow}>
-              <Ionicons 
-                name={event.isOnline ? "videocam-outline" : "location-outline"} 
-                size={16} 
-                color="#666" 
-              />
+              <Ionicons name={event.isOnline ? 'videocam-outline' : 'location-outline'} size={16} color="#666" />
               <Text style={styles.eventDetailText}>{event.venue.name}</Text>
             </View>
           </View>
@@ -266,9 +227,7 @@ const AnimatedEventCard: React.FC<{
               transition={{ type: 'spring', delay: index * 100 + 200 }}
               style={styles.registrationInfo}
             >
-              <Text style={styles.registrationText}>
-                Registration Required
-              </Text>
+              <Text style={styles.registrationText}>Registration Required</Text>
             </MotiView>
           )}
 
@@ -292,8 +251,12 @@ const AnimatedEventCard: React.FC<{
           )}
 
           <View style={styles.eventActions}>
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.registerButton, (event.registrationRequired && !event.registrationLink) && styles.disabledButton]}
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                styles.registerButton,
+                event.registrationRequired && !event.registrationLink && styles.disabledButton,
+              ]}
               onPress={() => {
                 if (event.registrationRequired && !event.registrationLink) {
                   Alert.alert('Error', 'Registration link is required for this event.');
@@ -307,13 +270,16 @@ const AnimatedEventCard: React.FC<{
               <Ionicons name="checkmark-circle-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
               <Text style={styles.registerButtonText}>Register Now</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.actionButton, {
-                backgroundColor: '#f1f5f9',
-                borderWidth: 1,
-                borderColor: '#2563eb',
-              }]}
+
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                {
+                  backgroundColor: '#f1f5f9',
+                  borderWidth: 1,
+                  borderColor: '#2563eb',
+                },
+              ]}
               onPress={() => {
                 handleShare(event);
                 Haptics.selectionAsync();
@@ -368,14 +334,22 @@ const Events: React.FC = () => {
   ];
 
   const venues = [
-    'Auditorium', 'Amphitheatre', 'Online', 'Seminar Hall', 'Sports Complex', 
-    'Computer Lab', 'Library', 'Cafeteria', 'Ground', 'Other'
+    'Auditorium',
+    'Amphitheatre',
+    'Online',
+    'Seminar Hall',
+    'Sports Complex',
+    'Computer Lab',
+    'Library',
+    'Cafeteria',
+    'Ground',
+    'Other',
   ];
 
   // Firebase Console Action: Create 'events' collection in Firestore with proper read/write rules
   // Firebase Console Action: Setup Firebase Storage with proper rules for image uploads
   // Firebase Console Action: Enable Storage security rules to allow authenticated uploads to 'events/' folder
-  // 
+  //
   // Required Firebase Storage Rules:
   // rules_version = '2';
   // service firebase.storage {
@@ -402,22 +376,19 @@ const Events: React.FC = () => {
 
   const fetchEvents = async () => {
     try {
-      const eventsQuery = query(
-        collection(db, 'events'),
-        orderBy('date', 'desc')
-      );
-      
+      const eventsQuery = query(collection(db, 'events'), orderBy('date', 'desc'));
+
       const querySnapshot = await getDocs(eventsQuery);
-      const eventsData = querySnapshot.docs.map(doc => ({
+      const eventsData = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
         date: doc.data().date?.toDate() || new Date(),
         registrationDeadline: doc.data().registrationDeadline?.toDate(),
       })) as Event[];
-      
+
       // Filter out test events (admin events that shouldn't appear in the app)
-      const liveEvents = eventsData.filter(event => !event.isTest);
-      
+      const liveEvents = eventsData.filter((event) => !event.isTest);
+
       setEvents(liveEvents);
       setLoading(false);
     } catch (error) {
@@ -433,7 +404,7 @@ const Events: React.FC = () => {
   };
 
   const getCategoryColor = (category: string) => {
-    return categories.find(c => c.id === category)?.color || '#667eea';
+    return categories.find((c) => c.id === category)?.color || '#667eea';
   };
 
   const formatDate = (date: Date) => {
@@ -441,7 +412,7 @@ const Events: React.FC = () => {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
     });
   };
 
@@ -481,7 +452,7 @@ const Events: React.FC = () => {
     try {
       const eventDoc = doc(db, 'events', event.id);
       await updateDoc(eventDoc, {
-        currentParticipants: increment(1)
+        currentParticipants: increment(1),
       });
       Alert.alert('Success', 'You have been registered for this event!');
       fetchEvents();
@@ -493,31 +464,28 @@ const Events: React.FC = () => {
   };
 
   const handleContactPerson = (contactPerson: Event['contactPerson']) => {
-    Alert.alert(
-      'Contact Options',
-      `How would you like to contact ${contactPerson.name}?`,
-      [
-        {
-          text: 'Call',
-          onPress: () => Linking.openURL(`tel:${contactPerson.phone}`)
-        },
-        {
-          text: 'Email',
-          onPress: () => Linking.openURL(`mailto:${contactPerson.email}`)
-        },
-        { text: 'Cancel', style: 'cancel' }
-      ]
-    );
+    Alert.alert('Contact Options', `How would you like to contact ${contactPerson.name}?`, [
+      {
+        text: 'Call',
+        onPress: () => Linking.openURL(`tel:${contactPerson.phone}`),
+      },
+      {
+        text: 'Email',
+        onPress: () => Linking.openURL(`mailto:${contactPerson.email}`),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
-  const filteredEvents = events.filter(event => {
-    const matchesSearch = searchText === '' || 
+  const filteredEvents = events.filter((event) => {
+    const matchesSearch =
+      searchText === '' ||
       event.title.toLowerCase().includes(searchText.toLowerCase()) ||
       event.description.toLowerCase().includes(searchText.toLowerCase()) ||
-      event.tags.some(tag => tag.toLowerCase().includes(searchText.toLowerCase()));
-    
+      event.tags.some((tag) => tag.toLowerCase().includes(searchText.toLowerCase()));
+
     const matchesCategory = selectedCategory === 'all' || event.category === selectedCategory;
-    
+
     return matchesSearch && matchesCategory;
   });
 
@@ -545,7 +513,7 @@ const Events: React.FC = () => {
         colors={['#f1f5f9', '#e2e8f0']}
         style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}
       >
-        <MotiView 
+        <MotiView
           style={styles.loadingContainer}
           from={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -583,10 +551,15 @@ const Events: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { 
-      paddingTop: insets.top,
-      paddingBottom: insets.bottom 
-    }]}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        {
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+        },
+      ]}
+    >
       {/* Header with Gradient Background */}
       <LinearGradient
         colors={['#2563eb', '#1e40af']}
@@ -594,11 +567,8 @@ const Events: React.FC = () => {
         end={{ x: 1, y: 1 }}
         style={[styles.header, { backgroundColor: 'transparent' }]}
       >
-        <Animated.View 
-          entering={FadeIn.duration(400)}
-          style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
-        >
-          <TouchableOpacity 
+        <Animated.View entering={FadeIn.duration(400)} style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+          <TouchableOpacity
             style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -617,7 +587,7 @@ const Events: React.FC = () => {
             Campus Events
           </MotiText>
           <View style={styles.headerActions}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.headerActionButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
               onPress={() => {
                 Haptics.selectionAsync();
@@ -631,24 +601,20 @@ const Events: React.FC = () => {
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', delay: 200 }}
             >
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
-                  styles.headerActionButton, 
-                  { 
+                  styles.headerActionButton,
+                  {
                     backgroundColor: viewMode === 'grid' ? '#ff6b35' : 'rgba(255,255,255,0.2)',
-                    marginLeft: 8
-                  }
+                    marginLeft: 8,
+                  },
                 ]}
                 onPress={() => {
                   Haptics.selectionAsync();
                   setViewMode(viewMode === 'list' ? 'grid' : 'list');
                 }}
               >
-                <Ionicons 
-                  name={viewMode === 'list' ? 'grid' : 'list'} 
-                  size={20} 
-                  color="#fff"
-                />
+                <Ionicons name={viewMode === 'list' ? 'grid' : 'list'} size={20} color="#fff" />
               </TouchableOpacity>
             </MotiView>
           </View>
@@ -662,10 +628,7 @@ const Events: React.FC = () => {
         transition={{ type: 'spring', delay: 200 }}
         style={styles.searchContainer}
       >
-        <LinearGradient
-          colors={['#f8fafc', '#ffffff']}
-          style={styles.searchBar}
-        >
+        <LinearGradient colors={['#f8fafc', '#ffffff']} style={styles.searchBar}>
           <Ionicons name="search" size={20} color="#2563eb" />
           <TextInput
             style={styles.searchInput}
@@ -680,7 +643,7 @@ const Events: React.FC = () => {
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring' }}
             >
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => {
                   Haptics.selectionAsync();
                   setSearchText('');
@@ -705,8 +668,8 @@ const Events: React.FC = () => {
         transition={{ type: 'spring', delay: 300 }}
         style={styles.categoryFilter}
       >
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryFilterContent}
         >
@@ -720,7 +683,7 @@ const Events: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.categoryChip,
-                  selectedCategory === category.id && { 
+                  selectedCategory === category.id && {
                     backgroundColor: category.color,
                     borderColor: category.color,
                     shadowColor: category.color,
@@ -728,8 +691,8 @@ const Events: React.FC = () => {
                     shadowOpacity: 0.3,
                     shadowRadius: 6,
                     elevation: 5,
-                    transform: [{ scale: 1.05 }]
-                  }
+                    transform: [{ scale: 1.05 }],
+                  },
                 ]}
                 onPress={() => {
                   Haptics.selectionAsync();
@@ -738,29 +701,26 @@ const Events: React.FC = () => {
               >
                 <LinearGradient
                   colors={
-                    selectedCategory === category.id 
-                      ? [category.color, category.color + 'dd'] 
+                    selectedCategory === category.id
+                      ? [category.color, category.color + 'dd']
                       : ['transparent', 'transparent']
                   }
                   style={{
-                    flexDirection: 'row', 
+                    flexDirection: 'row',
                     alignItems: 'center',
                     paddingHorizontal: selectedCategory === category.id ? 0 : 0,
                     paddingVertical: selectedCategory === category.id ? 0 : 0,
                     borderRadius: 18,
                   }}
                 >
-                  <Ionicons 
-                    name={category.icon as any} 
-                    size={16} 
-                    color={selectedCategory === category.id ? '#fff' : '#64748b'} 
+                  <Ionicons
+                    name={category.icon as any}
+                    size={16}
+                    color={selectedCategory === category.id ? '#fff' : '#64748b'}
                     style={{ marginRight: 6 }}
                   />
                   <Text
-                    style={[
-                      styles.categoryChipText,
-                      selectedCategory === category.id && styles.categoryChipTextActive
-                    ]}
+                    style={[styles.categoryChipText, selectedCategory === category.id && styles.categoryChipTextActive]}
                   >
                     {category.name}
                   </Text>
@@ -777,18 +737,10 @@ const Events: React.FC = () => {
         style={styles.content}
         contentContainerStyle={{ flexGrow: filteredEvents.length === 0 ? 1 : undefined }}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh} 
-            colors={['#667eea']}
-            tintColor="#667eea"
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#667eea']} tintColor="#667eea" />
         }
       >
-        <View style={[
-          styles.eventsContainer,
-          viewMode === 'grid' && styles.gridContainer
-        ]}>
+        <View style={[styles.eventsContainer, viewMode === 'grid' && styles.gridContainer]}>
           {filteredEvents.length > 0 ? (
             filteredEvents.map((event, index) => renderEventCard(event, index))
           ) : (
@@ -819,10 +771,9 @@ const Events: React.FC = () => {
                 transition={{ delay: 600, type: 'spring' }}
                 style={styles.emptyStateSubtext}
               >
-                {searchText || selectedCategory !== 'all' 
-                  ? 'Try adjusting your search or filters' 
-                  : 'Check back later for upcoming events'
-                }
+                {searchText || selectedCategory !== 'all'
+                  ? 'Try adjusting your search or filters'
+                  : 'Check back later for upcoming events'}
               </MotiText>
             </MotiView>
           )}
@@ -1060,7 +1011,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: 'rgba(30, 41, 59, 0.85)', // dark background
-},
+  },
   dateChipText: {
     color: '#fff',
     fontSize: 11,
@@ -1394,31 +1345,31 @@ const styles = StyleSheet.create({
 // - File size validation (max 5MB)
 // - MIME type validation (images only)
 // - Network connectivity checking
-// 
+//
 // ✅ Error Handling
 // - Comprehensive error messages for different Firebase Storage errors
 // - Graceful fallback for failed uploads
 // - User-friendly error alerts
-// 
+//
 // ✅ Image Management
 // - Unique filename generation with timestamp
 // - Delete orphaned images functionality
 // - Image compression capability
 // - Quota monitoring
-// 
+//
 // ✅ Security & Optimization
 // - Firebase Storage security rules commented
 // - Image quality optimization (80% compression)
 // - Blob size warnings for large files
 // - Content-Type specification for uploads
-// 
+//
 // ✅ UI/UX Features
 // - Upload progress bar with percentage
 // - Loading states during upload
 // - Image preview before upload
 // - Retry upload on failure
 // - Permission handling for image picker
-// 
+//
 // Required Firebase Console Actions:
 // 1. Enable Firebase Storage in your project
 // 2. Set up Storage security rules (commented above)
@@ -1446,7 +1397,7 @@ const checkNetworkConnection = (): boolean => {
 
 const handleStorageError = (error: any): string => {
   console.error('Storage error details:', error);
-  
+
   if (error.code) {
     switch (error.code) {
       case 'storage/unauthorized':
@@ -1469,13 +1420,11 @@ const handleStorageError = (error: any): string => {
         return 'Upload failed after multiple attempts. Please try again later.';
       case 'storage/invalid-checksum':
         return 'File was corrupted during upload. Please try again.';
-      case 'storage/canceled':
-        return 'Upload was canceled by user.';
       default:
         return `Upload failed: ${error.message || 'Unknown error'}`;
     }
   }
-  
+
   return 'Upload failed. Please check your internet connection and try again.';
 };
 
@@ -1518,12 +1467,12 @@ const optimizeImageForUpload = async (uri: string): Promise<string> => {
   try {
     // Compress image before upload to reduce file size and upload time
     const compressedUri = await compressImage(uri, 0.8);
-    
+
     // Additional optimizations could include:
     // - Resize image to maximum dimensions (e.g., 1920x1080)
     // - Convert to WebP format for better compression
     // - Remove EXIF data for privacy
-    
+
     return compressedUri;
   } catch (error) {
     console.error('Error optimizing image:', error);

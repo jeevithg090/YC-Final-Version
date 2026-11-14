@@ -5,9 +5,9 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withSequence,
-  withDelay,
   Easing,
   runOnJS,
+  type SharedValue,
 } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -27,6 +27,38 @@ const logo = require('../../assets/images/YOGOCampus.jpg');
 const SLOGAN = 'Your Campus, Simplified';
 type AnimatedEntryNavigationProp = StackNavigationProp<RootStackParamList>;
 
+// Corners the feature icons fly in from: TL, TR, BL, BR
+const ICON_START_POSITIONS = [
+  { x: -width * 0.35, y: -height * 0.35 },
+  { x: width * 0.35, y: -height * 0.35 },
+  { x: -width * 0.35, y: height * 0.35 },
+  { x: width * 0.35, y: height * 0.35 },
+];
+
+interface FlyingIconProps {
+  index: number;
+  progress: SharedValue<number>;
+  opacity: SharedValue<number>;
+  children: React.ReactNode;
+}
+
+/** An icon that animates from a screen corner towards the centre. */
+const FlyingIcon: React.FC<FlyingIconProps> = ({ index, progress, opacity, children }) => {
+  const start = ICON_START_POSITIONS[index % ICON_START_POSITIONS.length];
+  const style = useAnimatedStyle(() => ({
+    position: 'absolute',
+    left: width / 2 - 28,
+    top: height / 2 - 28,
+    transform: [
+      { translateX: start.x * (1 - progress.value) },
+      { translateY: start.y * (1 - progress.value) },
+      { scale: 0.7 + 0.3 * progress.value },
+    ],
+    opacity: opacity.value,
+  }));
+  return <Animated.View style={style}>{children}</Animated.View>;
+};
+
 const AnimatedEntry = () => {
   const navigation = useNavigation<AnimatedEntryNavigationProp>();
   const [showGetStarted, setShowGetStarted] = useState(false);
@@ -42,7 +74,7 @@ const AnimatedEntry = () => {
     // Step 1: Logo & App Name scale up
     scale.value = withSequence(
       withTiming(1.2, { duration: 500, easing: Easing.out(Easing.exp) }),
-      withTiming(1, { duration: 250, easing: Easing.out(Easing.exp) })
+      withTiming(1, { duration: 250, easing: Easing.out(Easing.exp) }),
     );
     // Step 2: Animate all icons in together after logo
     timeout = setTimeout(() => {
@@ -65,28 +97,6 @@ const AnimatedEntry = () => {
   const appNameStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
-  const iconsStyles = iconData.map((_, i) =>
-    useAnimatedStyle(() => {
-      // Corners: TL, TR, BL, BR
-      const iconStart = [
-        { x: -width * 0.35, y: -height * 0.35 },
-        { x: width * 0.35, y: -height * 0.35 },
-        { x: -width * 0.35, y: height * 0.35 },
-        { x: width * 0.35, y: height * 0.35 },
-      ];
-      return {
-        position: 'absolute',
-        left: width / 2 - 28,
-        top: height / 2 - 28,
-        transform: [
-          { translateX: iconStart[i].x * (1 - iconsProgress.value) },
-          { translateY: iconStart[i].y * (1 - iconsProgress.value) },
-          { scale: 0.7 + 0.3 * iconsProgress.value },
-        ],
-        opacity: iconsOpacity.value,
-      };
-    })
-  );
   const fadeInStyle = useAnimatedStyle(() => ({
     opacity: fadeIn.value,
     transform: [{ translateY: 30 * (1 - fadeIn.value) }],
@@ -115,14 +125,11 @@ const AnimatedEntry = () => {
         )}
       </View>
       {/* Animated Feature Icons */}
-      {iconData.map((item, i) => {
-        const IconComponent = item.Icon;
-        return (
-          <Animated.View key={item.key} style={iconsStyles[i]}>
-            <IconComponent name={item.name} size={44} color={item.color} />
-          </Animated.View>
-        );
-      })}
+      {iconData.map((item, i) => (
+        <FlyingIcon key={item.key} index={i} progress={iconsProgress} opacity={iconsOpacity}>
+          <item.Icon name={item.name as never} size={44} color={item.color} />
+        </FlyingIcon>
+      ))}
     </View>
   );
 };

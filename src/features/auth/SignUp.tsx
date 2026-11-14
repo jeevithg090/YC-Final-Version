@@ -23,12 +23,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../navigation/router';
-import { auth } from '../../services/firebase';
+import { auth, db } from '../../services/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { Picker } from '@react-native-picker/picker';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { setDoc, doc } from 'firebase/firestore'; // Add this import
-import { db } from '../../services/firebase'; // Add this import
+import { Ionicons } from '@expo/vector-icons';
+import { setDoc, doc } from 'firebase/firestore';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getUserPoints } from '../../services/pointsService';
 
@@ -51,7 +49,6 @@ type FormErrorsBase = {
 };
 
 interface FormErrors extends FormErrorsBase {}
-
 
 const { width } = Dimensions.get('window');
 
@@ -113,7 +110,7 @@ const SignUp: React.FC = () => {
   const topCollegeRecommendations = [
     'Manipal Institute of Technology Manipal (MIT)',
     'Manipal Institute of Technology Bangalore (MIT B)',
-    'Kasturba Medical College, Manipal (KMC)'
+    'Kasturba Medical College, Manipal (KMC)',
   ];
 
   const validateStep1 = (): boolean => {
@@ -132,7 +129,8 @@ const SignUp: React.FC = () => {
   const validateStep2 = (): boolean => {
     const newErrors: FormErrors = {};
     if (!form.userName) newErrors.userName = 'User Name is required';
-    if (!form.mobileNumber || form.mobileNumber.length !== 13) newErrors.mobileNumber = 'Please enter a valid 10-digit mobile number';
+    if (!form.mobileNumber || form.mobileNumber.length !== 13)
+      newErrors.mobileNumber = 'Please enter a valid 10-digit mobile number';
     if (!form.collegeName) newErrors.collegeName = 'College Name is required';
     if (!form.branch) newErrors.branch = 'Branch is required';
     if (form.branch === 'Other' && !customBranch) newErrors.branch = 'Please enter your branch';
@@ -172,11 +170,9 @@ const SignUp: React.FC = () => {
         accountCreatedOn: new Date().toISOString(),
       });
       await getUserPoints(); // Ensures user points doc is initialized
-      Alert.alert(
-        'Registration Successful',
-        'Sign up successful! You can now use your account.',
-        [{ text: 'OK', onPress: () => navigation.navigate('Dashboard') }]
-      );
+      Alert.alert('Registration Successful', 'Sign up successful! You can now use your account.', [
+        { text: 'OK', onPress: () => navigation.navigate('Dashboard') },
+      ]);
     } catch (error: any) {
       let message = 'Sign up failed. Please try again.';
       if (error.code === 'auth/email-already-in-use') message = 'Email is already in use.';
@@ -197,7 +193,7 @@ const SignUp: React.FC = () => {
       const response = await fetch('https://colleges-api-india.fly.dev/colleges/search', {
         method: 'POST',
         headers: {
-          'Keyword': keyword,
+          Keyword: keyword,
         },
       });
       const data = await response.json();
@@ -218,20 +214,14 @@ const SignUp: React.FC = () => {
   }, []);
 
   return (
-    <LinearGradient
-      colors={["#f5f7fa", "#c3cfe2"]}
-      style={styles.gradientBackground}
-    >
+    <LinearGradient colors={['#f5f7fa', '#c3cfe2']} style={styles.gradientBackground}>
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
         <KeyboardAvoidingView
           style={styles.keyboardAvoidingContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <ScrollView
-            contentContainerStyle={styles.scrollContainer}
-            showsVerticalScrollIndicator={false}
-          >
+          <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
             <View style={styles.logoContainer}>
               <Image
                 source={require('../../../assets/images/YOGOCampus.jpg')}
@@ -319,11 +309,7 @@ const SignUp: React.FC = () => {
                     </View>
                     {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
                   </View>
-                  <TouchableOpacity
-                    style={styles.button}
-                    onPress={handleNext}
-                    activeOpacity={0.8}
-                  >
+                  <TouchableOpacity style={styles.button} onPress={handleNext} activeOpacity={0.8}>
                     <LinearGradient
                       colors={['#4e54c8', '#8f94fb']}
                       start={{ x: 0, y: 0 }}
@@ -422,24 +408,28 @@ const SignUp: React.FC = () => {
                       <TouchableWithoutFeedback onPress={() => setBranchModalVisible(false)}>
                         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' }} />
                       </TouchableWithoutFeedback>
-                      <View style={{
-                        position: 'absolute',
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: '#fff',
-                        borderTopLeftRadius: 16,
-                        borderTopRightRadius: 16,
-                        maxHeight: 400,
-                        paddingBottom: 24,
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: -2 },
-                        shadowOpacity: 0.15,
-                        shadowRadius: 8,
-                        elevation: 8,
-                      }}>
+                      <View
+                        style={{
+                          position: 'absolute',
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          backgroundColor: '#fff',
+                          borderTopLeftRadius: 16,
+                          borderTopRightRadius: 16,
+                          maxHeight: 400,
+                          paddingBottom: 24,
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: -2 },
+                          shadowOpacity: 0.15,
+                          shadowRadius: 8,
+                          elevation: 8,
+                        }}
+                      >
                         <View style={{ alignItems: 'center', padding: 12 }}>
-                          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#ccc', marginBottom: 8 }} />
+                          <View
+                            style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#ccc', marginBottom: 8 }}
+                          />
                           <Text style={{ fontWeight: '600', fontSize: 16, marginBottom: 8 }}>Select Branch</Text>
                         </View>
                         <ScrollView style={{ flexGrow: 0 }}>
@@ -452,7 +442,9 @@ const SignUp: React.FC = () => {
                                 setBranchModalVisible(false);
                               }}
                             >
-                              <Text style={{ fontSize: 16, color: branch === form.branch ? '#4e54c8' : '#333' }}>{branch}</Text>
+                              <Text style={{ fontSize: 16, color: branch === form.branch ? '#4e54c8' : '#333' }}>
+                                {branch}
+                              </Text>
                             </TouchableOpacity>
                           ))}
                         </ScrollView>
@@ -471,25 +463,19 @@ const SignUp: React.FC = () => {
                         thumbColor={form.acceptedTerms ? '#ffffff' : '#f4f3f4'}
                       />
                       <Text style={styles.termsText}>
-                        I accept the {' '}
-                        <Text 
-                          style={styles.termsLink}
-                          onPress={() => setTermsModalVisible(true)}
-                        >
+                        I accept the{' '}
+                        <Text style={styles.termsLink} onPress={() => setTermsModalVisible(true)}>
                           Terms and Conditions
-                        </Text>
-                        {' '}and{' '}
-                        <Text 
-                          style={styles.termsLink}
-                          onPress={() => setPrivacyModalVisible(true)}
-                        >
+                        </Text>{' '}
+                        and{' '}
+                        <Text style={styles.termsLink} onPress={() => setPrivacyModalVisible(true)}>
                           Privacy Policy
                         </Text>
                       </Text>
                     </View>
                     {errors.acceptedTerms ? <Text style={styles.errorText}>{errors.acceptedTerms}</Text> : null}
                   </View>
-                  
+
                   <View style={styles.stepButtonsRow}>
                     <TouchableOpacity
                       style={[styles.button, styles.stepButton]}
@@ -536,7 +522,7 @@ const SignUp: React.FC = () => {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-        
+
         {/* Terms and Conditions Modal */}
         <Modal
           visible={termsModalVisible}
@@ -556,46 +542,52 @@ const SignUp: React.FC = () => {
             </View>
             <ScrollView style={styles.modalContent}>
               <Text style={styles.modalText}>
-                <Text style={styles.modalSectionTitle}>📑 Terms & Conditions (Terms of Use) for YOGO Campus</Text>{"\n"}
-                <Text style={styles.modalSectionSubtitle}>Effective Date: 11th July 2025</Text>{"\n\n"}
-                Welcome to YOGO Campus! By using our app, you agree to the following terms.{"\n\n"}
-                <Text style={styles.modalSectionHeading}>1. Use of the App</Text>{"\n"}
-                You must:{"\n"}
-                • Be a current college student or faculty{"\n"}
-                • Provide accurate profile information{"\n"}
-                • Not abuse, spam, or harass others{"\n\n"}
-                <Text style={styles.modalSectionHeading}>2. Accounts & Access</Text>{"\n"}
-                • You are responsible for your account security{"\n"}
-                • You may not share your account credentials{"\n\n"}
-                <Text style={styles.modalSectionHeading}>3. Features & Content</Text>{"\n"}
-                YOGO Campus offers:{"\n"}
-                • Campus mess menu, reminders, events{"\n"}
-                • Points system and streaks{"\n"}
-                • Chat forums, study tools, roommate finder{"\n"}
-                • Marketplace and profile card with QR code{"\n\n"}
-                We may modify or remove features without notice.{"\n\n"}
-                <Text style={styles.modalSectionHeading}>4. Content Ownership</Text>{"\n"}
-                All logos, designs, and content are owned by Jeevith G. You may not copy or redistribute without permission.{"\n\n"}
-                <Text style={styles.modalSectionHeading}>5. Ads & Analytics</Text>{"\n"}
-                We show ads via Google AdMob and track usage via Firebase Analytics. Data is handled per our Privacy Policy.{"\n\n"}
-                <Text style={styles.modalSectionHeading}>6. Limitations</Text>{"\n"}
-                We are not liable for:{"\n"}
-                • Data loss or inaccuracy{"\n"}
-                • App downtime{"\n"}
-                • User behavior within chats or forums{"\n\n"}
-                <Text style={styles.modalSectionHeading}>7. Account Termination</Text>{"\n"}
-                We may suspend or delete accounts that violate these terms.{"\n\n"}
-                <Text style={styles.modalSectionHeading}>8. Governing Law</Text>{"\n"}
-                These terms are governed by the laws of India.{"\n\n"}
-                <Text style={styles.modalSectionHeading}>9. Changes to Terms</Text>{"\n"}
-                We may revise these terms. Continued use of the app means acceptance of changes.{"\n\n"}
-                <Text style={styles.modalSectionHeading}>10. Contact</Text>{"\n"}
+                <Text style={styles.modalSectionTitle}>📑 Terms & Conditions (Terms of Use) for YOGO Campus</Text>
+                {'\n'}
+                <Text style={styles.modalSectionSubtitle}>Effective Date: 11th July 2025</Text>
+                {'\n\n'}
+                Welcome to YOGO Campus! By using our app, you agree to the following terms.{'\n\n'}
+                <Text style={styles.modalSectionHeading}>1. Use of the App</Text>
+                {'\n'}
+                You must:{'\n'}• Be a current college student or faculty{'\n'}• Provide accurate profile information
+                {'\n'}• Not abuse, spam, or harass others{'\n\n'}
+                <Text style={styles.modalSectionHeading}>2. Accounts & Access</Text>
+                {'\n'}• You are responsible for your account security{'\n'}• You may not share your account credentials
+                {'\n\n'}
+                <Text style={styles.modalSectionHeading}>3. Features & Content</Text>
+                {'\n'}
+                YOGO Campus offers:{'\n'}• Campus mess menu, reminders, events{'\n'}• Points system and streaks{'\n'}•
+                Chat forums, study tools, roommate finder{'\n'}• Marketplace and profile card with QR code{'\n\n'}
+                We may modify or remove features without notice.{'\n\n'}
+                <Text style={styles.modalSectionHeading}>4. Content Ownership</Text>
+                {'\n'}
+                All logos, designs, and content are owned by Jeevith G. You may not copy or redistribute without
+                permission.{'\n\n'}
+                <Text style={styles.modalSectionHeading}>5. Ads & Analytics</Text>
+                {'\n'}
+                We show ads via Google AdMob and track usage via Firebase Analytics. Data is handled per our Privacy
+                Policy.{'\n\n'}
+                <Text style={styles.modalSectionHeading}>6. Limitations</Text>
+                {'\n'}
+                We are not liable for:{'\n'}• Data loss or inaccuracy{'\n'}• App downtime{'\n'}• User behavior within
+                chats or forums{'\n\n'}
+                <Text style={styles.modalSectionHeading}>7. Account Termination</Text>
+                {'\n'}
+                We may suspend or delete accounts that violate these terms.{'\n\n'}
+                <Text style={styles.modalSectionHeading}>8. Governing Law</Text>
+                {'\n'}
+                These terms are governed by the laws of India.{'\n\n'}
+                <Text style={styles.modalSectionHeading}>9. Changes to Terms</Text>
+                {'\n'}
+                We may revise these terms. Continued use of the app means acceptance of changes.{'\n\n'}
+                <Text style={styles.modalSectionHeading}>10. Contact</Text>
+                {'\n'}
                 For questions or concerns, please contact us at: yogocampus@gmail.com
               </Text>
             </ScrollView>
           </View>
         </Modal>
-        
+
         {/* Privacy Policy Modal */}
         <Modal
           visible={privacyModalVisible}
@@ -615,47 +607,47 @@ const SignUp: React.FC = () => {
             </View>
             <ScrollView style={styles.modalContent}>
               <Text style={styles.modalText}>
-                <Text style={styles.modalSectionTitle}>📄 Privacy Policy for YOGO Campus</Text>{"\n"}
-                <Text style={styles.modalSectionSubtitle}>Effective Date: 11th July 2025</Text>{"\n\n"}
-                YOGO Campus ("we", "our", or "us") built this app as a platform for students to connect, explore campus resources, and enhance their college experience. This Privacy Policy outlines how we collect, use, and protect your information.{"\n\n"}
-                <Text style={styles.modalSectionHeading}>1. Information We Collect</Text>{"\n"}
-                We may collect the following types of data:{"\n"}
-                • Personal Information: Name, email address, branch, year, interests, sports, hobbies, etc.{"\n"}
-                • Profile Photo (if uploaded){"\n"}
-                • Device Info: Device ID, OS version, IP address{"\n"}
-                • Usage Data: Features used, event participation, login streaks{"\n"}
-                • Firebase/Analytics Data: Events, crash reports, usage patterns{"\n"}
-                • AdMob: Anonymous identifiers for personalized ads{"\n\n"}
-                🔒 We do not collect sensitive information like health data or financial data.{"\n\n"}
-                <Text style={styles.modalSectionHeading}>2. How We Use Your Data</Text>{"\n"}
-                • To personalize your experience (e.g., mess menu, points system){"\n"}
-                • To show relevant ads using Google AdMob{"\n"}
-                • To provide features like profile cards, forums, reminders, etc.{"\n"}
-                • To monitor performance and improve user experience (via Firebase){"\n\n"}
-                <Text style={styles.modalSectionHeading}>3. Third-Party Services</Text>{"\n"}
-                We use the following services that may collect user information:{"\n"}
-                • Firebase (by Google){"\n"}
-                • Google Analytics for Firebase{"\n"}
-                • Google AdMob{"\n"}
-                • Expo Push Notifications{"\n\n"}
-                Each service has its own privacy policy:{"\n"}
-                • Firebase Privacy{"\n"}
-                • AdMob Privacy{"\n\n"}
-                <Text style={styles.modalSectionHeading}>4. Data Security</Text>{"\n"}
-                We implement industry-standard security practices including:{"\n"}
-                • HTTPS encryption{"\n"}
-                • Firebase Authentication & Firestore security rules{"\n"}
-                • Secure login & limited access{"\n\n"}
-                <Text style={styles.modalSectionHeading}>5. Children's Privacy</Text>{"\n"}
-                YOGO Campus is not intended for children under 13. We do not knowingly collect data from children. If you are a parent and believe your child provided us with data, please contact us.{"\n\n"}
-                <Text style={styles.modalSectionHeading}>6. User Rights</Text>{"\n"}
-                You may:{"\n"}
-                • Request to view or delete your data{"\n"}
-                • Delete your account at any time{"\n"}
-                • Contact us via yogocampus@gmail.com{"\n\n"}
-                <Text style={styles.modalSectionHeading}>7. Changes to This Policy</Text>{"\n"}
-                We may update this Privacy Policy. We will notify you by email or in-app if required.{"\n\n"}
-                <Text style={styles.modalSectionHeading}>8. Contact</Text>{"\n"}
+                <Text style={styles.modalSectionTitle}>📄 Privacy Policy for YOGO Campus</Text>
+                {'\n'}
+                <Text style={styles.modalSectionSubtitle}>Effective Date: 11th July 2025</Text>
+                {'\n\n'}
+                YOGO Campus ("we", "our", or "us") built this app as a platform for students to connect, explore campus
+                resources, and enhance their college experience. This Privacy Policy outlines how we collect, use, and
+                protect your information.{'\n\n'}
+                <Text style={styles.modalSectionHeading}>1. Information We Collect</Text>
+                {'\n'}
+                We may collect the following types of data:{'\n'}• Personal Information: Name, email address, branch,
+                year, interests, sports, hobbies, etc.{'\n'}• Profile Photo (if uploaded){'\n'}• Device Info: Device ID,
+                OS version, IP address{'\n'}• Usage Data: Features used, event participation, login streaks{'\n'}•
+                Firebase/Analytics Data: Events, crash reports, usage patterns{'\n'}• AdMob: Anonymous identifiers for
+                personalized ads{'\n\n'}
+                🔒 We do not collect sensitive information like health data or financial data.{'\n\n'}
+                <Text style={styles.modalSectionHeading}>2. How We Use Your Data</Text>
+                {'\n'}• To personalize your experience (e.g., mess menu, points system){'\n'}• To show relevant ads
+                using Google AdMob{'\n'}• To provide features like profile cards, forums, reminders, etc.{'\n'}• To
+                monitor performance and improve user experience (via Firebase){'\n\n'}
+                <Text style={styles.modalSectionHeading}>3. Third-Party Services</Text>
+                {'\n'}
+                We use the following services that may collect user information:{'\n'}• Firebase (by Google){'\n'}•
+                Google Analytics for Firebase{'\n'}• Google AdMob{'\n'}• Expo Push Notifications{'\n\n'}
+                Each service has its own privacy policy:{'\n'}• Firebase Privacy{'\n'}• AdMob Privacy{'\n\n'}
+                <Text style={styles.modalSectionHeading}>4. Data Security</Text>
+                {'\n'}
+                We implement industry-standard security practices including:{'\n'}• HTTPS encryption{'\n'}• Firebase
+                Authentication & Firestore security rules{'\n'}• Secure login & limited access{'\n\n'}
+                <Text style={styles.modalSectionHeading}>5. Children's Privacy</Text>
+                {'\n'}
+                YOGO Campus is not intended for children under 13. We do not knowingly collect data from children. If
+                you are a parent and believe your child provided us with data, please contact us.{'\n\n'}
+                <Text style={styles.modalSectionHeading}>6. User Rights</Text>
+                {'\n'}
+                You may:{'\n'}• Request to view or delete your data{'\n'}• Delete your account at any time{'\n'}•
+                Contact us via yogocampus@gmail.com{'\n\n'}
+                <Text style={styles.modalSectionHeading}>7. Changes to This Policy</Text>
+                {'\n'}
+                We may update this Privacy Policy. We will notify you by email or in-app if required.{'\n\n'}
+                <Text style={styles.modalSectionHeading}>8. Contact</Text>
+                {'\n'}
                 If you have questions, please email: yogocampus@gmail.com
               </Text>
             </ScrollView>
