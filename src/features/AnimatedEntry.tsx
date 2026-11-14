@@ -38,7 +38,7 @@ const AnimatedEntry = () => {
   const iconsOpacity = useSharedValue(1); // opacity for all icons
 
   useEffect(() => {
-    let timeout: number | undefined;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
     // Step 1: Logo & App Name scale up
     scale.value = withSequence(
       withTiming(1.2, { duration: 500, easing: Easing.out(Easing.exp) }),

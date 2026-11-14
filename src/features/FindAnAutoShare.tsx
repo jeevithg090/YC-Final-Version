@@ -14,7 +14,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { db, auth, collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, arrayUnion } from '../services/firebase';
+import { db, auth } from '../services/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -415,6 +415,10 @@ const FindAnAutoShare: React.FC = () => {
               
               // Add current user as a passenger
               const currentUser = auth.currentUser;
+              if (!currentUser) {
+                Alert.alert('Login Required', 'Please log in to join a ride.');
+                return;
+              }
               const userName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Anonymous User';
               const phoneNumber = currentUser?.phoneNumber || 'No phone number';
               

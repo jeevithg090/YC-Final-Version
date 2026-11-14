@@ -35,8 +35,8 @@ import {
   Timestamp,
   setDoc
 } from 'firebase/firestore';
-import { ThemedView } from '../../components/ThemedView';
-import { ThemedText } from '../../components/ThemedText';
+import { ThemedView } from '../components/ThemedView';
+import { ThemedText } from '../components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
 import { GeminiTimetableService } from '../services/geminiTimetableService';
 import { TimetableData, ExtractedTimetable, ClassEntry, DaySchedule, ClassNotificationSettings, UploadLimitData } from '../types/timetable';

@@ -37,10 +37,10 @@ import { TimetableData, ExtractedTimetable, ClassEntry } from '../types/timetabl
 import { EventData, getLatestEvent } from './Events';
 import AskAIBot from './AskAIBot';
 import Alerts from './Alerts';
-// import QnAIcon from '../../assets/images/qna.png'; // Commented out due to missing module
-import { auth } from '../services/firebase'; // <-- Add this import
-import { Collapsible } from '../../components/Collapsible';
-import calendarDataRaw from '../../MITCalendar.json';
+import { auth } from '../services/firebase';
+import { Collapsible } from '../components/Collapsible';
+import { mitCalendar } from '../data/calendars';
+import { findNextEvent, formatDaysRemaining } from '../utils/academicCalendar';
 // Replace import ... from ... for badges with require()
 const BeginnerBadge = require('../../assets/Badges-Points/Beginner.png');
 const ExplorerBadge = require('../../assets/Badges-Points/Explorer.png');
@@ -49,7 +49,6 @@ const MasterBadge = require('../../assets/Badges-Points/Master.png');
 const LegendBadge = require('../../assets/Badges-Points/Legend.png');
 import { getUserPoints, UserPoints, updateStreakOnDashboardVisit } from '../services/pointsService';
 const OGUserBadge = require('../../assets/Badges/OgUser.png');
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -174,8 +173,6 @@ const Dashboard: React.FC = () => {
   const [isOGUser, setIsOGUser] = useState<boolean>(false);
   // Add state to track which badge is selected for the modal
   const [selectedBadge, setSelectedBadge] = useState<'planner' | 'oguser'>('planner');
-
-  const insets = useSafeAreaInsets();
 
   // Load timetable data from Firebase or AsyncStorage
   const loadTimetableData = async (): Promise<TimetableData | null> => {
@@ -328,14 +325,6 @@ const Dashboard: React.FC = () => {
     
     // Define meal times (24-hour format)
     const mealTimes = {
-      // Initialize API keys from Firestore
-      try {
-        await apiKeysService.initialize();
-        console.log('API keys initialized in Dashboard');
-      } catch (error) {
-        console.error('Failed to initialize API keys in Dashboard:', error);
-      }
-      
       breakfast: { start: 7, end: 9.5, display: "7:00 AM - 9:30 AM" },     // 7:00 AM - 9:30 AM
       lunch: { start: 11.75, end: 14.25, display: "11:45 AM - 2:15 PM" },  // 11:45 AM - 2:15 PM
       snacks: { start: 16.5, end: 18, display: "4:30 PM - 6:00 PM" },      // 4:30 PM - 6:00 PM
@@ -377,6 +366,13 @@ const Dashboard: React.FC = () => {
   // Initialize data on component mount
   useEffect(() => {
     const initializeData = async () => {
+      // Load API keys from Firestore before any AI-backed feature runs
+      try {
+        await apiKeysService.initialize();
+      } catch (error) {
+        console.error('Failed to initialize API keys in Dashboard:', error);
+      }
+
       const date = new Date();
       const options: Intl.DateTimeFormatOptions = { 
         weekday: 'long', 
@@ -2827,8 +2823,6 @@ const styles = StyleSheet.create({
   },
   academicViewButtonArrowEnhanced: {
     transform: [{ translateX: 0 }],
-    transitionProperty: 'transform',
-    transitionDuration: '0.2s',
   },
   pointsCardContainer: {
     marginTop: 24,
@@ -3027,64 +3021,11 @@ const styles = StyleSheet.create({
 });
 
 // CalendarEvent type for AcademicCalendarEventCard
-interface CalendarEvent {
-  date: string;
-  day: string;
-  event: string;
-}
-
 // Inline AcademicCalendarEventCard component
 const AcademicCalendarEventCard = ({ navigation }: { navigation: any }) => {
-  // Helper functions (copied from AcademicCalendar.tsx)
-  const getMonthIndex = (monthName: string): number => {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return months.indexOf(monthName);
-  };
-  const calculateDaysRemaining = (dateString: string, monthName: string): number => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const dayMatch = dateString.match(/(\d+)/);
-    if (!dayMatch) return 0;
-    const day = parseInt(dayMatch[1]);
-    const currentYear = today.getFullYear();
-    const eventMonthIdx = getMonthIndex(monthName);
-    const currentMonthIdx = today.getMonth();
-    let eventYear = currentYear;
-    if (eventMonthIdx < 6 && currentMonthIdx >= 6) {
-      eventYear = currentYear + 1;
-    }
-    let eventDate = new Date(eventYear, eventMonthIdx, day);
-    eventDate.setHours(0, 0, 0, 0);
-    const timeDiff = eventDate.getTime() - today.getTime();
-    const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
-    return daysDiff;
-  };
-  const formatDaysRemaining = (days: number): string => {
-    if (days < 0) return `${Math.abs(days)} days ago`;
-    if (days === 0) return 'Today';
-    if (days === 1) return '1 day to go';
-    return `${days} days to go`;
-  };
-  // Find next upcoming event
-  let nextEvent: CalendarEvent | null = null;
-  let minDays = Infinity;
-  let nextMonth: string = '';
-  // Fix typing for calendarDataRaw
-  const months = (calendarDataRaw as { months: { name: string; events: CalendarEvent[] }[] }).months;
-  months.forEach((month) => {
-    month.events.forEach((event: CalendarEvent) => {
-      const days = calculateDaysRemaining(event.date, month.name);
-      if (days >= 0 && days < minDays) {
-        minDays = days;
-        nextEvent = event;
-        nextMonth = month.name;
-      }
-    });
-  });
-  if (!nextEvent) return null;
+  const upcoming = findNextEvent(mitCalendar.months);
+  if (!upcoming) return null;
+  const { event: nextEvent, monthName: nextMonth, daysRemaining: minDays } = upcoming;
   // Card UI (PURPLE THEME)
   return (
     <View style={[styles.academicCardContainerEnhanced, { backgroundColor: 'transparent' }]}> {/* Remove default bg */}
@@ -3106,13 +3047,13 @@ const AcademicCalendarEventCard = ({ navigation }: { navigation: any }) => {
           <Text style={[styles.academicCardTitleEnhanced, { color: '#4E54C8' }]}>Academic Calendar Events</Text>
           {/* Subtext */}
           <Text style={[styles.academicEventSubtextEnhanced, { color: '#4E54C8' }]} numberOfLines={2}>
-            {(nextEvent as CalendarEvent).event}
+            {nextEvent.event}
           </Text>
           {/* Date Row + Today Badge */}
           <View style={styles.academicDateRowEnhanced}>
             <Ionicons name="calendar-outline" size={18} color="#8B5CF6" style={{ marginRight: 6 }} />
             <Text style={[styles.academicDateTextEnhanced, { color: '#4E54C8' }]}> 
-              {(nextEvent as CalendarEvent).date}{(nextEvent as CalendarEvent).day ? ` | ${(nextEvent as CalendarEvent).day}` : ''}
+              {nextEvent.date}{nextEvent.day ? ` | ${nextEvent.day}` : ''}
             </Text>
             {minDays === 0 && (
               <View style={[styles.todayBadgeEnhanced, { backgroundColor: '#E0D7FF' }]}> {/* Purple badge */}

@@ -1,6 +1,1 @@
-export type RootStackParamList = {
-  QnaForumPost: {
-    questionId: string;
-  };
-  // Add other screen params here
-};
+export type { RootStackParamList } from '../navigation/router';

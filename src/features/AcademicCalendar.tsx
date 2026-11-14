@@ -2,20 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Platform, Animated, SafeAreaView, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-// Directly import the local JSON files
-import mitCalendarData from '../../MITCalendar.json';
-import icasCalendarData from '../../ICAS.json';
+import { icasCalendar as icasCalendarData, mitCalendar as mitCalendarData } from '../data/calendars';
+import {
+  calculateDaysRemaining as calculateDaysRemainingOrNull,
+  formatDaysRemaining,
+  getInitialMonthIndex,
+  type CalendarEvent,
+  type CalendarMonth,
+} from '../utils/academicCalendar';
 
-interface CalendarEvent {
-  date: string;
-  day: string;
-  event: string;
-}
-
-interface CalendarMonth {
-  name: string;
-  events: CalendarEvent[];
-}
+/** Days until an event; unparseable dates are treated as "today". */
+const calculateDaysRemaining = (dateString: string, monthName: string): number =>
+  calculateDaysRemainingOrNull(dateString, monthName) ?? 0;
 
 const AcademicCalendar: React.FC = () => {
   const [calendarData, setCalendarData] = useState<CalendarMonth[]>([]);
@@ -30,23 +28,6 @@ const AcademicCalendar: React.FC = () => {
     loadCalendarData();
   }, [calendarType]); // Reload when calendar type changes
 
-  // Helper to find the month index containing the closest upcoming event (or today)
-  const getInitialMonthIndex = (months: CalendarMonth[]): number => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    let closestMonthIdx = 0;
-    let minDays = Infinity;
-    months.forEach((month, idx) => {
-      month.events.forEach(event => {
-        const days = calculateDaysRemaining(event.date, month.name);
-        if (days >= 0 && days < minDays) {
-          minDays = days;
-          closestMonthIdx = idx;
-        }
-      });
-    });
-    return closestMonthIdx;
-  };
 
   const loadCalendarData = () => {
     setLoading(true);
@@ -66,54 +47,8 @@ const AcademicCalendar: React.FC = () => {
     }
   };
 
-  // Calculate days remaining, robust for academic year (July-June)
-  const calculateDaysRemaining = (dateString: string, monthName: string): number => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
-    // Extract day number
-    const dayMatch = dateString.match(/(\d+)/);
-    if (!dayMatch) return 0;
-    const day = parseInt(dayMatch[1]);
-    const currentYear = today.getFullYear();
-    const eventMonthIdx = getMonthIndex(monthName);
-    const currentMonthIdx = today.getMonth();
 
-    // Academic year starts in July
-    let eventYear = currentYear;
-    if (eventMonthIdx < 6 && currentMonthIdx >= 6) {
-      // If event is Jan-Jun and today is July-Dec, event is next year
-      eventYear = currentYear + 1;
-    }
-    // If event is July-Dec and today is Jan-Jun, event is previous year (shouldn't happen for future events)
-
-    let eventDate = new Date(eventYear, eventMonthIdx, day);
-    eventDate.setHours(0, 0, 0, 0);
-
-    const timeDiff = eventDate.getTime() - today.getTime();
-    const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
-    return daysDiff;
-  };
-
-  const getMonthIndex = (monthName: string): number => {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return months.indexOf(monthName);
-  };
-
-  const formatDaysRemaining = (days: number): string => {
-    if (days < 0) {
-      return `${Math.abs(days)} days ago`;
-    } else if (days === 0) {
-      return 'Today';
-    } else if (days === 1) {
-      return '1 day to go';
-    } else {
-      return `${days} days to go`;
-    }
-  };
 
   const getDaysRemainingColor = (days: number): string => {
     if (days < 0) {
@@ -377,8 +312,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     borderWidth: 0,
-    transitionProperty: 'background-color',
-    transitionDuration: '0.2s',
   },
   daysRemainingBadge: {
     paddingHorizontal: 16,
