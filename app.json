@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "yogo",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.jeevithg.YOGO",
@@ -15,7 +15,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#1A53AC"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.jeevithg.YOGO"
@@ -26,8 +26,9 @@
       "favicon": "./assets/images/favicon.png",
       "name": "YOGO Campus",
       "shortName": "YOGO",
-      "description": "All-in-one campus companion app for students: mess menus, ride sharing, marketplace, bill splitting, timetables and more.",
-      "themeColor": "#4E54C8"
+      "description": "All-in-one campus companion for students: mess menus, ride sharing, a marketplace, bill splitting, timetables, Q&A and more.",
+      "themeColor": "#4E54C8",
+      "backgroundColor": "#F6F7FB"
     },
     "plugins": [
       [
@@ -36,14 +37,14 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#1A53AC"
         }
       ],
       [
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "color": "#ffffff",
+          "color": "#4E54C8",
           "defaultChannel": "default"
         }
       ]
