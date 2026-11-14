@@ -218,7 +218,7 @@ const EventsDetails: React.FC<EventsDetailsProps> = ({
                 <View style={styles.cardDetailsRow}>
                   <View style={styles.cardDetailItem}>
                     <Ionicons name="location" size={16} color="#fff" />
-                    <Text style={styles.cardDetailText}>{selectedEvent.venue.name}</Text>
+                    <Text style={styles.cardDetailText}>{selectedEvent.venue?.name ?? selectedEvent.location}</Text>
                   </View>
 
                   <View style={styles.cardDetailItem}>
@@ -257,9 +257,9 @@ const EventsDetails: React.FC<EventsDetailsProps> = ({
                 </View>
                 <View style={styles.infoTextContainer}>
                   <Text style={styles.detailInfoLabel}>{selectedEvent.isOnline ? 'Platform' : 'Venue'}</Text>
-                  <Text style={styles.detailInfoValue}>{selectedEvent.venue.name}</Text>
-                  {selectedEvent.venue.address && (
-                    <Text style={styles.detailInfoSubValue}>{selectedEvent.venue.address}</Text>
+                  <Text style={styles.detailInfoValue}>{selectedEvent.venue?.name ?? selectedEvent.location}</Text>
+                  {selectedEvent.venue?.address && (
+                    <Text style={styles.detailInfoSubValue}>{selectedEvent.venue?.address}</Text>
                   )}
                 </View>
               </View>
@@ -410,10 +410,10 @@ const EventsDetails: React.FC<EventsDetailsProps> = ({
             </TouchableOpacity>
           )}
 
-          {selectedEvent.venue.mapUrl && (
+          {selectedEvent.venue?.mapUrl && (
             <TouchableOpacity
               style={[styles.modalActionButton, styles.mapButton]}
-              onPress={() => Linking.openURL(selectedEvent.venue.mapUrl!)}
+              onPress={() => Linking.openURL(selectedEvent.venue?.mapUrl!)}
             >
               <Ionicons name="map-outline" size={16} color="#10b981" style={{ marginRight: 8 }} />
               <Text style={styles.mapButtonText}>View on Map</Text>

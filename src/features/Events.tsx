@@ -216,7 +216,7 @@ const AnimatedEventCard: React.FC<{
             </View>
             <View style={styles.eventDetailRow}>
               <Ionicons name={event.isOnline ? 'videocam-outline' : 'location-outline'} size={16} color="#666" />
-              <Text style={styles.eventDetailText}>{event.venue.name}</Text>
+              <Text style={styles.eventDetailText}>{event.venue?.name ?? event.location}</Text>
             </View>
           </View>
 
@@ -428,7 +428,7 @@ const Events: React.FC = () => {
   const handleShare = async (event: Event) => {
     try {
       await Share.share({
-        message: `Check out this event: ${event.title}\n\n${event.description}\n\nDate: ${formatDate(event.date)}\nTime: ${event.time}\nLocation: ${event.venue.name}`,
+        message: `Check out this event: ${event.title}\n\n${event.description}\n\nDate: ${formatDate(event.date)}\nTime: ${event.time}\nLocation: ${event.venue?.name ?? event.location}`,
         title: event.title,
       });
     } catch (error) {
