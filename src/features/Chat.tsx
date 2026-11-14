@@ -12,7 +12,6 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -377,7 +376,7 @@ const Chat: React.FC = () => {
           </KeyboardAvoidingView>
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 

@@ -17,8 +17,8 @@ import {
   Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ThemedView } from '../../components/ThemedView';
-import { ThemedText } from '../../components/ThemedText';
+import { ThemedView } from '../components/ThemedView';
+import { ThemedText } from '../components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
 import notificationService from '../services/notificationService';
 import { db, auth } from '../services/firebase';
@@ -28,6 +28,7 @@ import {
   updateDoc, 
   getDocs, 
   query,
+  where,
   orderBy,
   Timestamp,
   getDoc,

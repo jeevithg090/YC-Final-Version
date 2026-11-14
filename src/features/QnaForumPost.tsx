@@ -207,6 +207,11 @@ const QnaForumPost: React.FC = () => {
 
   // Load question details
   const loadQuestionDetails = async () => {
+    if (!questionId) {
+      setError('Question ID is missing');
+      setLoading(false);
+      return;
+    }
     try {
       console.log('QnaForumPost: Loading question details for ID:', questionId);
       if (!db) {
@@ -354,7 +359,7 @@ const QnaForumPost: React.FC = () => {
 
   // Vote on question with haptic feedback
   const voteQuestion = async (voteType: 'up' | 'down') => {
-    if (!question) return;
+    if (!question || !questionId) return;
     
     // Trigger haptic feedback
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
