@@ -170,7 +170,13 @@ const PublishACabShare: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!validateStep(3)) return;
-    
+
+    const currentUserId = auth.currentUser?.uid;
+    if (!currentUserId) {
+      Alert.alert('Login Required', 'Please log in to publish a cab share.');
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
@@ -182,7 +188,7 @@ const PublishACabShare: React.FC = () => {
         travelDate: formData.travelDate,
         cabTravelTime: formData.cabTravelTime,
         flexibilityMinutes: formData.flexibilityMinutes,
-        createdBy: 'current-user-id', // Replace with actual user ID from auth
+        createdBy: currentUserId,
         passengers: [], // Empty initially, will be populated when users join
         maxPassengers: parseInt(formData.numberOfPassengers),
         status: 'active',
@@ -215,27 +221,32 @@ const PublishACabShare: React.FC = () => {
           mediumBags: parseInt(formData.checkinBags),
           largeBags: parseInt(formData.laptopBags),
         },
+        // Cab details are filled in once the group books a cab.
         cabService: {
-          name: 'Default Cab Service',
-          type: 'Sedan',
-          driverName: 'TBD',
-          driverNumber: 'TBD',
+          name: 'To be decided',
+          type: '',
+          driverName: '',
+          driverNumber: '',
           arrivalTime: formData.cabTravelTime.toISOString().split('T')[1].slice(0, 5),
-          carModel: 'Maruti Dzire',
-          carNumber: 'KA-20-AB-1234',
+          carModel: '',
+          carNumber: '',
         },
         createdAt: serverTimestamp(),
         status: 'active',
-        createdBy: 'current-user-id', // Replace with actual user ID from auth
+        createdBy: currentUserId,
       };
 
       // Save to both collections
-      const publishedRideRef = await addDoc(collection(db, 'published_rides'), publishedRideData);
+      // The cab ride is created first so the searchable published ride can link to it.
       const cabRideRef = await addDoc(collection(db, 'cab_rides'), cabShareData);
+      const publishedRideRef = await addDoc(collection(db, 'published_rides'), {
+        ...publishedRideData,
+        cabRideId: cabRideRef.id,
+      });
       
       // Create a user ride record for "Your Rides" feature
       await addDoc(collection(db, 'user_rides'), {
-        userId: 'current-user-id', // Replace with actual user ID
+        userId: currentUserId,
         rideId: cabRideRef.id,
         publishedRideId: publishedRideRef.id,
         role: 'creator',

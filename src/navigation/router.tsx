@@ -1,8 +1,7 @@
-import React, { Suspense, useEffect, useState } from 'react';
+import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../services/firebase';
+import { useAuth } from '../context/AuthContext';
 
 // Direct imports for all components to avoid lazy loading issues
 // We're focusing on the authentication flow
@@ -59,13 +58,6 @@ import Alerts from '../features/Alerts';
 import InitializeApiKeys from '../features/InitializeApiKeys';
 
 // Import other components as needed, but for now, we're focusing on the auth flow
-
-// Loading component for Suspense
-const LoadingScreen = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <ActivityIndicator size="large" color="#0000ff" />
-  </View>
-);
 
 // Define the navigation parameter types for our auth flow
 export type RootStackParamList = {
@@ -141,21 +133,16 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 // Stack Navigator instance
 
 const Router: React.FC = () => {
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      setCheckingAuth(false);
-    });
-    return () => unsubscribe();
-  }, []);
+  const { currentUser: user, loading: checkingAuth } = useAuth();
 
   if (checkingAuth) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#0000ff" />
+      <View
+        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+        accessibilityRole="progressbar"
+        accessibilityLabel="Loading"
+      >
+        <ActivityIndicator size="large" color="#4E54C8" />
       </View>
     );
   }
@@ -526,7 +513,7 @@ const Router: React.FC = () => {
         component={AnimatedEntry}
         options={{
           headerShown: false,
-          title: 'Animated Splash',
+          title: 'Welcome',
         }}
       />
       <Stack.Screen
@@ -564,9 +551,11 @@ const Router: React.FC = () => {
           headerTintColor: '#00B894',
         }}
       />
-      <Stack.Screen
-        name="InitializeApiKeys"
-        component={InitializeApiKeys}
+      {/* Admin-only bootstrap screen: never expose it in production builds */}
+      {__DEV__ && (
+        <Stack.Screen
+          name="InitializeApiKeys"
+          component={InitializeApiKeys}
         options={{
           headerShown: true,
           title: 'Initialize API Keys',
@@ -575,6 +564,7 @@ const Router: React.FC = () => {
           headerTintColor: '#4E54C8',
         }}
       />
+      )}
       <Stack.Screen
         name="Alerts"
         component={Alerts}
