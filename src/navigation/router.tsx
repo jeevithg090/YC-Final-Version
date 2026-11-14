@@ -1,7 +1,11 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { auth } from '../services/firebase';
+import { StateView } from '../components/ui';
+import { SignInRequired } from '../components/SignInRequired';
+import { colors, typography } from '../theme';
+import { PUBLIC_SCREENS } from './linking';
 
 // Direct imports for all components to avoid lazy loading issues
 // We're focusing on the authentication flow
@@ -53,6 +57,7 @@ import ProductChat from '../features/ProductChat';
 import RoommateChat from '../features/RoommateChat';
 import AcademicCalendar from '../features/AcademicCalendar';
 import Alerts from '../features/Alerts';
+import NotFound from '../features/NotFound';
 
 // Import InitializeApiKeys component
 import InitializeApiKeys from '../features/InitializeApiKeys';
@@ -126,6 +131,7 @@ export type RootStackParamList = {
   Alerts: undefined; // Added Alerts route
   // Other screens can be added back as needed
   InitializeApiKeys: undefined; // Added InitializeApiKeys route
+  NotFound: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -136,15 +142,7 @@ const Router: React.FC = () => {
   const { currentUser: user, loading: checkingAuth } = useAuth();
 
   if (checkingAuth) {
-    return (
-      <View
-        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-        accessibilityRole="progressbar"
-        accessibilityLabel="Loading"
-      >
-        <ActivityIndicator size="large" color="#4E54C8" />
-      </View>
-    );
+    return <StateView kind="loading" title="Starting YOGO Campus…" style={{ backgroundColor: colors.background }} />;
   }
 
   return (
@@ -152,14 +150,19 @@ const Router: React.FC = () => {
       initialRouteName={user ? 'Dashboard' : 'AnimatedEntry'}
       screenOptions={{
         headerShown: true,
-        headerStyle: {
-          backgroundColor: '#f5f5f5',
-        },
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-        contentStyle: { backgroundColor: '#fff' },
+        headerStyle: { backgroundColor: colors.surface },
+        headerTintColor: colors.primary,
+        headerTitleStyle: { ...typography.subheading, color: colors.text },
+        headerShadowVisible: false,
+        headerBackButtonDisplayMode: 'minimal',
+        contentStyle: { backgroundColor: colors.background },
+        animation: 'slide_from_right',
       }}
+      // Members-only screens opened from a URL while signed out show a log-in
+      // prompt. Development builds skip this so screens can be previewed.
+      screenLayout={({ route, children }) =>
+        PUBLIC_SCREENS.has(route.name) || user || auth.currentUser || __DEV__ ? children : <SignInRequired />
+      }
     >
       <Stack.Screen
         name="LandingScreen"
@@ -182,10 +185,9 @@ const Router: React.FC = () => {
         component={Login}
         options={{
           title: 'Login',
-          headerStyle: {
-            backgroundColor: '#ffffff',
-          },
-          headerTintColor: '#333333',
+          headerTransparent: true,
+          headerStyle: { backgroundColor: 'transparent' },
+          headerTitle: '',
         }}
       />
       <Stack.Screen
@@ -193,10 +195,9 @@ const Router: React.FC = () => {
         component={SignUp}
         options={{
           title: 'Create Account',
-          headerStyle: {
-            backgroundColor: '#ffffff',
-          },
-          headerTintColor: '#333333',
+          headerTransparent: true,
+          headerStyle: { backgroundColor: 'transparent' },
+          headerTitle: '',
         }}
       />
       <Stack.Screen
@@ -204,10 +205,9 @@ const Router: React.FC = () => {
         component={Forgot}
         options={{
           title: 'Forgot Password',
-          headerStyle: {
-            backgroundColor: '#ffffff',
-          },
-          headerTintColor: '#333333',
+          headerTransparent: true,
+          headerStyle: { backgroundColor: 'transparent' },
+          headerTitle: '',
         }}
       />
       <Stack.Screen
@@ -565,6 +565,7 @@ const Router: React.FC = () => {
           }}
         />
       )}
+      <Stack.Screen name="NotFound" component={NotFound} options={{ title: 'Page not found', headerShown: false }} />
       <Stack.Screen
         name="Alerts"
         component={Alerts}
