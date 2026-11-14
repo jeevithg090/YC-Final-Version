@@ -15,8 +15,9 @@ interface WeatherData {
   dailyMessage: string;
 }
 
-const WEATHER_API_KEY = 'd99bbcddd6ad4b05b4d132735251606'; // Get this from https://www.weatherapi.com/
-const BASE_URL = 'http://api.weatherapi.com/v1';
+// Free key from https://www.weatherapi.com/ (see .env.example).
+const WEATHER_API_KEY = process.env.EXPO_PUBLIC_WEATHER_API_KEY ?? '';
+const BASE_URL = 'https://api.weatherapi.com/v1';
 
 const WeatherFetcher: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
@@ -35,6 +36,11 @@ const WeatherFetcher: React.FC = () => {
   }, []);
 
   const fetchWeatherData = async () => {
+    if (!WEATHER_API_KEY) {
+      setError('Weather is not configured (EXPO_PUBLIC_WEATHER_API_KEY is missing).');
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -70,7 +76,7 @@ const WeatherFetcher: React.FC = () => {
   const fetchWeatherForLocation = async (lat: number, lon: number) => {
     try {
       // Use real API call with your valid key
-      const url = `${BASE_URL}/current.json?key=${WEATHER_API_KEY}&q=${lat},${lon}&aqi=yes`;
+      const url = `${BASE_URL}/current.json?key=${encodeURIComponent(WEATHER_API_KEY)}&q=${lat},${lon}&aqi=yes`;
       const response = await fetch(url);
 
       if (!response.ok) {
